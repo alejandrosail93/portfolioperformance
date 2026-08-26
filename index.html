@@ -1307,16 +1307,22 @@ html[data-theme="light"] .maptbl select{background:#fff}
         <div class="card mt18">
           <div class="card-hd"><h2><span class="chip g" id="chipImp"></span> Importa da CSV</h2></div>
           <div class="card-bd">
-            <div class="note" style="margin-bottom:15px">Incolla il CSV del tuo broker (prima riga = intestazioni) oppure carica il file, poi abbina le colonne. Riconosce virgola, punto e virgola e tabulazione.</div>
+            <div class="note" style="margin-bottom:15px">Incolla il CSV del tuo broker (prima riga = intestazioni) oppure carica il file, poi abbina le colonne. Riconosce virgola, punto e virgola e tabulazione.
+              <br><br><b>Due modi di importare.</b> Se il file ha solo <i>quantità</i> e <i>prezzo di carico</i>, ogni riga è una posizione, come sempre.
+              Se invece abbini anche <b>Operazione</b>, <b>Commissione</b> o <b>Dividendo</b>, ogni riga diventa un <b>movimento</b>:
+              le righe con lo stesso ticker confluiscono in un unico titolo con il suo registro transazioni, e quantità e
+              prezzo medio vengono calcolati dai movimenti. Un titolo venduto per intero viene chiuso automaticamente.
+              <br><br>Per i dividendi puoi usare indifferentemente <b>Dividendo totale</b> (il controvalore incassato) oppure
+              <b>Dividendo per azione</b> (moltiplicato per la quantità della riga): se le compili entrambe vince il totale.</div>
             <div class="field"><input type="file" id="csvFile" accept=".csv,text/csv,text/plain" style="padding:9px"></div>
             <div class="field"><label>…oppure incolla qui</label>
-              <textarea id="csvPaste" placeholder="Ticker;Nome;Categoria;Settore;Paese;Valuta;Quantità;Prezzo carico;Prezzo attuale;Yield %;Rischio;Fattore;In portafoglio dal&#10;AAPL;Apple Inc.;Stocks;Technology;USA;USD;25;150;212;0,5;7;Growth;15/03/2024"></textarea></div>
+              <textarea id="csvPaste" placeholder="Ticker;Nome;Categoria;Settore;Paese;Valuta;Data;Operazione;Quantità;Prezzo unitario;Commissione;Dividendo totale;Dividendo per azione&#10;AAPL;Apple Inc.;Stocks;Technology;USA;USD;15/03/2024;Acquisto;25;150;4,95;;&#10;AAPL;;;;;;12/08/2025;;25;;;;0,24&#10;AAPL;;;;;;03/02/2026;Vendita;10;212;4,95;;"></textarea></div>
             <button class="btn btn-ghost btn-sm" id="csvParse">Leggi colonne</button>
             <div id="mapArea" style="display:none;margin-top:18px">
               <div class="sec-t" style="margin-top:0">Abbina le colonne</div>
               <table class="maptbl"><tbody id="mapRows"></tbody></table>
               <div class="btnrow" style="margin-top:16px">
-                <button class="btn btn-primary btn-sm" id="csvImport">Importa posizioni</button>
+                <button class="btn btn-primary btn-sm" id="csvImport">Importa</button>
                 <button class="btn btn-ghost btn-sm" id="csvCancel">Annulla</button>
               </div>
             </div>
@@ -4548,9 +4554,11 @@ function parseCSV(text){
 }
 const CSV_FIELDS=[
   ['ticker','Ticker / Simbolo *'],['name','Nome'],['cls','Categoria'],['sector','Settore'],
-  ['country','Paese / Area'],['currency','Valuta'],['qty','Quantità *'],['avg','Prezzo di carico *'],
+  ['country','Paese / Area'],['currency','Valuta'],['qty','Quantità *'],['avg','Prezzo di carico / operazione *'],
   ['price','Prezzo attuale'],['yield','Yield dividendo %'],['risk','Rischio 3–9'],['factor','Fattore'],
-  ['targetWeight','Peso previsto %'],['dateAdded','In portafoglio dal']
+  ['targetWeight','Peso previsto %'],['dateAdded','Data / In portafoglio dal'],
+  ['txType','Operazione (acquisto/vendita)'],['fee','Commissione'],
+  ['divTotal','Dividendo (totale)'],['divShare','Dividendo per azione']
 ];
 const CSV_HINTS={
   ticker:['ticker','simbolo','symbol','isin','strumento','titolo'],
@@ -4559,7 +4567,8 @@ const CSV_HINTS={
   sector:['settore','sector','comparto'],
   country:['paese','country','area','geograf','region','nazione','stato'],
   qty:['quantit','quantity','qta','q.t','shares','numero','pezzi','azioni','unit'],
-  avg:['carico','medio','cost','acquisto','pmc','avg','costo'],
+  avg:['prezzo di carico','prezzo operazione','prezzo unitario','prezzo eseguito','prezzo medio',
+       'carico','medio','cost','acquisto','pmc','avg','costo'],
   price:['attuale','corrente','current','last','ultimo','chiusura','close','prezzo','mercato',
          'market','quotazione','valore unit'],
   currency:['valuta','currency','divisa','ccy'],
@@ -4568,15 +4577,53 @@ const CSV_HINTS={
   factor:['fattore','factor','stile','style'],
   targetWeight:['peso previsto','target','peso'],
   dateAdded:['portafoglio dal','in portafoglio','data acquisto','data di acquisto','inserimento',
-             'apertura','data','date','added','since']
+             'apertura','data','date','added','since'],
+  /* "operazione"/"movimento": mai 'tipo' o 'acquisto' da soli, sono già usati
+     da Categoria e da Prezzo di carico */
+  txType:['tipo operazione','tipo movimento','operazione','movimento','causale','transazione',
+          'buy/sell','acquisto/vendita','side','direzione','segno'],
+  fee:['commissione','commissioni','commission','fee','spese','oneri','bollo','tassa'],
+  divTotal:['dividendo totale','totale dividendo','dividendo lordo','dividendo netto',
+            'importo dividendo','dividendo incassato','controvalore dividendo','cedola totale',
+            'dividendo'],
+  divShare:['dividendo per azione','dividendo per quota','dividendo unitario','dividendo/azione',
+            'per azione','per share','dividend per share','cedola unitaria','dps']
 };
-function guessColumn(headers,field){
+/* Acquisto o vendita, in italiano o inglese. */
+function parseTxType(v){
+  const s=String(v==null?'':v).toLowerCase().trim();
+  if(!s)return '';
+  if(/^(-|s|v)$/.test(s)||/vendit|vendut|sell|scarico|uscita|disinvest/.test(s))return 'sell';
+  if(/^(\+|b|a|c)$/.test(s)||/acquist|compr|buy|carico|entrata|investim/.test(s))return 'buy';
+  return '';
+}
+/* Ritorna la colonna che combacia meglio: vince la parola chiave più lunga,
+   cioè la più specifica. `used` esclude le colonne già assegnate. */
+function guessColumn(headers,field,used){
   const h=headers.map(x=>String(x).toLowerCase());
   const pats=CSV_HINTS[field]||[];
-  for(let j=0;j<h.length;j++)
+  let best=-1,len=-1;
+  for(let j=0;j<h.length;j++){
+    if(used&&used[j])continue;
     for(let k=0;k<pats.length;k++)
-      if(h[j].indexOf(pats[k])>-1)return j;
-  return -1;
+      if(h[j].indexOf(pats[k])>-1&&pats[k].length>len){ best=j; len=pats[k].length; }
+  }
+  return {i:best,len:len};
+}
+/* Assegna le colonne una sola volta, partendo dalle corrispondenze più
+   specifiche: senza questo "Dividendo per azione" verrebbe rivendicato anche
+   da "Yield dividendo %", che contiene la parola "dividend". */
+function guessAllColumns(headers){
+  const pick={},used={};
+  let rest=CSV_FIELDS.map(f=>f[0]);
+  while(rest.length){
+    let bf=null,bg=null;
+    rest.forEach(f=>{ const g=guessColumn(headers,f,used);
+      if(g.i>-1&&(!bg||g.len>bg.len)){ bf=f; bg=g; } });
+    if(!bf)break;
+    pick[bf]=bg.i; used[bg.i]=1; rest=rest.filter(f=>f!==bf);
+  }
+  return pick;
 }
 function csvRead(){
   const txt=$('#csvPaste').value.trim();
@@ -4588,9 +4635,10 @@ function csvRead(){
     parsedCSV.headers.map((h,i)=>'<option value="'+i+'">'+esc(h)+'</option>').join('');
   $('#mapRows').innerHTML=CSV_FIELDS.map(f=>
     '<tr><td>'+esc(f[1])+'</td><td><select data-field="'+f[0]+'">'+opts+'</select></td></tr>').join('');
+  const pick=guessAllColumns(parsedCSV.headers);
   CSV_FIELDS.forEach(f=>{
     const sel=document.querySelector('#mapRows select[data-field="'+f[0]+'"]');
-    if(sel)sel.value=guessColumn(parsedCSV.headers,f[0]);
+    if(sel)sel.value=pick[f[0]]!=null?pick[f[0]]:-1;
   });
   $('#mapArea').style.display='block';
   toast(parsedCSV.data.length+' righe lette · controlla l\'abbinamento','ok');
@@ -4601,36 +4649,97 @@ function csvDoImport(){
   $$('#mapRows select').forEach(s=>{ map[s.getAttribute('data-field')]=parseInt(s.value,10); });
   if(!(map.ticker>-1)){ toast('Seleziona almeno la colonna del Ticker','err'); return; }
   const get=(r,k)=>map[k]>-1?String(r[map[k]]==null?'':r[map[k]]).trim():'';
-  let added=0;
+  const has=k=>map[k]>-1;
+  /* Con una colonna Operazione, Commissione o Dividendo ogni riga è un
+     MOVIMENTO: righe con lo stesso ticker confluiscono in un'unica posizione
+     con il suo registro. Senza quelle colonne resta il comportamento di
+     sempre: una riga = una posizione con quantità e prezzo di carico. */
+  const txMode=has('txType')||has('fee')||has('divTotal')||has('divShare');
+  const byTicker={}, order=[];
+  let righe=0, movimenti=0, scartate=0;
+
   parsedCSV.data.forEach(r=>{
     const t=get(r,'ticker'); if(!t)return;
-    let rk=map.risk>-1?Math.round(num(get(r,'risk'))):0;
-    rk=rk?Math.max(3,Math.min(9,rk)):6;
-    const cur=(get(r,'currency')||'EUR').toUpperCase();
-    const tw=get(r,'targetWeight');
-    const country=get(r,'country');
-    if(country)rememberCountry(country);
-    /* niente data inventata: senza colonna il campo resta assente e la
-       posizione ricade nel comportamento storico, segnalato nello Storico */
-    const dAdded=map.dateAdded>-1?parseDateIT(get(r,'dateAdded')):'';
-    S.positions.push({
-      id:uid(), ticker:t.toUpperCase(), name:get(r,'name'),
-      cls:normCls(get(r,'cls'))||'Other', sector:normSector(get(r,'sector')), country:country,
-      currency:CURRENCIES.indexOf(cur)>-1?cur:'EUR',
-      qty:num(get(r,'qty')), avg:num(get(r,'avg')), price:num(get(r,'price')),
-      yield:map.yield>-1?num(get(r,'yield')):null,
-      risk:rk, factor:normFactor(get(r,'factor')),
-      targetWeight:tw===''?null:num(tw),
-      emergency:0, tx:[], dateAdded:dAdded||undefined
-    });
-    added++;
+    const key=t.toUpperCase();
+    let p=byTicker[key];
+    if(!p){
+      let rk=has('risk')?Math.round(num(get(r,'risk'))):0;
+      rk=rk?Math.max(3,Math.min(9,rk)):6;
+      const cur=(get(r,'currency')||'EUR').toUpperCase();
+      const tw=get(r,'targetWeight');
+      p=byTicker[key]={
+        id:uid(), ticker:key, name:get(r,'name'),
+        cls:normCls(get(r,'cls'))||'Other', sector:normSector(get(r,'sector')), country:'',
+        currency:CURRENCIES.indexOf(cur)>-1?cur:'EUR',
+        qty:0, avg:0, price:num(get(r,'price')),
+        yield:has('yield')?num(get(r,'yield')):null,
+        risk:rk, factor:normFactor(get(r,'factor')),
+        targetWeight:tw===''?null:num(tw),
+        emergency:0, tx:[]
+      };
+      order.push(p);
+    }
+    /* le righe successive dello stesso titolo possono completare i campi
+       lasciati vuoti nella prima */
+    if(!p.name)p.name=get(r,'name');
+    if(!p.price)p.price=num(get(r,'price'));
+    const ctry=get(r,'country');
+    if(ctry&&!p.country)p.country=rememberCountry(ctry);
+    righe++;
+
+    const data=has('dateAdded')?parseDateIT(get(r,'dateAdded')):'';
+    if(data&&(!p.dateAdded||data<p.dateAdded))p.dateAdded=data;
+
+    if(!txMode){
+      p.qty=num(get(r,'qty')); p.avg=num(get(r,'avg'));
+      return;
+    }
+    const qty=num(get(r,'qty')), price=num(get(r,'avg')), fee=has('fee')?num(get(r,'fee')):0;
+    /* delle due colonne dividendo vince il controvalore totale; se manca, si
+       usa il dividendo per azione moltiplicato per la quantità della riga */
+    const dTot=has('divTotal')?num(get(r,'divTotal')):0;
+    const dShare=has('divShare')?num(get(r,'divShare')):0;
+    const tipo=parseTxType(get(r,'txType'));
+    let mossa=false;
+
+    if(qty>0&&price>0&&(tipo||!has('txType'))){
+      p.tx.push({id:uid(),type:tipo||'buy',date:data||todayISO(),qty:qty,price:price,fee:fee});
+      movimenti++; mossa=true;
+    }
+    if(dTot>0||(dShare>0&&qty>0)){
+      p.tx.push(dTot>0
+        ? {id:uid(),type:'div',date:data||todayISO(),amount:dTot,fee:0}
+        : {id:uid(),type:'div',date:data||todayISO(),qty:qty,price:dShare,fee:0});
+      movimenti++; mossa=true;
+    }
+    /* commissione isolata, senza né operazione né dividendo */
+    if(!mossa&&fee>0){
+      p.tx.push({id:uid(),type:'fee',date:data||todayISO(),amount:fee,fee:0});
+      movimenti++; mossa=true;
+    }
+    if(!mossa)scartate++;
   });
+
+  order.forEach(p=>{
+    if(p.tx.length){
+      p.tx.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+      const d=derive(p); p.qty=d.qty; p.avg=d.avg;
+      syncClosed(p);
+    }
+    if(!p.dateAdded)delete p.dateAdded;
+    S.positions.push(p);
+  });
+
   parsedCSV=null;
   $('#mapArea').style.display='none';
   $('#csvPaste').value=''; $('#csvFile').value='';
   save(); renderAll();
-  toast(added+(added===1?' posizione importata':' posizioni importate'),'ok');
-  if(added)refreshPrices(true);
+  const n=order.length;
+  toast(txMode
+    ? n+(n===1?' posizione':' posizioni')+' · '+movimenti+(movimenti===1?' movimento':' movimenti')+
+      (scartate?' · '+scartate+' righe senza dati utilizzabili':'')
+    : n+(n===1?' posizione importata':' posizioni importate'),'ok');
+  if(n)refreshPrices(true);
 }
 
 /* ==========================================================================
