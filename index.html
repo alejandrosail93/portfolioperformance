@@ -1247,6 +1247,15 @@ html[data-theme="light"] .maptbl select{background:#fff}
           </div>
         </div>
 
+        <div class="card mt18" id="closedCard" style="display:none">
+          <div class="card-hd"><h2><span class="chip t" id="chipClosed"></span> Posizioni chiuse</h2>
+            <div class="right"><span class="sub" id="closedCount"></span></div></div>
+          <div id="closedBody"></div>
+          <div class="note mt18">Titoli venduti al 100%. Non fanno più parte del portafoglio operativo, ma il loro
+            guadagno/perdita realizzato resta nei totali e lo storico dei mesi in cui li possedevi resta intatto.
+            Per togliere davvero un titolo dai dati usa <b>Elimina</b> nella sua scheda: è irreversibile.</div>
+        </div>
+
         <div class="card mt18">
           <div class="card-hd"><h2><span class="chip t" id="chipSnap"></span> Snapshot salvati</h2>
             <div class="right"><span class="sub" id="histCount"></span></div></div>
@@ -1301,7 +1310,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
             <div class="note" style="margin-bottom:15px">Incolla il CSV del tuo broker (prima riga = intestazioni) oppure carica il file, poi abbina le colonne. Riconosce virgola, punto e virgola e tabulazione.</div>
             <div class="field"><input type="file" id="csvFile" accept=".csv,text/csv,text/plain" style="padding:9px"></div>
             <div class="field"><label>…oppure incolla qui</label>
-              <textarea id="csvPaste" placeholder="Ticker;Nome;Categoria;Settore;Paese;Valuta;Quantità;Prezzo carico;Prezzo attuale;Yield %;Rischio;Fattore&#10;AAPL;Apple Inc.;Stocks;Technology;USA;USD;25;150;212;0,5;7;Growth"></textarea></div>
+              <textarea id="csvPaste" placeholder="Ticker;Nome;Categoria;Settore;Paese;Valuta;Quantità;Prezzo carico;Prezzo attuale;Yield %;Rischio;Fattore;In portafoglio dal&#10;AAPL;Apple Inc.;Stocks;Technology;USA;USD;25;150;212;0,5;7;Growth;15/03/2024"></textarea></div>
             <button class="btn btn-ghost btn-sm" id="csvParse">Leggi colonne</button>
             <div id="mapArea" style="display:none;margin-top:18px">
               <div class="sec-t" style="margin-top:0">Abbina le colonne</div>
@@ -1506,17 +1515,22 @@ html[data-theme="light"] .maptbl select{background:#fff}
         <div class="field"><label>Prezzo medio di carico</label><input id="fAvg" type="text" inputmode="decimal"></div>
       </div>
       <div class="frow">
+        <div class="field"><label>In portafoglio dal</label><input id="fDateAdded" type="date">
+          <div class="hint" id="fDateAddedHint">Da quando possiedi il titolo: lo storico ricostruito parte da qui.</div></div>
         <div class="field"><label>Prezzo attuale</label><input id="fPrice" type="text" inputmode="decimal"></div>
+      </div>
+      <div class="frow">
         <div class="field"><label>Peso previsto (%)</label><input id="fTarget" type="text" inputmode="decimal" placeholder="es. 15"></div>
-      </div>
-      <div class="frow">
         <div class="field"><label>Rischio 3–9</label><input id="fRisk" type="number" min="3" max="9" step="1" placeholder="6"></div>
-        <div class="field"><label>Yield dividendo %</label><input id="fYield" type="text" inputmode="decimal"></div>
       </div>
       <div class="frow">
+        <div class="field"><label>Yield dividendo %</label><input id="fYield" type="text" inputmode="decimal"></div>
         <div class="field"><label>Fattore</label><select id="fFactor"></select></div>
+      </div>
+      <div class="frow">
         <div class="field"><label>Fondo emergenza</label><select id="fEmergency">
           <option value="">—</option><option value="1">Sì</option></select></div>
+        <div class="field"></div>
       </div>
       <div class="field"><label>Mesi di stacco dividendi</label>
         <input id="fDivMonths" placeholder="es. 3, 6, 9, 12">
@@ -1848,6 +1862,19 @@ function normalizeState(){
   };
   (S.positions||[]).forEach(fix);
   (S.watchlist||[]).forEach(fix);
+  /* dateAdded: per le posizioni già salvate si deduce dalla prima transazione.
+     Se non ci sono transazioni resta assente e viene trattata come caso limite
+     in qtyAt(), senza inventare una data che l'utente non ha mai indicato. */
+  /* posizioni salvate prima dell'introduzione di `closed`: lo stato viene
+     dedotto dal registro transazioni, senza toccare i dati */
+  (S.positions||[]).forEach(p=>{ if(p&&syncClosed(p))dirty=true; });
+  (S.positions||[]).forEach(p=>{
+    if(!p||p.dateAdded)return;
+    const tx=(p.tx||[]).filter(t=>t&&t.date);
+    if(!tx.length)return;
+    const first=tx.map(t=>String(t.date).slice(0,10)).sort()[0];
+    if(/^\d{4}-\d{2}-\d{2}$/.test(first)){ p.dateAdded=first; dirty=true; }
+  });
   /* paesi personalizzati: normalizzati, deduplicati, e assorbiti se ormai standard */
   const seen={},cc=[];
   (S.countries||[]).forEach(c=>{ const v=normCountry(c);
@@ -1879,6 +1906,17 @@ function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{
 /* ==========================================================================
    3. FORMATTAZIONE
    ========================================================================== */
+/* Avvisi diagnostici solo in sviluppo (locale o file://): l'utente finale non
+   vede nulla in console. Ogni avviso è emesso una sola volta per chiave, così
+   un ciclo su 180 mesi × N posizioni non allaga il log. */
+const DEV=(function(){ try{
+  return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)||location.protocol==='file:';
+}catch(e){ return false; } })();
+const _warned={};
+function devWarn(key,msg){
+  if(!DEV||_warned[key])return; _warned[key]=1;
+  try{ console.warn('[portfolio] '+msg); }catch(e){}
+}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function num(v){
@@ -1971,9 +2009,60 @@ function derive(p){
 
 /* stato calcolato, rigenerato a ogni render */
 let T={value:0,cost:0,pnl:0,pnlPct:0,day:0,dayPct:0,realized:0,dividends:0,n:0,best:null,worst:null};
+/* ==========================================================================
+   5b. POSIZIONI CHIUSE
+   --------------------------------------------------------------------------
+   Vendere tutto e cancellare non sono la stessa cosa. Una posizione venduta al
+   100% viene CHIUSA: resta in S.positions con tutte le sue transazioni, quindi
+   continua a contribuire al realizzato, ai dividendi incassati e allo storico
+   dei mesi in cui la possedevi — ma esce dal portafoglio operativo.
+   Eliminarla, invece, cancella davvero il dato: è un'azione distinta.
+   ========================================================================== */
+const EPS_QTY=1e-9;
+const isClosed=p=>!!(p&&p.closed);
+const activePositions=()=>S.positions.filter(p=>!isClosed(p));
+const closedPositions=()=>S.positions.filter(isClosed);
+const activeCount=()=>activePositions().length;
+
+/* Allinea closed/closedDate al registro transazioni. Va richiamata dopo ogni
+   modifica al registro: una vendita che azzera la quantità chiude la
+   posizione, un acquisto successivo la riapre. Ritorna true se è cambiato. */
+function syncClosed(p){
+  if(!p||typeof p!=='object')return false;
+  const was=!!p.closed, wasDate=p.closedDate||null;
+  const tx=(p.tx||[]).filter(t=>t&&t.type);
+  const clear=()=>{ delete p.closed; delete p.closedDate; };
+  if(!tx.length){ clear(); return was!==!!p.closed; }
+  if(derive(p).qty>EPS_QTY){ clear(); }
+  else {
+    /* senza una vendita la quantità a zero non è una chiusura: è una
+       posizione che non è mai stata davvero aperta */
+    const sells=tx.filter(t=>t.type==='sell'&&t.date).map(t=>String(t.date).slice(0,10)).sort();
+    if(!sells.length)clear();
+    else { p.closed=true; p.closedDate=sells[sells.length-1]; }
+  }
+  return was!==!!p.closed||wasDate!==(p.closedDate||null);
+}
+/* Riepilogo economico di una posizione chiusa, in valuta di base. */
+function closedSummary(p){
+  const tx=(p.tx||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  let bought=0,sold=0,div=0;
+  tx.forEach(t=>{
+    const fee=num(t.fee);
+    if(t.type==='buy')bought+=num(t.qty)*num(t.price)+fee;
+    else if(t.type==='sell')sold+=num(t.qty)*num(t.price)-fee;
+    else if(t.type==='div')div+=(t.amount!=null?num(t.amount):num(t.qty)*num(t.price))-fee;
+  });
+  const rate=fxRate(p.currency);
+  return {from:tx.length?String(tx[0].date).slice(0,10):null,
+          to:p.closedDate||(tx.length?String(tx[tx.length-1].date).slice(0,10):null),
+          bought:bought*rate, sold:sold*rate, div:div*rate,
+          realized:num(p._realized), n:tx.length};
+}
+
 function enrich(){
   ensureFx();
-  let value=0,cost=0,day=0,realized=0,dividends=0;
+  let value=0,cost=0,day=0,realized=0,dividends=0,closedRealized=0;
   S.positions.forEach(p=>{
     /* rete di sicurezza: qualsiasi dato entrato per altre vie viene letto normalizzato */
     p.cls=normCls(p.cls); p.sector=normSector(p.sector); p.country=normCountry(p.country);
@@ -1987,17 +2076,24 @@ function enrich(){
     p._div=d.divCash*rate;
     p._day=p.prevClose?d.qty*(num(p.price)-num(p.prevClose))*rate:0;
     p._dayPct=p.prevClose&&num(p.prevClose)>0?(num(p.price)/num(p.prevClose)-1)*100:0;
-    value+=p._value; cost+=p._cost; day+=p._day; realized+=p._realized; dividends+=p._div;
+    /* le chiuse hanno qty 0, quindi valore e costo correnti sono già 0:
+       entrano solo nel realizzato e nei dividendi incassati */
+    realized+=p._realized; dividends+=p._div;
+    if(isClosed(p)){ closedRealized+=p._realized; return; }
+    value+=p._value; cost+=p._cost; day+=p._day;
   });
   S.positions.forEach(p=>{
-    p._w=value>0?p._value/value*100:0;
+    p._w=value>0&&!isClosed(p)?p._value/value*100:0;
     /* quanto capitale manca (o avanza) per raggiungere il peso previsto */
-    p._tDiff=(p.targetWeight!=null&&p.targetWeight!==''&&value>0)?(num(p.targetWeight)-p._w)/100*value:null;
-    p._action=computeAction(p);
+    p._tDiff=(isClosed(p)||p.targetWeight==null||p.targetWeight===''||value<=0)
+      ?null:(num(p.targetWeight)-p._w)/100*value;
+    p._action=isClosed(p)?'Ok':computeAction(p);
   });
-  const sorted=S.positions.filter(p=>p._cost>0).slice().sort((a,b)=>b._pnlPct-a._pnlPct);
+  const act=activePositions();
+  const sorted=act.filter(p=>p._cost>0).slice().sort((a,b)=>b._pnlPct-a._pnlPct);
   T={value,cost,pnl:value-cost,pnlPct:cost>0?(value-cost)/cost*100:0,
-     day,dayPct:(value-day)>0?day/(value-day)*100:0,realized,dividends,n:S.positions.length,
+     day,dayPct:(value-day)>0?day/(value-day)*100:0,realized,dividends,n:act.length,
+     nClosed:S.positions.length-act.length, closedRealized:closedRealized,
      best:sorted[0]||null,worst:sorted[sorted.length-1]||null};
   return T;
 }
@@ -2248,8 +2344,8 @@ function renderHero(){
     zeroLine:mode!=='value',
     fmtY:v=>mode==='value'?(Math.abs(v)>=1000?Math.round(v/1000)+'k':Math.round(v)):nf(v,1)+'%',
     fmtTip:p=>mode==='value'?money(p.v):pctv(p.v),
-    emptyTitle:S.positions.length?'Nessuna serie storica':'Nessun dato ancora',
-    emptyText:S.positions.length?'Salva uno snapshot in Storico, oppure scarica lo storico dei prezzi da Salute per ricostruire il grafico automaticamente.'
+    emptyTitle:activeCount()?'Nessuna serie storica':'Nessun dato ancora',
+    emptyText:activeCount()?'Salva uno snapshot in Storico, oppure scarica lo storico dei prezzi da Salute per ricostruire il grafico automaticamente.'
       :'Aggiungi una posizione o carica i dati di esempio dalle Impostazioni.'
   });
 }
@@ -2277,7 +2373,7 @@ function renderKpis(){
    ========================================================================== */
 function renderSettings(){
   $('#chipData').innerHTML=ic('db',17); $('#chipFx').innerHTML=ic('fx',17);
-  $('#stPos').textContent=S.positions.length;
+  $('#stPos').textContent=activeCount()+(T.nClosed?' · '+T.nClosed+' chiuse':'');
   $('#stTx').textContent=S.positions.reduce((a,p)=>a+((p.tx||[]).length),0);
   $('#stSnap').textContent=(S.history||[]).length;
   $('#stUpd').textContent=S.lastUpdate?fmtDate(new Date(S.lastUpdate).toISOString())+' · '+fmtTime(S.lastUpdate):'mai';
@@ -2321,7 +2417,7 @@ function yQuote(sym){
 let refreshing=false;
 function refreshPrices(silent){
   if(refreshing)return Promise.resolve();
-  const list=S.positions.filter(p=>p.ticker);
+  const list=activePositions().filter(p=>p.ticker);
   if(!list.length){ if(!silent)toast('Nessuna posizione con un ticker da aggiornare'); return Promise.resolve(); }
   refreshing=true; $('#btnRefresh').classList.add('spin');
   const jobs=list.map(p=>yQuote(p.ticker).then(r=>{
@@ -2336,7 +2432,7 @@ function refreshPrices(silent){
   return Promise.all(jobs.concat(wjobs)).then(refreshFx).then(()=>{
     S.lastUpdate=Date.now(); refreshing=false; $('#btnRefresh').classList.remove('spin');
     save(); renderAll();
-    const ko=S.positions.filter(p=>p._stale).length;
+    const ko=activePositions().filter(p=>p._stale).length;
     if(!silent)toast('Prezzi aggiornati alle '+fmtTime(S.lastUpdate)+(ko?' · '+ko+' non trovati':''),ko?'':'ok');
   }).catch(()=>{
     refreshing=false; $('#btnRefresh').classList.remove('spin');
@@ -2369,6 +2465,10 @@ function demoData(){
     mk('BTC-EUR','Bitcoin','Crypto','Crypto-asset','World','EUR',.12,31500,58200,0,9,'Speculative',5),
     mk('GLD','SPDR Gold Shares','Commodities','Commodity','World','USD',25,168,246.4,0,4,'Value',5)
   ];
+  /* date di ingresso sfalsate: mostrano lo storico che parte da quando il
+     titolo è entrato davvero in portafoglio */
+  const ago=m=>{ const d=new Date(); d.setMonth(d.getMonth()-m); return d.toISOString().slice(0,10); };
+  [28,26,24,20,16,14,10,7,4].forEach((m,i)=>{ if(P[i])P[i].dateAdded=ago(m); });
   /* la prima posizione mostra il registro transazioni in azione */
   P[1].tx=[
     {id:uid(),type:'buy',date:'2023-03-14',qty:20,price:148.2,fee:2.5},
@@ -2442,8 +2542,8 @@ function matchFilters(p,f){
   if(f.action&&p._action!==f.action)return false;
   return true;
 }
-const filteredPositions=()=>S.positions.filter(p=>matchFilters(p,UI.filters));
-const allocPositions=()=>S.positions.filter(p=>matchFilters(p,Object.assign({},UI.allocFilters,{search:'',action:''})));
+const filteredPositions=()=>activePositions().filter(p=>matchFilters(p,UI.filters));
+const allocPositions=()=>activePositions().filter(p=>matchFilters(p,Object.assign({},UI.allocFilters,{search:'',action:''})));
 
 const NORM_BY_FIELD={cls:normCls,sector:normSector,country:normCountry};
 function fillSelect(id,field,label,source){
@@ -2451,7 +2551,7 @@ function fillSelect(id,field,label,source){
   const fn=NORM_BY_FIELD[field]||(v=>String(v==null?'':v).trim());
   const cur=fn(source[field]||''), vals={};
   /* le varianti dello stesso valore confluiscono in un'unica voce */
-  S.positions.forEach(p=>{ const v=fn(p[field]); if(v)vals[v]=1; });
+  activePositions().forEach(p=>{ const v=fn(p[field]); if(v)vals[v]=1; });
   const opts=Object.keys(vals).sort((a,b)=>a.localeCompare(b,'en'));
   sel.innerHTML='<option value="">'+esc(label)+'</option>'+
     opts.map(v=>'<option'+(v===cur?' selected':'')+'>'+esc(v)+'</option>').join('');
@@ -2507,7 +2607,7 @@ function renderAlloc(){
     '<div class="leg" data-i="'+i+'"><span class="dot" style="background:'+PAL[i%PAL.length]+'"></span>'+
     '<span class="nm">'+esc(g.name)+'</span><span class="am mask">'+money0(g.value)+'</span>'+
     '<span class="pc">'+nf(total>0?g.value/total*100:0,1)+'%</span></div>').join('')
-    :'<div class="note" style="margin:0">'+(S.positions.length?'Nessun titolo corrisponde ai filtri.'
+    :'<div class="note" style="margin:0">'+(activeCount()?'Nessun titolo corrisponde ai filtri.'
       :'Aggiungi una posizione per vedere l\'allocazione.')+'</div>';
 
   const hi=i=>{
@@ -2536,7 +2636,7 @@ function renderAlloc(){
 
 /* ---------- contributo al risultato ---------- */
 function renderContrib(){
-  const arr=S.positions.filter(p=>p._cost>0).slice().sort((a,b)=>b._pnl-a._pnl);
+  const arr=activePositions().filter(p=>p._cost>0).slice().sort((a,b)=>b._pnl-a._pnl);
   const host=$('#contrib');
   if(!arr.length){
     host.innerHTML='<div class="note" style="margin:0">Aggiungi posizioni con un prezzo di carico per vedere chi contribuisce al risultato.</div>';
@@ -2584,7 +2684,7 @@ function locCell(v,cur){
 function renderTable(){
   const rows=sortedPositions(), tb=$('#tbody'), empty=$('#tblEmpty');
   const maxAbs=Math.max.apply(null,[1].concat(rows.map(p=>Math.abs(p._pnl))));
-  if(!S.positions.length){
+  if(!activeCount()){
     tb.innerHTML='';
     empty.innerHTML='<div class="empty"><div class="ic">'+ic('wallet',22)+'</div>'+
       '<div class="big">Il portafoglio è vuoto</div>'+
@@ -2630,7 +2730,7 @@ function renderTable(){
       '</tr>';
     }).join('');
   }
-  $('#fltCount').textContent=rows.length+' di '+S.positions.length;
+  $('#fltCount').textContent=rows.length+' di '+activeCount();
   $$('#tbl thead th.sortable').forEach(th=>{
     const k=th.getAttribute('data-k');
     th.querySelectorAll('.ar').forEach(e=>e.remove());
@@ -2711,6 +2811,7 @@ function openPos(id){
   $('#fCur').value=p&&p.currency?p.currency:'EUR';
   $('#fSector').value=p?(p.sector||''):'';
   $('#fCountry').value=p?(p.country||''):'';
+  $('#fDateAdded').value=p?(p.dateAdded||''):todayISO();
   $('#fQty').value=fnum(p&&p.qty!=null?p.qty:'');
   $('#fAvg').value=fnum(p&&p.avg!=null?p.avg:'');
   $('#fPrice').value=fnum(p&&p.price!=null?p.price:'');
@@ -2797,20 +2898,50 @@ function savePos(){
   p.compCountry=normComposition($('#fCompCountry').value.trim(),normCountry);
   p.divMonths=$('#fDivMonths').value.trim();
   p.note=$('#fNote').value.trim();
+  /* la data scritta dall'utente vince sempre; per le nuove posizioni, se il
+     campo è vuoto, si registra oggi */
+  const da=$('#fDateAdded').value;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(da))p.dateAdded=da;
+  else if(isNew)p.dateAdded=todayISO();
+  else delete p.dateAdded;
   p.tx=UI.editTx.slice();
   if(p.tx.length){ const d=derive(p); p.qty=d.qty; p.avg=d.avg; }
   else { p.qty=num($('#fQty').value); p.avg=num($('#fAvg').value); }
+  const eraChiusa=isClosed(p);
+  syncClosed(p);
   if(isNew)S.positions.push(p);
   save(); closeAll(); renderAll();
-  toast(isNew?'Posizione aggiunta':'Posizione aggiornata','ok');
+  if(!eraChiusa&&isClosed(p))
+    toast('Posizione chiusa il '+fmtDate(p.closedDate)+' · resta in "Posizioni chiuse" con il suo realizzato','ok');
+  else if(eraChiusa&&!isClosed(p))
+    toast('Posizione riaperta: torna fra quelle attive','ok');
+  else toast(isNew?'Posizione aggiunta':'Posizione aggiornata','ok');
   if(UI.drawerId===p.id)openDrawer(p.id);
   if(p.ticker&&!num(p.price))refreshOne(p);
 }
+/* Cancellazione VERA: da usare solo per una posizione inserita per errore.
+   Chi ha semplicemente venduto deve registrare la vendita (vedi openSellAll). */
 function deletePos(id){
   const p=S.positions.filter(x=>x.id===id)[0]; if(!p)return;
-  if(!confirm('Elimino "'+(p.ticker||p.name)+'" dal portafoglio?'))return;
+  if(!confirm('Elimino "'+(p.ticker||p.name)+'" e TUTTO il suo storico '+
+    '(incluse le transazioni e il guadagno realizzato)?\n\nQuesta azione non è reversibile. '+
+    'Se hai solo venduto il titolo, chiudi la posizione invece di eliminarla.'))return;
   S.positions=S.positions.filter(x=>x.id!==id);
   save(); closeAll(); closeDrawer(); renderAll(); toast('Posizione eliminata');
+}
+/* Precompila una vendita totale nell'editor transazioni: l'utente registra la
+   vendita invece di cancellare la posizione a mano. */
+function openSellAll(id){
+  const p=S.positions.filter(x=>x.id===id)[0]; if(!p)return;
+  const q=num(p._q!=null?p._q:p.qty);
+  if(q<=EPS_QTY){ toast('La quantità è già a zero: non c\'è nulla da vendere','err'); return; }
+  closeDrawer(); openPos(id); setPosTab('tx');
+  $('#txType').value='sell';
+  $('#txDate').value=todayISO();
+  $('#txQty').value=fnum(+q.toFixed(8));
+  $('#txPrice').value=fnum(num(p.price));
+  $('#txFee').value='';
+  toast('Vendita precompilata: controlla prezzo e data, premi Aggiungi e poi Salva');
 }
 function refreshOne(p){
   if(!p.ticker)return;
@@ -2874,6 +3005,7 @@ function openDrawer(id){
     ['Settore',esc(p.sector||'—'),0],
     ['Paese / Area',esc(p.country||'—'),0],
     ['Fattore',esc(normFactor(p.factor)),0],
+    ['In portafoglio dal',p.dateAdded?fmtDate(p.dateAdded):'—',0],
     ['Peso previsto',p.targetWeight!=null&&p.targetWeight!==''?nf(num(p.targetWeight),1)+'%':'—',0],
     ['Da operare',p._tDiff!=null?(p._tDiff>=0?'+':'−')+money0(Math.abs(p._tDiff)):'—',1,
       p._tDiff!=null?(p._tDiff>=0?'up':'down'):'']
@@ -2922,12 +3054,16 @@ function openDrawer(id){
     '<div class="dw-ft">'+
       '<button class="btn btn-primary btn-sm" id="dwEdit">'+ic('edit',15)+' Modifica</button>'+
       '<button class="btn btn-ghost btn-sm" id="dwRefresh">'+ic('refresh',15)+' Aggiorna prezzo</button>'+
-      '<button class="btn btn-danger btn-sm" id="dwDel" style="margin-left:auto">'+ic('trash',15)+'</button>'+
+      (isClosed(p)?'':'<button class="btn btn-ghost btn-sm" id="dwSell" title="Registra la vendita totale invece di eliminare la posizione">'+
+        ic('balance',15)+' Vendi tutto</button>')+
+      '<button class="btn btn-danger btn-sm" id="dwDel" style="margin-left:auto" '+
+        'title="Cancella la posizione e tutto il suo storico">'+ic('trash',15)+'</button>'+
     '</div>';
 
   $('#dwClose').addEventListener('click',closeDrawer);
   $('#dwEdit').addEventListener('click',()=>openPos(p.id));
   $('#dwRefresh').addEventListener('click',()=>refreshOne(p));
+  if($('#dwSell'))$('#dwSell').addEventListener('click',()=>openSellAll(p.id));
   $('#dwDel').addEventListener('click',()=>deletePos(p.id));
   $('#drawer').classList.add('on'); $('#drawerOv').classList.add('on');
   drawerChart(p);
@@ -2982,12 +3118,12 @@ function parseComposition(text,norm){
   return out;
 }
 function computeHHI(){
-  if(!S.positions.length||T.value<=0)return 0;
-  let h=0; S.positions.forEach(p=>{ const w=p._value/T.value; h+=w*w; }); return h;
+  if(!activeCount()||T.value<=0)return 0;
+  let h=0; activePositions().forEach(p=>{ const w=p._value/T.value; h+=w*w; }); return h;
 }
 function groupBy(field,fallback){
   const m={};
-  S.positions.forEach(p=>{ const k=String(p[field]||'').trim()||(fallback||'—'); m[k]=(m[k]||0)+p._value; });
+  activePositions().forEach(p=>{ const k=String(p[field]||'').trim()||(fallback||'—'); m[k]=(m[k]||0)+p._value; });
   return m;
 }
 function topShare(m,total){
@@ -2996,7 +3132,7 @@ function topShare(m,total){
   return best&&total>0?{name:best,pct:bv/total*100}:null;
 }
 function expoFilterRows(f){
-  return S.positions.filter(p=>{
+  return activePositions().filter(p=>{
     if(f.cat&&(String(p.cls||'Altro').trim()||'Altro')!==f.cat)return false;
     if(f.sector&&(String(p.sector||'—').trim()||'—')!==f.sector)return false;
     if(f.country&&(String(p.country||'—').trim()||'—')!==f.country)return false;
@@ -3073,7 +3209,7 @@ function renderExpoCrumb(){
 }
 function renderExposure(){
   const map=$('#expoMap'), hh=$('#hhiLine'); if(!map)return;
-  if(!S.positions.length||T.value<=0){
+  if(!activeCount()||T.value<=0){
     map.innerHTML='<div class="empty" style="padding:120px 20px"><div class="sm">Aggiungi posizioni per vedere l\'esposizione.</div></div>';
     if(hh)hh.innerHTML=''; $('#expoCrumb').innerHTML=''; return;
   }
@@ -3132,13 +3268,13 @@ function corrRgba(v){
 }
 function renderCorrelation(){
   const wrap=$('#corrBody'); if(!wrap)return;
-  if(!S.positions.length||T.value<=0){
+  if(!activeCount()||T.value<=0){
     wrap.innerHTML='<div class="empty" style="padding:20px"><div class="sm">Aggiungi posizioni per calcolare le correlazioni.</div></div>';return;
   }
   if(!hasMonthly()){
     wrap.innerHTML='<div class="empty" style="padding:20px"><div class="sm">Nessuno storico scaricato — premi <b>Scarica storico</b> nella sezione Salute → Rischio quantitativo.</div></div>';return;
   }
-  const elig=S.positions.filter(p=>p.ticker&&MHIST[p.ticker]&&MHIST[p.ticker].pts&&MHIST[p.ticker].pts.length>=13&&p._value>0);
+  const elig=activePositions().filter(p=>p.ticker&&MHIST[p.ticker]&&MHIST[p.ticker].pts&&MHIST[p.ticker].pts.length>=13&&p._value>0);
   if(elig.length<2){
     wrap.innerHTML='<div class="empty" style="padding:20px"><div class="sm">Servono almeno 2 posizioni con circa 12 mesi di storico per calcolare le correlazioni.</div></div>';return;
   }
@@ -3162,7 +3298,7 @@ function renderRiskDist(){
   const host=$('#riskBar'); if(!host)return;
   const counts={},vals={};
   for(let i=3;i<=9;i++){counts[i]=0;vals[i]=0;}
-  S.positions.forEach(p=>{
+  activePositions().forEach(p=>{
     const r=Math.max(3,Math.min(9,Math.round(num(p.risk))||6));
     counts[r]++; vals[r]+=p._value;
   });
@@ -3174,7 +3310,7 @@ function renderRiskDist(){
       (counts[r]?riskColor(r):'var(--surface-2)')+'"></div></div>'+
     '<div class="lv">'+r+'</div></div>').join('');
   let ws=0,vs=0;
-  S.positions.forEach(p=>{ const r=Math.max(3,Math.min(9,Math.round(num(p.risk))||6)); ws+=p._value*r; vs+=p._value; });
+  activePositions().forEach(p=>{ const r=Math.max(3,Math.min(9,Math.round(num(p.risk))||6)); ws+=p._value*r; vs+=p._value; });
   $('#riskAvg').textContent=vs>0?nf(ws/vs,1):'–';
 }
 const FACTOR_COLORS={'Value':'#25c685','Quality':'#5cc48d','Quality-Growth':'#b9b23f','Growth':'#e8b13c',
@@ -3184,7 +3320,7 @@ function renderFactorDist(){
   const host=$('#factorBar'); if(!host)return;
   const counts={},vals={};
   FACTOR_ORDER.forEach(f=>{counts[f]=0;vals[f]=0;});
-  S.positions.forEach(p=>{ const f=normFactor(p.factor); counts[f]++; vals[f]+=p._value; });
+  activePositions().forEach(p=>{ const f=normFactor(p.factor); counts[f]++; vals[f]+=p._value; });
   const maxC=Math.max.apply(null,[1].concat(FACTOR_ORDER.map(f=>counts[f])));
   host.innerHTML=FACTOR_ORDER.map(f=>
     '<div class="col" title="'+esc(f)+': '+counts[f]+' posizioni · '+money0(vals[f])+'">'+
@@ -3198,7 +3334,7 @@ function renderFactorDist(){
 }
 function renderEtfList(){
   const wrap=$('#etfList'); if(!wrap)return;
-  const etfs=S.positions.filter(p=>p.cls==='ETF');
+  const etfs=activePositions().filter(p=>p.cls==='ETF');
   if(!etfs.length){
     wrap.innerHTML='<div class="empty" style="padding:16px"><div class="sm">Nessuna posizione in categoria ETF.</div></div>';return;
   }
@@ -3287,9 +3423,41 @@ function portfolioSeries(){
     if(wUsed>0)monthly.push({m:qr.grid[i+1],ret:sum/wUsed,cov:wUsed});
   }
   return {monthly:monthly,coveragePct:T.value>0?totW/T.value*100:0,
-    nUsed:rows.length,nTotal:S.positions.filter(p=>p.ticker).length};
+    nUsed:rows.length,nTotal:activePositions().filter(p=>p.ticker).length};
 }
 let downloading=false;
+/* Da quando serve davvero lo storico: la data d'ingresso più remota fra tutte
+   le posizioni. Se una posizione non ha né dateAdded né transazioni non
+   sappiamo da quando esiste — qtyAt() la considera presente da sempre, quindi
+   serve la finestra piena. */
+function oldestHoldingISO(){
+  let oldest=null,unknown=false;
+  (S.positions||[]).forEach(p=>{
+    if(!p||!p.ticker)return;
+    const tx=(p.tx||[]).filter(t=>t&&t.date).map(t=>String(t.date).slice(0,10)).sort();
+    const d=tx.length?tx[0]:(/^\d{4}-\d{2}-\d{2}$/.test(String(p.dateAdded||''))?p.dateAdded:null);
+    if(!d){ unknown=true; return; }
+    if(!oldest||d<oldest)oldest=d;
+  });
+  return unknown?null:oldest;
+}
+/* Yahoo accetta range del tipo "<n>y": si sceglie il gradino più piccolo che
+   copre lo storico utile, con un anno di margine. `extra` allarga di qualche
+   gradino (gli indici si scaricano una volta sola e devono restare validi
+   anche se poi aggiungi una posizione più vecchia). */
+const HIST_STEPS=[1,2,5,10,15];
+function historyRange(extra){
+  const from=oldestHoldingISO();
+  if(!from)return '15y';
+  const t=new Date(from+'T12:00:00').getTime();
+  if(!isFinite(t))return '15y';
+  /* ceil arrotonda già all'anno pieno: basta un margine di 3 mesi, altrimenti
+     una posizione aperta oggi chiederebbe due anni di storico */
+  const need=Math.max(1,Math.ceil((Date.now()-t)/(365.25*864e5)+.25));
+  let i=0; while(i<HIST_STEPS.length-1&&HIST_STEPS[i]<need)i++;
+  i=Math.min(HIST_STEPS.length-1,i+(extra||0));
+  return HIST_STEPS[i]+'y';
+}
 function downloadHistory(){
   if(downloading)return;
   const tickers=[];
@@ -3299,14 +3467,16 @@ function downloadHistory(){
   let done=0,ko=0;
   const status=()=>{ $('#histStatus').textContent='Scarico lo storico… '+done+'/'+tickers.length; };
   status();
-  const jobs=tickers.map(t=>yHistory(t,'15y','1mo')
+  const range=historyRange();
+  const jobs=tickers.map(t=>yHistory(t,range,'1mo')
     .then(pts=>{ MHIST[t]={pts:pts,at:Date.now()}; done++; status(); })
     .catch(()=>{ ko++; done++; status(); }));
   Promise.all(jobs).then(()=>{
     downloading=false; $('#btnHist').classList.remove('spin');
     saveMHist();
     $('#histStatus').textContent='Storico aggiornato il '+fmtDate(new Date().toISOString())+
-      ' · '+(tickers.length-ko)+'/'+tickers.length+' titoli'+(ko?' ('+ko+' non trovati su Yahoo)':'');
+      ' · '+(tickers.length-ko)+'/'+tickers.length+' titoli · ultimi '+range.replace('y',' anni')+
+      (ko?' ('+ko+' non trovati su Yahoo)':'');
     renderPage(UI.page);
     toast(ko?'Storico scaricato · '+ko+' titoli non trovati':'Storico scaricato',ko?'':'ok');
   });
@@ -3318,7 +3488,7 @@ function renderQuant(){
   const info=t=>'<span class="qhelp" title="'+esc(t)+'">?</span>';
   const box=(l,v,s,cls,tip)=>'<div class="kpi"><div class="l">'+esc(l)+info(tip)+'</div>'+
     '<div class="v num'+(cls?' '+cls:'')+'">'+v+'</div><div class="s">'+s+'</div></div>';
-  if(!S.positions.length||T.value<=0){
+  if(!activeCount()||T.value<=0){
     wrap.innerHTML='<div class="empty" style="padding:20px"><div class="sm">Aggiungi posizioni per calcolare le metriche.</div></div>';return;
   }
   if(!hasMonthly()){
@@ -3378,7 +3548,7 @@ function gaugeSvg(score,lbl,col,sub){
 }
 function setBar(id,v){ const e=$('#'+id); if(e)e.style.width=v+'%'; const t=$('#'+id+'v'); if(t)t.textContent=v; }
 function renderHealth(){
-  const n=S.positions.length, total=T.value;
+  const n=activeCount(), total=T.value;
   if(!n||total<=0){
     $('#gauge').innerHTML=gaugeSvg(0,'Nessun dato','',' ');
     $('#gaugeRisk').innerHTML=gaugeSvg(0,'Nessun dato','',' ');
@@ -3401,7 +3571,7 @@ function renderHealth(){
   setBar('m1',evenScore); setBar('m2',breadth); setBar('m3',catScore);
 
   let wsR=0,vsR=0;
-  S.positions.forEach(p=>{ const v=Math.max(3,Math.min(9,Math.round(num(p.risk))||6)); wsR+=p._value*v; vsR+=p._value; });
+  activePositions().forEach(p=>{ const v=Math.max(3,Math.min(9,Math.round(num(p.risk))||6)); wsR+=p._value*v; vsR+=p._value; });
   const riskAvg=vsR>0?wsR/vsR:6;
   const riskScore=Math.round(Math.max(0,Math.min(100,(riskAvg-3)/6*100)));
   const riskLbl=riskAvg<5?'Prudente':riskAvg<=7?'Bilanciato':'Aggressivo';
@@ -3416,7 +3586,7 @@ function renderHealth(){
   $('#gaugeCur').innerHTML=gaugeSvg(curScore,curLbl,'','valuta principale al '+nf(topCur,0)+'%');
 
   /* --- segnali --- */
-  const top=S.positions.slice().sort((a,b)=>b._value-a._value)[0];
+  const top=activePositions().slice().sort((a,b)=>b._value-a._value)[0];
   const topW=top?top._value/total*100:0, al=[];
   const nm=p=>esc(p.ticker||p.name||'—');
   if(topW>25)al.push(['bad','!','<b>'+nm(top)+'</b> pesa il '+topW.toFixed(0)+'% del portafoglio. Sopra il 25% aumenta il rischio specifico.']);
@@ -3432,12 +3602,12 @@ function renderHealth(){
   if(tc&&tc.pct>65)al.push(['bad','!','L\'area <b>'+esc(tc.name)+'</b> copre il '+tc.pct.toFixed(0)+'%: rischio geografico elevato.']);
   else if(tc&&tc.pct>50)al.push(['warn','!','Esposizione geografica concentrata su <b>'+esc(tc.name)+'</b> ('+tc.pct.toFixed(0)+'%).']);
   let hiRisk=0;
-  S.positions.forEach(p=>{ if((Math.round(num(p.risk))||6)>=7)hiRisk+=p._value; });
+  activePositions().forEach(p=>{ if((Math.round(num(p.risk))||6)>=7)hiRisk+=p._value; });
   const hiPct=total>0?hiRisk/total*100:0;
   if(hiPct>55)al.push(['bad','!','Il '+hiPct.toFixed(0)+'% del capitale è in posizioni ad alto rischio (7–9): portafoglio molto aggressivo.']);
   else if(hiPct>40)al.push(['warn','!','Il '+hiPct.toFixed(0)+'% è in posizioni ad alto rischio (7–9): verifica che sia in linea col tuo profilo.']);
   const ov={};
-  S.positions.forEach(p=>{
+  activePositions().forEach(p=>{
     const sec=String(p.sector||'').trim(), ct=String(p.country||'').trim();
     if(!sec||!ct)return;
     const k=sec.toLowerCase()+'||'+ct.toLowerCase();
@@ -3464,7 +3634,7 @@ function rbUnits(){
   /* restituisce le voci del piano: categorie oppure singole posizioni,
      con una chiave stabile per leggere e scrivere il target */
   if(UI.rbMode==='pos'){
-    return S.positions.slice().sort((a,b)=>b._value-a._value).map(p=>({
+    return activePositions().slice().sort((a,b)=>b._value-a._value).map(p=>({
       key:p.id, label:p.ticker||p.name||'—', sub:p.name&&p.ticker?p.name:'',
       value:p._value, id:p.id,
       get:()=>p.targetWeight==null||p.targetWeight===''?null:num(p.targetWeight),
@@ -3713,12 +3883,12 @@ function annualIncome(p){ return p._value*num(p.yield)/100; }
 
 function renderDividends(){
   const host=$('#dRows'); if(!host)return;
-  if(!S.positions.length){
+  if(!activeCount()){
     host.innerHTML='<div class="empty" style="padding:24px"><div class="sm">Aggiungi posizioni e imposta lo yield per stimare la rendita da dividendi.</div></div>';
     $('#dTotInc').textContent=money0(0);
     updateDiv(); renderDivCalendar(); return;
   }
-  const rows=S.positions.slice().sort((a,b)=>annualIncome(b)-annualIncome(a));
+  const rows=activePositions().slice().sort((a,b)=>annualIncome(b)-annualIncome(a));
   host.innerHTML=rows.map((p,i)=>{
     const inc=annualIncome(p);
     return '<div class="rb-row">'+
@@ -3741,7 +3911,7 @@ function renderDividends(){
 }
 function updateDiv(){
   const total=T.value;
-  const income=S.positions.reduce((a,p)=>a+annualIncome(p),0);
+  const income=activePositions().reduce((a,p)=>a+annualIncome(p),0);
   const yf=total>0?income/total:0;
   $('#dTotInc').textContent=money0(income);
   $('#dY').textContent=nf(yf*100,2)+'%';
@@ -3776,7 +3946,7 @@ function renderDivCalendar(){
   const buckets=new Array(12).fill(0);
   const detail=[];
   let unassigned=0, nUnassigned=0, nAssigned=0;
-  S.positions.forEach(p=>{
+  activePositions().forEach(p=>{
     const inc=annualIncome(p); if(inc<=0)return;
     const pm=payoutMonths(p);
     if(!pm.months.length){ unassigned+=inc; nUnassigned++; return; }
@@ -3940,13 +4110,34 @@ Chart.lines=function(host,seriesList,opt){
 /* ==========================================================================
    12o. STORICO — snapshot e ricostruzione dai prezzi
    ========================================================================== */
-/* Quantità e capitale investito a una certa data: se la posizione ha un
-   registro transazioni la ricostruzione è esatta, altrimenti si assume che le
-   quantità di oggi siano sempre state quelle. */
+/* Quantità e capitale investito a una certa data. Con un registro transazioni
+   la ricostruzione è esatta. Senza registro si assumono le quantità di oggi,
+   ma solo a partire da `dateAdded`: prima di quella data la posizione non era
+   in portafoglio e deve valere zero, altrimenti lo storico mostrerebbe valore
+   e rendimento per mesi in cui il titolo non era ancora stato comprato. */
+function isoOf(ts){
+  const d=new Date(ts);
+  return isFinite(d.getTime())?d.toISOString().slice(0,10):'';
+}
 function qtyAt(p,ts){
   const tx=p.tx||[];
-  if(!tx.length)return {qty:num(p.qty),cost:num(p.qty)*num(p.avg),exact:false};
-  const iso=new Date(ts).toISOString().slice(0,10);
+  if(!tx.length){
+    const flat={qty:num(p.qty),cost:num(p.qty)*num(p.avg),exact:false};
+    const from=p.dateAdded;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(from||''))){
+      /* caso limite: dati vecchi mai migrati e senza transazioni da cui dedurre
+         la data. Si mantiene il comportamento storico per non perdere la serie. */
+      devWarn('noDateAdded:'+(p.id||p.ticker||'?'),
+        'posizione "'+(p.ticker||p.name||p.id)+'" senza dateAdded né transazioni: '+
+        'lo storico ricostruito la considera presente da sempre. '+
+        'Imposta "In portafoglio dal" nella scheda per una serie corretta.');
+      return flat;
+    }
+    const iso0=isoOf(ts);
+    if(iso0&&iso0<from)return {qty:0,cost:0,exact:false};
+    return flat;
+  }
+  const iso=isoOf(ts);
   let q=0,cost=0;
   tx.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(t=>{
     if(String(t.date)>iso)return;
@@ -3987,7 +4178,7 @@ function reconstructedSeries(){
     if(any)out.push({t:months[k],value:value,cost:cost});
   });
   if(out.length<2)return null;
-  return {pts:out,exact:exactAll,nUsed:rows.length,nTotal:S.positions.length,
+  return {pts:out,exact:exactAll,nUsed:rows.length,nTotal:S.positions.filter(p=>p.ticker).length,
     coveragePct:T.value>0?covered/T.value*100:0};
 }
 function currentHistSeries(){
@@ -4004,6 +4195,55 @@ function currentHistSeries(){
   const r=reconstructedSeries();
   if(r)return {pts:r.pts,src:'calc',info:r};
   return {pts:snaps,src:'snap',info:null};
+}
+
+/* Posizioni per cui non sappiamo da quando sono in portafoglio: senza questa
+   informazione lo storico le considera presenti da sempre e il grafico parte
+   troppo indietro. L'avviso è visibile all'utente, non solo in console. */
+function undatedPositions(){
+  return (S.positions||[]).filter(p=>p&&p.ticker&&!(p.tx||[]).length&&
+    !/^\d{4}-\d{2}-\d{2}$/.test(String(p.dateAdded||'')));
+}
+function undatedNote(){
+  const u=undatedPositions();
+  if(!u.length)return '';
+  const names=u.slice(0,3).map(p=>esc(p.ticker)).join(', ')+(u.length>3?' e altre '+(u.length-3):'');
+  return '<div style="margin-top:9px;color:var(--gold)"><b>'+u.length+
+    (u.length===1?' posizione non ha':' posizioni non hanno')+' una data di inserimento</b> ('+names+
+    '): nel grafico '+(u.length===1?'viene considerata presente':'vengono considerate presenti')+
+    ' da sempre. Apri la scheda del titolo e compila <b>In portafoglio dal</b> per correggere.</div>';
+}
+
+/* ---------- posizioni chiuse ---------- */
+function renderClosed(){
+  const card=$('#closedCard'), body=$('#closedBody'); if(!card||!body)return;
+  const rows=closedPositions().slice().sort((a,b)=>
+    String(b.closedDate||'').localeCompare(String(a.closedDate||'')));
+  if(!rows.length){ card.style.display='none'; body.innerHTML=''; return; }
+  card.style.display='';
+  const tot=rows.reduce((a,p)=>a+num(p._realized),0);
+  $('#closedCount').textContent=rows.length+(rows.length===1?' posizione · ':' posizioni · ')+
+    (tot>=0?'+':'−')+money0(Math.abs(tot))+' realizzati';
+  body.innerHTML='<div class="tbl-scroll"><table class="snap-tbl"><thead><tr>'+
+    '<th>Titolo</th><th>Periodo</th><th>Investito</th><th>Ricavato</th><th>Realizzato</th><th></th>'+
+    '</tr></thead><tbody>'+
+    rows.map(p=>{
+      const s=closedSummary(p);
+      return '<tr>'+
+        '<td><div style="font-weight:650">'+esc(p.ticker||p.name||'—')+'</div>'+
+          (p.name&&p.ticker?'<div class="cellsub">'+esc(p.name)+'</div>':'')+'</td>'+
+        '<td>'+(s.from?fmtDate(s.from):'—')+'<div class="cellsub">'+
+          (s.to?'chiusa il '+fmtDate(s.to):'')+'</div></td>'+
+        '<td class="num mask">'+money0(s.bought)+'</td>'+
+        '<td class="num mask">'+money0(s.sold)+
+          (s.div?'<div class="cellsub">+'+money0(s.div)+' dividendi</div>':'')+'</td>'+
+        '<td class="num mask '+(s.realized>=0?'up':'down')+'">'+
+          (s.realized>=0?'+':'−')+money0(Math.abs(s.realized))+'</td>'+
+        '<td><button class="rowbtn" data-closed="'+esc(p.id)+'" title="Apri la scheda">'+
+          ic('eye',15)+'</button></td></tr>';
+    }).join('')+'</tbody></table></div>';
+  $$('#closedBody [data-closed]').forEach(b=>b.addEventListener('click',()=>
+    openDrawer(b.getAttribute('data-closed'))));
 }
 
 /* ---------- rendering dello storico ---------- */
@@ -4025,7 +4265,8 @@ function renderHistory(){
     note.innerHTML='<div class="note mt18">Serie <b>ricostruita dai prezzi storici</b> di '+S1.info.nUsed+
       ' titoli su '+S1.info.nTotal+'. '+(S1.info.exact
         ? 'Tutte le posizioni hanno un registro transazioni, quindi quantità e capitale investito di ogni mese sono quelli reali.'
-        : 'Per le posizioni senza registro transazioni si assume che le quantità di oggi siano sempre state quelle: il passato è quindi indicativo, non esatto. Registra le transazioni per una ricostruzione fedele.')+'</div>';
+        : 'Per le posizioni senza registro transazioni lo storico parte dalla data di inserimento in portafoglio; per una ricostruzione esatta anche dei prezzi di acquisto, registra le transazioni.')+
+      undatedNote()+'</div>';
   }else{
     note.innerHTML='<div class="note mt18">Serie costruita sugli <b>snapshot</b> che salvi tu: premi <b>Snapshot</b> ogni volta che aggiorni i prezzi (per esempio una volta al mese). Puoi anche inserire snapshot di date passate per ricostruire lo storico all\'indietro.</div>';
   }
@@ -4053,6 +4294,7 @@ function renderHistory(){
         '<td><button class="rowbtn" data-snap="'+esc(s.date)+'" title="Modifica">'+ic('edit',15)+'</button></td></tr>';
     }).join('');
   }
+  renderClosed();
   renderBenchmark();
 }
 function openSnap(dateKey){
@@ -4109,7 +4351,7 @@ function downloadBenchmarks(){
   if(benchLoading)return;
   benchLoading=true; $('#btnBench').classList.add('spin');
   $('#benchStatus').textContent='Scarico lo storico degli indici…';
-  const jobs=BENCH_LIST.map(b=>yHistory(b.key,'15y','1mo')
+  const jobs=BENCH_LIST.map(b=>yHistory(b.key,historyRange(1),'1mo')
     .then(pts=>{ BHIST.data[b.key]=pts; }).catch(()=>{}));
   Promise.all(jobs).then(()=>{
     benchLoading=false; $('#btnBench').classList.remove('spin');
@@ -4161,7 +4403,7 @@ function renderBenchmark(){
    ========================================================================== */
 function goalCurrent(g){
   if(g.mode==='manual')return num(g.manual);
-  if(g.mode==='emergency')return S.positions.filter(p=>p.emergency).reduce((a,p)=>a+p._value,0);
+  if(g.mode==='emergency')return activePositions().filter(p=>p.emergency).reduce((a,p)=>a+p._value,0);
   return T.value;
 }
 function goalStatus(g){
@@ -4264,6 +4506,17 @@ function deleteGoal(id){
    12r. IMPORT CSV
    ========================================================================== */
 let parsedCSV=null;
+/* Date da CSV: accetta ISO (2024-03-15) e formato italiano (15/03/2024). */
+function parseDateIT(v){
+  const s=String(v==null?'':v).trim(); if(!s)return '';
+  let y,m,d,mm=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+  if(mm){ y=+mm[1]; m=+mm[2]; d=+mm[3]; }
+  else{ mm=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/); if(!mm)return '';
+        d=+mm[1]; m=+mm[2]; y=+mm[3]; }
+  const dt=new Date(Date.UTC(y,m-1,d));
+  if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==m-1||dt.getUTCDate()!==d)return '';
+  return dt.toISOString().slice(0,10);
+}
 function parseCSV(text){
   /* delimitatore dedotto dalla prima riga, ignorando quanto sta tra virgolette */
   const first=text.split(/\r?\n/)[0]||'';
@@ -4297,7 +4550,7 @@ const CSV_FIELDS=[
   ['ticker','Ticker / Simbolo *'],['name','Nome'],['cls','Categoria'],['sector','Settore'],
   ['country','Paese / Area'],['currency','Valuta'],['qty','Quantità *'],['avg','Prezzo di carico *'],
   ['price','Prezzo attuale'],['yield','Yield dividendo %'],['risk','Rischio 3–9'],['factor','Fattore'],
-  ['targetWeight','Peso previsto %']
+  ['targetWeight','Peso previsto %'],['dateAdded','In portafoglio dal']
 ];
 const CSV_HINTS={
   ticker:['ticker','simbolo','symbol','isin','strumento','titolo'],
@@ -4313,7 +4566,9 @@ const CSV_HINTS={
   risk:['rischio','risk'],
   yield:['yield','dividend','rendiment','cedola','div%'],
   factor:['fattore','factor','stile','style'],
-  targetWeight:['peso previsto','target','peso']
+  targetWeight:['peso previsto','target','peso'],
+  dateAdded:['portafoglio dal','in portafoglio','data acquisto','data di acquisto','inserimento',
+             'apertura','data','date','added','since']
 };
 function guessColumn(headers,field){
   const h=headers.map(x=>String(x).toLowerCase());
@@ -4355,6 +4610,9 @@ function csvDoImport(){
     const tw=get(r,'targetWeight');
     const country=get(r,'country');
     if(country)rememberCountry(country);
+    /* niente data inventata: senza colonna il campo resta assente e la
+       posizione ricade nel comportamento storico, segnalato nello Storico */
+    const dAdded=map.dateAdded>-1?parseDateIT(get(r,'dateAdded')):'';
     S.positions.push({
       id:uid(), ticker:t.toUpperCase(), name:get(r,'name'),
       cls:normCls(get(r,'cls'))||'Other', sector:normSector(get(r,'sector')), country:country,
@@ -4363,7 +4621,7 @@ function csvDoImport(){
       yield:map.yield>-1?num(get(r,'yield')):null,
       risk:rk, factor:normFactor(get(r,'factor')),
       targetWeight:tw===''?null:num(tw),
-      emergency:0, tx:[]
+      emergency:0, tx:[], dateAdded:dAdded||undefined
     });
     added++;
   });
@@ -4390,14 +4648,14 @@ const stamp=()=>new Date().toISOString().slice(0,10);
 function exportPositions(){
   if(!S.positions.length){ toast('Nessuna posizione da esportare','err'); return; }
   const head=['Ticker','Nome','Categoria','Settore','Paese','Valuta','Quantità','Prezzo carico',
-    'Prezzo attuale','Yield %','Rischio','Fattore','Peso previsto %','Mesi stacco',
-    'Valore EUR','G/P EUR','G/P %'];
+    'Prezzo attuale','Yield %','Rischio','Fattore','Peso previsto %','In portafoglio dal','Mesi stacco',
+    'Chiusa il','Valore EUR','G/P EUR','G/P %','Realizzato EUR'];
   const lines=[head.join(',')];
   S.positions.forEach(p=>lines.push([
     p.ticker,p.name||'',p.cls||'',p.sector||'',p.country||'',p.currency||'EUR',
     p._q,p._avg,num(p.price),p.yield==null?'':num(p.yield),Math.round(num(p.risk))||6,
-    normFactor(p.factor),p.targetWeight==null?'':num(p.targetWeight),p.divMonths||'',
-    p._value.toFixed(2),p._pnl.toFixed(2),p._pnlPct.toFixed(2)
+    normFactor(p.factor),p.targetWeight==null?'':num(p.targetWeight),p.dateAdded||'',p.divMonths||'',
+    p.closedDate||'',p._value.toFixed(2),p._pnl.toFixed(2),p._pnlPct.toFixed(2),num(p._realized).toFixed(2)
   ].map(csvField).join(',')));
   download('portafoglio_'+stamp()+'.csv','﻿'+lines.join('\n'),'text/csv;charset=utf-8');
   toast('Posizioni esportate','ok');
@@ -4628,7 +4886,7 @@ function renderAll(){
   $$('[data-count]').forEach(b=>{
     const k=b.getAttribute('data-count');
     let n=0;
-    if(k==='dashboard')n=S.positions.length;
+    if(k==='dashboard')n=activeCount();
     else if(k==='watchlist')n=S.watchlist.length;
     else if(k==='obiettivi')n=S.goals.length;
     b.hidden=!n; b.textContent=n;
@@ -4904,6 +5162,7 @@ $('#chipSimR').innerHTML=ic('trend',17);
 $('#chipHist').innerHTML=ic('clock',17);
 $('#chipBench').innerHTML=ic('balance',17);
 $('#chipSnap').innerHTML=ic('db',17);
+$('#chipClosed').innerHTML=ic('inbox',17);
 $('#btnSnap').querySelector('.ic').innerHTML=ic('plus',15);
 $('#btnBench').querySelector('.ic').innerHTML=ic('refresh',15);
 $('#btnAddGoal').querySelector('.ic').innerHTML=ic('plus',15);
@@ -4920,7 +5179,7 @@ enrich();
 go(location.hash.slice(1)||'dashboard');
 renderAll();
 updateCloudBadge();
-if(S.positions.length) refreshPrices(true);
+if(activeCount()) refreshPrices(true);
 syncOnStartup();
 
 })();
