@@ -1296,7 +1296,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
             <div class="note" style="margin-bottom:15px">Incolla il CSV del tuo broker (prima riga = intestazioni) oppure carica il file, poi abbina le colonne. Riconosce virgola, punto e virgola e tabulazione.</div>
             <div class="field"><input type="file" id="csvFile" accept=".csv,text/csv,text/plain" style="padding:9px"></div>
             <div class="field"><label>…oppure incolla qui</label>
-              <textarea id="csvPaste" placeholder="Ticker;Nome;Categoria;Settore;Paese;Valuta;Quantità;Prezzo carico;Prezzo attuale;Yield %;Rischio;Fattore&#10;AAPL;Apple Inc.;Azioni;Tecnologia;Stati Uniti;USD;25;150;212;0,5;7;Growth"></textarea></div>
+              <textarea id="csvPaste" placeholder="Ticker;Nome;Categoria;Settore;Paese;Valuta;Quantità;Prezzo carico;Prezzo attuale;Yield %;Rischio;Fattore&#10;AAPL;Apple Inc.;Stocks;Technology;USA;USD;25;150;212;0,5;7;Growth"></textarea></div>
             <button class="btn btn-ghost btn-sm" id="csvParse">Leggi colonne</button>
             <div id="mapArea" style="display:none;margin-top:18px">
               <div class="sec-t" style="margin-top:0">Abbina le colonne</div>
@@ -1314,7 +1314,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
             <div class="card-hd"><h2><span class="chip t" id="chipCtr"></span> Paesi e aree</h2></div>
             <div class="card-bd">
               <div class="addrow">
-                <input class="inp" id="newCountry" placeholder="Nome paese o area">
+                <input class="inp" id="newCountry" list="ctrList" placeholder="es. Vietnam">
                 <button class="btn btn-primary btn-sm" id="addCountry">Aggiungi</button>
               </div>
               <div id="countryList"></div>
@@ -1445,8 +1445,8 @@ html[data-theme="light"] .maptbl select{background:#fff}
       <div class="field"><label>Valuta</label><select id="fwCur"></select></div>
     </div>
     <div class="frow">
-      <div class="field"><label>Settore</label><input id="fwSector" list="secList" placeholder="es. Tecnologia"></div>
-      <div class="field"><label>Paese / Area</label><input id="fwCountry" list="ctrList" placeholder="es. Stati Uniti"></div>
+      <div class="field"><label>Settore</label><input id="fwSector" list="secList" placeholder="es. Technology"></div>
+      <div class="field"><label>Paese / Area</label><input id="fwCountry" list="ctrList" placeholder="es. USA"></div>
     </div>
     <div class="frow">
       <div class="field"><label>Quantità prevista</label><input id="fwQty" type="number" step="any"></div>
@@ -1493,8 +1493,8 @@ html[data-theme="light"] .maptbl select{background:#fff}
         <div class="field"><label>Valuta</label><select id="fCur"></select></div>
       </div>
       <div class="frow">
-        <div class="field"><label>Settore</label><input id="fSector" list="secList" placeholder="es. Tecnologia"></div>
-        <div class="field"><label>Paese / Area</label><input id="fCountry" list="ctrList" placeholder="es. Stati Uniti"></div>
+        <div class="field"><label>Settore</label><input id="fSector" list="secList" placeholder="es. Technology"></div>
+        <div class="field"><label>Paese / Area</label><input id="fCountry" list="ctrList" placeholder="es. USA"></div>
       </div>
       <div class="frow">
         <div class="field"><label>Quantità</label><input id="fQty" type="number" step="any"></div>
@@ -1554,12 +1554,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
   </div>
 </div></div>
 
-<datalist id="secList">
-  <option>Tecnologia</option><option>Finanza</option><option>Salute</option><option>Energia</option>
-  <option>Beni di Consumo Discrezionali</option><option>Beni di Consumo di Base</option><option>Industria</option>
-  <option>Materie prime</option><option>Utility</option><option>Immobiliare</option><option>Comunicazioni</option>
-  <option>Diversificato</option><option>Governativo</option><option>Corporate</option><option>Crypto</option>
-</datalist>
+<datalist id="secList"></datalist>
 <datalist id="ctrList"></datalist>
 
 <div class="toasts" id="toasts"></div>
@@ -1608,7 +1603,203 @@ const KEY='pf_v2';
 const BASE='EUR';
 const DEFAULT_FX={EUR:1,USD:.92,GBP:1.17,CHF:1.04,SEK:.088,NOK:.086,DKK:.134,JPY:.006,CAD:.68,AUD:.61,CNY:.127,HKD:.118,PLN:.23};
 const CURRENCIES=['EUR','USD','GBP','CHF','SEK','NOK','DKK','JPY','CAD','AUD','CNY','HKD','PLN'];
-const CLASSES=['Azioni','ETF','Obbligazioni','Crypto','Liquidità','Materie prime','Altro'];
+/* ==========================================================================
+   2b. ETICHETTE NORMALIZZATE — Categoria / Settore / Paese
+   --------------------------------------------------------------------------
+   Le etichette mostrate sono in inglese; i dati storici salvati in italiano
+   (o con maiuscole/plurali/spazi diversi) vengono ricondotti all'etichetta
+   canonica. Un valore non mappato viene restituito così com'è: nessun dato
+   viene mai perso o azzerato dalla normalizzazione.
+   ========================================================================== */
+
+/* ---- liste canoniche (inglese) ---- */
+const CLASSES=['Stocks','ETF','Bonds','Crypto','Cash','Commodities','Other'];
+
+const SECTORS=['Technology','Financials','Healthcare','Energy','Consumer Discretionary',
+  'Consumer Staples','Industrials','Materials','Utilities','Real Estate',
+  'Communication Services','Multi-sector','Government Bonds','Corporate Bonds',
+  'Crypto-asset','Commodity','Managed Futures','Cash','Emergency fund'];
+
+const BASE_COUNTRIES=['Italy','USA','Germany','France','UK','Switzerland','Netherlands',
+  'Sweden','Denmark','Norway','Finland','Spain','Ireland','Belgium','Austria',
+  'Japan','China','India','Canada','Australia','South Korea','Taiwan','Brazil',
+  'Europe','Eurozone','North America','Asia-Pacific','Emerging Markets','World'];
+
+/* ---- alias: canonico -> varianti riconosciute (it/en, sing./plur., sigle) ---- */
+const CLS_ALIAS={
+  'Stocks':['Azione','Azioni','Azionario','Azionaria','Azionarie','Azionari','Equity','Equities',
+            'Stock','Share','Shares','Titolo azionario','Titoli azionari'],
+  'ETF':['ETF','ETFs','ETC','ETN','Fondo','Fondi','Fund','Funds','Fondo comune','Fondi comuni',
+         'Fondo indicizzato','Index fund','Indice','Index'],
+  'Bonds':['Obbligazione','Obbligazioni','Obbligazionario','Obbligazionaria','Bond','Bonds',
+           'Reddito fisso','Fixed income','Titolo di stato','Titoli di stato','BTP','Bond governativi'],
+  'Crypto':['Crypto','Cripto','Criptovaluta','Criptovalute','Cryptovalute','Cryptocurrency',
+            'Cryptocurrencies','Crypto-asset','Cryptoasset','Crypto asset','Digital asset','Digital assets'],
+  'Cash':['Liquidità','Liquidita','Liquidity','Cash','Contanti','Conto deposito','Conto corrente',
+          'Monetario','Money market','Fondo emergenza','Fondo di emergenza','Emergency fund'],
+  'Commodities':['Materia prima','Materie prime','Commodity','Commodities','Oro','Gold',
+                 'Metalli preziosi','Metallo prezioso','Precious metals'],
+  'Other':['Altro','Altri','Altra','Altre','Other','Others','Misc','Miscellaneous','Vario','Vari',
+           'N/A','Non classificato','Unclassified']
+};
+
+const SEC_ALIAS={
+  'Technology':['Tecnologia','Tecnologie','Tecnologico','Tecnologici','Technology','Information Technology',
+                'Info Tech','IT','Tech','Software'],
+  'Financials':['Finanza','Finanziario','Finanziari','Finanziaria','Financial','Financials','Finance',
+                'Banca','Banche','Banking','Banks','Assicurazioni','Insurance','Servizi finanziari',
+                'Financial Services'],
+  'Healthcare':['Salute','Sanità','Sanita','Sanitario','Sanitari','Healthcare','Health Care','Health',
+                'Farmaceutico','Farmaceutici','Pharma','Pharmaceuticals','Biotech','Biotecnologie'],
+  'Energy':['Energia','Energetico','Energetici','Energy','Petrolio','Petrolifero','Oil','Oil & Gas',
+            'Oil and Gas'],
+  'Consumer Discretionary':['Beni di Consumo Discrezionali','Beni di consumo discrezionale',
+                            'Consumi discrezionali','Consumo discrezionale','Discrezionali',
+                            'Consumer Discretionary','Consumer Cyclical','Consumer Cyclicals',
+                            'Ciclici','Beni ciclici','Consumi ciclici'],
+  'Consumer Staples':['Beni di Consumo di Base','Beni di consumo base','Consumi di base',
+                      'Consumi difensivi','Consumer Staples','Consumer Defensive','Difensivi',
+                      'Beni difensivi','Alimentari','Food & Beverage'],
+  'Industrials':['Industria','Industriale','Industriali','Industrials','Industrial','Manifatturiero',
+                 'Manufacturing','Beni industriali'],
+  'Materials':['Materiali','Materials','Basic Materials','Materiali di base','Chimica','Chimico',
+               'Chemicals','Mining','Miniere','Acciaio','Steel'],
+  'Utilities':['Utility','Utilities','Servizi di pubblica utilità','Servizi di pubblica utilita',
+               'Servizi pubblici','Pubblica utilità'],
+  'Real Estate':['Immobiliare','Immobiliari','Immobili','Real Estate','REIT','REITs','Property'],
+  'Communication Services':['Comunicazioni','Comunicazione','Communication Services','Communications',
+                            'Communication','Telecom','Telecomunicazioni','Telecommunications','Media'],
+  'Multi-sector':['Diversificato','Diversificata','Diversificati','Diversified','Multi-sector',
+                  'Multisector','Multi sector','Multi-settore','Multisettore','Misto','Vari settori',
+                  'Globale','Global','Broad market','Mercato ampio','Multi-asset','Multi asset'],
+  'Government Bonds':['Governativo','Governativi','Governativa','Government','Government Bonds','Govt',
+                      'Titoli di Stato','Titolo di Stato','Sovereign','Sovereigns','Treasury',
+                      'Treasuries','Obbligazioni governative'],
+  'Corporate Bonds':['Corporate','Corporativo','Corporate Bonds','Obbligazioni corporate','Credit',
+                     'Credito','Investment Grade','High Yield','Alto rendimento'],
+  'Crypto-asset':['Crypto','Cripto','Criptovaluta','Criptovalute','Cryptocurrency','Crypto-asset',
+                  'Cryptoasset','Crypto asset','Digital assets','Blockchain'],
+  'Commodity':['Materie prime','Materia prima','Commodity','Commodities','Oro','Gold','Argento',
+               'Silver','Metalli preziosi','Precious metals'],
+  'Managed Futures':['Managed Futures','Managed future','Futures gestiti','Trend Following','CTA'],
+  'Cash':['Liquidità','Liquidita','Cash','Contanti','Monetario','Money Market','Conto deposito'],
+  'Emergency fund':['Emergency fund','Fondo emergenza','Fondo di emergenza','Fondo emergenze',
+                    'Cuscinetto di emergenza']
+};
+
+const CTR_ALIAS={
+  'Italy':['Italia','Italy','ITA'],
+  'USA':['Stati Uniti','Stati Uniti d\'America','USA','US','U.S.','U.S.A.','United States',
+         'United States of America','America','Stati Unti'],
+  'Germany':['Germania','Germany','Deutschland','GER','DEU'],
+  'France':['Francia','France','FRA'],
+  'UK':['Regno Unito','Gran Bretagna','Great Britain','United Kingdom','UK','U.K.','GB',
+        'Inghilterra','England','Britain'],
+  'Switzerland':['Svizzera','Switzerland','Suisse','Schweiz','CHE'],
+  'Netherlands':['Paesi Bassi','Olanda','Netherlands','Holland','Nederland','NLD'],
+  'Sweden':['Svezia','Sweden','Sverige','SWE'],
+  'Denmark':['Danimarca','Denmark','Danmark','DNK'],
+  'Norway':['Norvegia','Norway','Norge','NOR'],
+  'Finland':['Finlandia','Finland','Suomi','FIN'],
+  'Spain':['Spagna','Spain','España','Espana','ESP'],
+  'Ireland':['Irlanda','Ireland','IRL'],
+  'Belgium':['Belgio','Belgium','BEL'],
+  'Austria':['Austria','AUT'],
+  'Japan':['Giappone','Japan','JPN'],
+  'China':['Cina','China','CHN','Cina continentale'],
+  'India':['India','IND'],
+  'Canada':['Canada','CAN'],
+  'Australia':['Australia','AUS'],
+  'South Korea':['Corea del Sud','Corea','South Korea','Korea','KOR'],
+  'Taiwan':['Taiwan','TWN'],
+  'Brazil':['Brasile','Brazil','BRA'],
+  'Europe':['Europa','Europe','Europeo','Europea'],
+  'Eurozone':['Eurozona','Zona Euro','Area Euro','Eurozone','Euro Area','EMU'],
+  'North America':['Nord America','Nordamerica','Nord-America','North America'],
+  'Asia-Pacific':['Asia-Pacifico','Asia Pacifico','Asia-Pacific','Asia Pacific','APAC','Pacifico','Pacific'],
+  'Emerging Markets':['Mercati Emergenti','Mercati emergenti','Emergenti','Paesi emergenti',
+                      'Emerging Markets','Emerging Market','Emerging','EM'],
+  'World':['Globale','Global','Mondiale','Mondo','World','Worldwide','Internazionale','International',
+           'Tutto il mondo']
+};
+
+/* ---- motore di normalizzazione ---- */
+/* chiave "piatta": senza accenti, minuscola, punteggiatura e spazi normalizzati */
+function foldKey(v){
+  return String(v==null?'':v)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .replace(/[._'\u2019\u00b4`"()\/&+]/g,' ')
+    .replace(/[-–—]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+/* varianti singolare/plurale it+en, usate solo se la chiave esatta non esiste */
+function keyVariants(k){
+  const o=[];
+  if(/ies$/.test(k))o.push(k.slice(0,-3)+'y');
+  if(/s$/.test(k))o.push(k.slice(0,-1));
+  if(/y$/.test(k))o.push(k.slice(0,-1)+'ies');
+  if(/i$/.test(k))o.push(k.slice(0,-1)+'e',k.slice(0,-1)+'o',k.slice(0,-1)+'a');
+  if(/[eoa]$/.test(k))o.push(k.slice(0,-1)+'i');
+  if(/e$/.test(k))o.push(k.slice(0,-1)+'a');
+  if(!/s$/.test(k))o.push(k+'s');
+  return o;
+}
+function buildIndex(alias,canon){
+  const ix={};
+  const put=(k,v)=>{ if(k&&ix[k]==null)ix[k]=v; };
+  (canon||[]).forEach(c=>{ put(foldKey(c),c); put(foldKey(c).replace(/ /g,''),c); });
+  Object.keys(alias).forEach(c=>{
+    put(foldKey(c),c); put(foldKey(c).replace(/ /g,''),c);
+    alias[c].forEach(a=>{ put(foldKey(a),c); put(foldKey(a).replace(/ /g,''),c); });
+  });
+  return ix;
+}
+const CLS_IX=buildIndex(CLS_ALIAS,CLASSES);
+const SEC_IX=buildIndex(SEC_ALIAS,SECTORS);
+const CTR_IX=buildIndex(CTR_ALIAS,BASE_COUNTRIES);
+
+const NORM_CACHE={};
+function normLabel(v,ix,tag){
+  const raw=String(v==null?'':v).replace(/\s+/g,' ').trim();
+  if(!raw)return '';
+  const ck=tag+'\u0000'+raw;
+  if(NORM_CACHE[ck]!=null)return NORM_CACHE[ck];
+  return NORM_CACHE[ck]=resolveLabel(raw,ix);
+}
+function resolveLabel(raw,ix){
+  const k=foldKey(raw);
+  if(ix[k])return ix[k];                              /* 1. corrispondenza esatta */
+  const ns=k.replace(/ /g,'');
+  if(ix[ns])return ix[ns];                            /* 2. senza spazi/trattini  */
+  const vs=keyVariants(k);                            /* 3. singolare/plurale     */
+  for(let i=0;i<vs.length;i++){
+    if(ix[vs[i]])return ix[vs[i]];
+    const w=vs[i].replace(/ /g,''); if(ix[w])return ix[w];
+  }
+  return titleish(raw);                               /* 4. fallback: valore originale */
+}
+/* Fallback per valori non mappati: il dato non va mai perso, ma un casing
+   coerente evita che "vietnam"/"VIETNAM" finiscano come due voci distinte.
+   Chi ha già scritto in maiuscolo/minuscolo misto e le sigle restano intatti. */
+function titleish(s){
+  const low=/\p{Ll}/u.test(s), up=/\p{Lu}/u.test(s);
+  if(low&&up)return s;
+  if(up&&!low&&s.replace(/[^\p{L}]/gu,'').length<=5)return s;
+  return s.replace(/\S+/g,w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase());
+}
+const normCls=v=>normLabel(v,CLS_IX,'c');
+const normSector=v=>normLabel(v,SEC_IX,'s');
+const normCountry=v=>normLabel(v,CTR_IX,'p');
+
+/* normalizza i nomi dentro una composizione ETF "Nome: 45%", riga per riga */
+function normComposition(text,norm){
+  return String(text||'').split(/\r?\n/).map(line=>{
+    const m=line.match(/^(\s*)(.+?)([:;\t,]\s*[\d.,]+\s*%?\s*)$/);
+    return m?m[1]+norm(m[2].trim())+m[3]:line;
+  }).join('\n');
+}
 
 function blankState(){
   return {
@@ -1635,6 +1826,38 @@ function load(){
     S.settings=Object.assign(blankState().settings,s.settings||{});
     S.fx=Object.assign({EUR:1},s.fx||{});
   }}}catch(e){}
+  if(normalizeState())save();
+}
+/* Riconduce i dati salvati (anche in italiano) alle etichette canoniche inglesi.
+   Idempotente: gira a ogni avvio ma riscrive solo se qualcosa è cambiato. */
+function normalizeState(){
+  let dirty=false;
+  const fix=o=>{
+    if(!o||typeof o!=='object')return;
+    [['cls',normCls],['sector',normSector],['country',normCountry]].forEach(([k,fn])=>{
+      if(o[k]==null)return; const v=fn(o[k]); if(v!==o[k]){o[k]=v;dirty=true;}
+    });
+    [['compSector',normSector],['compCountry',normCountry]].forEach(([k,fn])=>{
+      if(!o[k])return; const v=normComposition(o[k],fn); if(v!==o[k]){o[k]=v;dirty=true;}
+    });
+  };
+  (S.positions||[]).forEach(fix);
+  (S.watchlist||[]).forEach(fix);
+  /* paesi personalizzati: normalizzati, deduplicati, e assorbiti se ormai standard */
+  const seen={},cc=[];
+  (S.countries||[]).forEach(c=>{ const v=normCountry(c);
+    if(v&&BASE_COUNTRIES.indexOf(v)<0&&!seen[v]){seen[v]=1;cc.push(v);} });
+  if(cc.length!==(S.countries||[]).length||cc.some((c,i)=>c!==S.countries[i]))dirty=true;
+  S.countries=cc;
+  /* i target di ribilanciamento sono indicizzati per nome categoria: vanno migrati anche loro */
+  const tg={},old=S.targets||{};
+  Object.keys(old).forEach(k=>{
+    const c=normCls(k);
+    if(tg[c]==null||CLASSES.indexOf(k)>-1)tg[c]=old[k];
+    if(c!==k)dirty=true;
+  });
+  S.targets=tg;
+  return dirty;
 }
 let saveT=null,storageWarned=false;
 function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{
@@ -1733,6 +1956,8 @@ function enrich(){
   ensureFx();
   let value=0,cost=0,day=0,realized=0,dividends=0;
   S.positions.forEach(p=>{
+    /* rete di sicurezza: qualsiasi dato entrato per altre vie viene letto normalizzato */
+    p.cls=normCls(p.cls); p.sector=normSector(p.sector); p.country=normCountry(p.country);
     const d=derive(p), rate=fxRate(p.currency);
     p._q=d.qty; p._avg=d.avg; p._usesTx=d.usesTx; p._txCount=d.txCount;
     p._value=d.qty*num(p.price)*rate;
@@ -2115,15 +2340,15 @@ function demoData(){
     divMonths:dm||'',tx:[]
   });
   const P=[
-    mk('VWCE.DE','Vanguard FTSE All-World','ETF','Diversificato','Globale','EUR',85,98.4,118.9,1.5,5,'Quality',30,'3, 6, 9, 12'),
-    mk('AAPL','Apple Inc.','Azioni','Tecnologia','Stati Uniti','USD',30,152.2,231.4,.45,7,'Quality-Growth',10),
-    mk('MSFT','Microsoft Corp.','Azioni','Tecnologia','Stati Uniti','USD',18,268.5,418.2,.72,6,'Quality-Growth',10,'3, 6, 9, 12'),
-    mk('ASML.AS','ASML Holding','Azioni','Tecnologia','Europa','EUR',6,545,690.5,.9,8,'Growth',6,'2, 5, 8, 11'),
-    mk('IWDA.AS','iShares Core MSCI World','ETF','Diversificato','Globale','EUR',40,78.2,101.3,1.3,5,'Quality',15,'6, 12'),
-    mk('AGGH.MI','iShares Global Aggregate Bond','Obbligazioni','Governativo','Globale','EUR',120,4.85,4.72,3.1,3,'Value',12,'1,2,3,4,5,6,7,8,9,10,11,12'),
-    mk('ENI.MI','Eni S.p.A.','Azioni','Energia','Italia','EUR',150,13.1,14.86,6.8,6,'Value',7,'3, 5, 9, 11'),
-    mk('BTC-EUR','Bitcoin','Crypto','Crypto','Globale','EUR',.12,31500,58200,0,9,'Speculative',5),
-    mk('GLD','SPDR Gold Shares','Materie prime','Materie prime','Globale','USD',25,168,246.4,0,4,'Value',5)
+    mk('VWCE.DE','Vanguard FTSE All-World','ETF','Multi-sector','World','EUR',85,98.4,118.9,1.5,5,'Quality',30,'3, 6, 9, 12'),
+    mk('AAPL','Apple Inc.','Stocks','Technology','USA','USD',30,152.2,231.4,.45,7,'Quality-Growth',10),
+    mk('MSFT','Microsoft Corp.','Stocks','Technology','USA','USD',18,268.5,418.2,.72,6,'Quality-Growth',10,'3, 6, 9, 12'),
+    mk('ASML.AS','ASML Holding','Stocks','Technology','Europe','EUR',6,545,690.5,.9,8,'Growth',6,'2, 5, 8, 11'),
+    mk('IWDA.AS','iShares Core MSCI World','ETF','Multi-sector','World','EUR',40,78.2,101.3,1.3,5,'Quality',15,'6, 12'),
+    mk('AGGH.MI','iShares Global Aggregate Bond','Bonds','Government Bonds','World','EUR',120,4.85,4.72,3.1,3,'Value',12,'1,2,3,4,5,6,7,8,9,10,11,12'),
+    mk('ENI.MI','Eni S.p.A.','Stocks','Energy','Italy','EUR',150,13.1,14.86,6.8,6,'Value',7,'3, 5, 9, 11'),
+    mk('BTC-EUR','Bitcoin','Crypto','Crypto-asset','World','EUR',.12,31500,58200,0,9,'Speculative',5),
+    mk('GLD','SPDR Gold Shares','Commodities','Commodity','World','USD',25,168,246.4,0,4,'Value',5)
   ];
   /* la prima posizione mostra il registro transazioni in azione */
   P[1].tx=[
@@ -2135,10 +2360,10 @@ function demoData(){
   ];
   S.positions=P;
   S.watchlist=[
-    {id:uid(),ticker:'NVDA',name:'NVIDIA Corp.',cls:'Azioni',sector:'Tecnologia',country:'Stati Uniti',currency:'USD',risk:8,factor:'Growth',targetWeight:5},
-    {id:uid(),ticker:'SWDA.MI',name:'iShares Core MSCI World',cls:'ETF',sector:'Diversificato',country:'Globale',currency:'EUR',risk:5,factor:'Quality',targetWeight:10}
+    {id:uid(),ticker:'NVDA',name:'NVIDIA Corp.',cls:'Stocks',sector:'Technology',country:'USA',currency:'USD',risk:8,factor:'Growth',targetWeight:5},
+    {id:uid(),ticker:'SWDA.MI',name:'iShares Core MSCI World',cls:'ETF',sector:'Multi-sector',country:'World',currency:'EUR',risk:5,factor:'Quality',targetWeight:10}
   ];
-  S.targets={'ETF':45,'Azioni':30,'Obbligazioni':12,'Crypto':5,'Materie prime':8};
+  S.targets={'ETF':45,'Stocks':30,'Bonds':12,'Crypto':5,'Commodities':8};
   S.goals=[
     {id:uid(),name:'Indipendenza finanziaria',icon:'🏝',target:500000,mode:'portfolio',startDate:'2022-01-01',targetDate:'2040-01-01'},
     {id:uid(),name:'Fondo emergenza',icon:'🛟',target:20000,mode:'manual',manual:12500,startDate:'2024-01-01',targetDate:'2027-01-01'}
@@ -2167,8 +2392,6 @@ function demoData(){
 const PAL=['#6c7cff','#e8b13c','#2bb9c4','#a072f0','#25c685','#f2565b','#4b9bff','#f08a3c',
            '#5ad0a8','#c98ae0','#8b93ad','#d4c05a'];
 const FACTORS=['Nessuno','Value','Quality','Quality-Growth','Growth','Thematic Growth','Trend Following','Speculative'];
-const BASE_COUNTRIES=['Italia','Stati Uniti','Europa','Eurozona','Germania','Francia','Regno Unito','Svizzera',
-  'Giappone','Cina','India','Mercati Emergenti','Asia-Pacifico','Nord America','Globale'];
 const ACTION_OK=300; /* tolleranza in € entro cui la posizione è considerata a target */
 const ACT={
   'Ok':{c:'',s:'●',t:'In linea con il peso previsto'},
@@ -2203,11 +2426,14 @@ function matchFilters(p,f){
 const filteredPositions=()=>S.positions.filter(p=>matchFilters(p,UI.filters));
 const allocPositions=()=>S.positions.filter(p=>matchFilters(p,Object.assign({},UI.allocFilters,{search:'',action:''})));
 
+const NORM_BY_FIELD={cls:normCls,sector:normSector,country:normCountry};
 function fillSelect(id,field,label,source){
   const sel=$(id); if(!sel)return;
-  const cur=source[field]||'', vals={};
-  S.positions.forEach(p=>{ const v=String(p[field]||'').trim(); if(v)vals[v]=1; });
-  const opts=Object.keys(vals).sort((a,b)=>a.localeCompare(b,'it'));
+  const fn=NORM_BY_FIELD[field]||(v=>String(v==null?'':v).trim());
+  const cur=fn(source[field]||''), vals={};
+  /* le varianti dello stesso valore confluiscono in un'unica voce */
+  S.positions.forEach(p=>{ const v=fn(p[field]); if(v)vals[v]=1; });
+  const opts=Object.keys(vals).sort((a,b)=>a.localeCompare(b,'en'));
   sel.innerHTML='<option value="">'+esc(label)+'</option>'+
     opts.map(v=>'<option'+(v===cur?' selected':'')+'>'+esc(v)+'</option>').join('');
   if(cur&&opts.indexOf(cur)<0)source[field]='';
@@ -2414,11 +2640,26 @@ function initPosForm(){
   $('#fCls').innerHTML=CLASSES.map(c=>'<option>'+esc(c)+'</option>').join('');
   $('#fCur').innerHTML=CURRENCIES.map(c=>'<option>'+esc(c)+'</option>').join('');
   $('#fFactor').innerHTML=FACTORS.map(f=>'<option>'+esc(f)+'</option>').join('');
-  buildCountryList();
+  buildCountryList(); buildSectorList();
+}
+/* etichette canoniche già presenti nei dati, così i valori in uso restano suggeriti */
+function usedLabels(field,fn){
+  const m={};
+  (S.positions||[]).concat(S.watchlist||[]).forEach(p=>{ const v=fn(p[field]); if(v)m[v]=1; });
+  return Object.keys(m);
+}
+function fillDatalist(id,vals){
+  const dl=$(id); if(!dl)return;
+  const seen={},out=[];
+  vals.forEach(v=>{ if(v&&!seen[v]){seen[v]=1;out.push(v);} });
+  dl.innerHTML=out.map(c=>'<option>'+esc(c)+'</option>').join('');
 }
 function buildCountryList(){
-  const dl=$('#ctrList'); if(!dl)return;
-  dl.innerHTML=BASE_COUNTRIES.concat(S.countries||[]).map(c=>'<option>'+esc(c)+'</option>').join('');
+  fillDatalist('#ctrList',BASE_COUNTRIES.concat(S.countries||[]).map(normCountry)
+    .concat(usedLabels('country',normCountry)));
+}
+function buildSectorList(){
+  fillDatalist('#secList',SECTORS.concat(usedLabels('sector',normSector)));
 }
 function setPosTab(t){
   $$('#posTabs button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-t')===t));
@@ -2430,14 +2671,24 @@ function toggleComp(){
   $('#fCompWrap').style.display=isEtf?'':'none';
   $('#fCompWrap2').style.display=isEtf?'':'none';
 }
+/* Se un record ha una categoria non prevista (dato vecchio mai mappato) la si
+   aggiunge al volo come opzione: il valore resta selezionato e non va perso. */
+function setClsSelect(sel,val){
+  const el=$(sel), v=normCls(val)||'Stocks';
+  if(!el)return;
+  el.innerHTML=(CLASSES.indexOf(v)>-1?CLASSES:CLASSES.concat([v]))
+    .map(c=>'<option>'+esc(c)+'</option>').join('');
+  el.value=v;
+}
 function openPos(id){
   const p=id?S.positions.filter(x=>x.id===id)[0]:null;
+  buildCountryList(); buildSectorList();
   UI.editId=p?p.id:null;
   UI.editTx=p&&p.tx?JSON.parse(JSON.stringify(p.tx)):[];
   $('#posTitle').textContent=p?'Modifica posizione':'Aggiungi posizione';
   $('#fTicker').value=p?(p.ticker||''):'';
   $('#fName').value=p?(p.name||''):'';
-  $('#fCls').value=p&&p.cls?p.cls:'Azioni';
+  setClsSelect('#fCls',p&&p.cls?p.cls:'Stocks');
   $('#fCur').value=p&&p.currency?p.currency:'EUR';
   $('#fSector').value=p?(p.sector||''):'';
   $('#fCountry').value=p?(p.country||''):'';
@@ -2516,14 +2767,15 @@ function savePos(){
   const p=isNew?{id:uid()}:S.positions.filter(x=>x.id===UI.editId)[0];
   if(!p)return;
   p.ticker=t.toUpperCase(); p.name=n;
-  p.cls=$('#fCls').value; p.currency=$('#fCur').value;
-  p.sector=$('#fSector').value.trim(); p.country=rememberCountry($('#fCountry').value);
+  p.cls=normCls($('#fCls').value); p.currency=$('#fCur').value;
+  p.sector=normSector($('#fSector').value); p.country=rememberCountry($('#fCountry').value);
   p.price=num($('#fPrice').value);
   p.targetWeight=$('#fTarget').value===''?null:num($('#fTarget').value);
   p.risk=$('#fRisk').value===''?null:Math.max(3,Math.min(9,Math.round(num($('#fRisk').value))));
   p.yield=$('#fYield').value===''?null:num($('#fYield').value);
   p.factor=$('#fFactor').value; p.emergency=$('#fEmergency').value?1:0;
-  p.compSector=$('#fCompSector').value.trim(); p.compCountry=$('#fCompCountry').value.trim();
+  p.compSector=normComposition($('#fCompSector').value.trim(),normSector);
+  p.compCountry=normComposition($('#fCompCountry').value.trim(),normCountry);
   p.divMonths=$('#fDivMonths').value.trim();
   p.note=$('#fNote').value.trim();
   p.tx=UI.editTx.slice();
@@ -2698,14 +2950,14 @@ function tierRgba(tier,a){
   const h=parseInt(TIER_HEX[tier].slice(1),16);
   return 'rgba('+((h>>16)&255)+','+((h>>8)&255)+','+(h&255)+','+a.toFixed(2)+')';
 }
-function parseComposition(text){
+function parseComposition(text,norm){
   if(!text)return [];
   const out=[];
   String(text).split(/\r?\n/).forEach(line=>{
     line=line.trim(); if(!line)return;
     const m=line.match(/^(.+?)[:;\t,]\s*([\d.,]+)\s*%?\s*$/);
     if(!m)return;
-    const name=m[1].trim(), p=num(m[2].replace(',','.'));
+    const name=norm?norm(m[1].trim()):m[1].trim(), p=num(m[2].replace(',','.'));
     if(name&&p>0)out.push({name:name,pct:p});
   });
   return out;
@@ -2739,11 +2991,11 @@ function computeExposure(rows){
     const v=p._value;
     const cat=String(p.cls||'Altro').trim()||'Altro'; byCat[cat]=(byCat[cat]||0)+v;
     const cur=p.currency||BASE; byCurrency[cur]=(byCurrency[cur]||0)+v;
-    const cS=p.cls==='ETF'?parseComposition(p.compSector):[];
+    const cS=p.cls==='ETF'?parseComposition(p.compSector,normSector):[];
     if(cS.length){ const s=cS.reduce((a,c)=>a+c.pct,0)||1;
       cS.forEach(c=>{ bySector[c.name]=(bySector[c.name]||0)+v*c.pct/s; }); }
     else { const sec=String(p.sector||'—').trim()||'—'; bySector[sec]=(bySector[sec]||0)+v; }
-    const cC=p.cls==='ETF'?parseComposition(p.compCountry):[];
+    const cC=p.cls==='ETF'?parseComposition(p.compCountry,normCountry):[];
     if(cC.length){ const s=cC.reduce((a,c)=>a+c.pct,0)||1;
       cC.forEach(c=>{ byCountry[c.name]=(byCountry[c.name]||0)+v*c.pct/s; }); }
     else { const ct=String(p.country||'—').trim()||'—'; byCountry[ct]=(byCountry[ct]||0)+v; }
@@ -2932,7 +3184,7 @@ function renderEtfList(){
     wrap.innerHTML='<div class="empty" style="padding:16px"><div class="sm">Nessuna posizione in categoria ETF.</div></div>';return;
   }
   wrap.innerHTML=etfs.map(p=>{
-    const cS=parseComposition(p.compSector), cC=parseComposition(p.compCountry);
+    const cS=parseComposition(p.compSector,normSector), cC=parseComposition(p.compCountry,normCountry);
     const has=cS.length||cC.length;
     const txt=has?('composizione dichiarata: '+(cS.length?cS.length+' settori':'')+
       (cS.length&&cC.length?' · ':'')+(cC.length?cC.length+' paesi':''))
@@ -3328,11 +3580,12 @@ function renderWatchlist(){
 }
 function openWatch(id){
   const w=id?S.watchlist.filter(x=>x.id===id)[0]:null;
+  buildCountryList(); buildSectorList();
   UI.editWatch=w?w.id:null;
   $('#wTitle').textContent=w?'Modifica titolo':'Aggiungi titolo da comprare';
   $('#fwTicker').value=w?(w.ticker||''):'';
   $('#fwName').value=w?(w.name||''):'';
-  $('#fwCls').value=w&&w.cls?w.cls:'Azioni';
+  setClsSelect('#fwCls',w&&w.cls?w.cls:'Stocks');
   $('#fwCur').value=w&&w.currency?w.currency:'EUR';
   $('#fwSector').value=w?(w.sector||''):'';
   $('#fwCountry').value=w?(w.country||''):'';
@@ -3355,8 +3608,8 @@ function watchFromForm(id){
     id:id||uid(),
     ticker:$('#fwTicker').value.trim().toUpperCase(),
     name:$('#fwName').value.trim(),
-    cls:$('#fwCls').value, currency:$('#fwCur').value,
-    sector:$('#fwSector').value.trim(), country:rememberCountry($('#fwCountry').value),
+    cls:normCls($('#fwCls').value), currency:$('#fwCur').value,
+    sector:normSector($('#fwSector').value), country:rememberCountry($('#fwCountry').value),
     qty:num($('#fwQty').value), avg:num($('#fwAvg').value),
     risk:rk?Math.max(3,Math.min(9,rk)):6,
     targetWeight:tw===''?null:num(tw),
@@ -4085,7 +4338,7 @@ function csvDoImport(){
     if(country)rememberCountry(country);
     S.positions.push({
       id:uid(), ticker:t.toUpperCase(), name:get(r,'name'),
-      cls:get(r,'cls')||'Altro', sector:get(r,'sector'), country:country,
+      cls:normCls(get(r,'cls'))||'Other', sector:normSector(get(r,'sector')), country:country,
       currency:CURRENCIES.indexOf(cur)>-1?cur:'EUR',
       qty:num(get(r,'qty')), avg:num(get(r,'avg')), price:num(get(r,'price')),
       yield:map.yield>-1?num(get(r,'yield')):null,
@@ -4170,7 +4423,9 @@ function restoreBackup(file){
     S=Object.assign(blankState(),data);
     S.settings=Object.assign(blankState().settings,data.settings||{});
     S.fx=Object.assign({EUR:1},data.fx||{});
-    save(); applyTheme(); applyPrivacy(); applyCollapsed(); buildCountryList(); renderAll();
+    normalizeState();
+    save(); applyTheme(); applyPrivacy(); applyCollapsed();
+    buildCountryList(); buildSectorList(); renderAll();
     toast('Backup ripristinato: '+n+(n===1?' posizione':' posizioni'),'ok');
   };
   rd.readAsText(file);
@@ -4179,19 +4434,24 @@ function restoreBackup(file){
 /* ==========================================================================
    12t. PAESI PERSONALIZZATI
    ========================================================================== */
-function allCountries(){ return BASE_COUNTRIES.concat(S.countries||[]); }
+function allCountries(){
+  const seen={},out=[];
+  BASE_COUNTRIES.concat((S.countries||[]).map(normCountry)).forEach(c=>{
+    if(c&&!seen[c]){seen[c]=1;out.push(c);} });
+  return out;
+}
+/* il confronto avviene sull'etichetta canonica: "Stati Uniti", "usa" e "USA"
+   sono lo stesso paese e non generano voci duplicate */
 function canonicalCountry(v){
-  const low=String(v).toLowerCase(), all=allCountries();
-  for(let i=0;i<all.length;i++) if(all[i].toLowerCase()===low)return all[i];
-  return null;
+  const c=normCountry(v);
+  return c&&allCountries().indexOf(c)>-1?c:null;
 }
 function rememberCountry(v){
-  v=String(v||'').trim(); if(!v)return v;
-  const c=canonicalCountry(v);
-  if(c)return c;
-  S.countries=(S.countries||[]).concat([v]);
+  const c=normCountry(v); if(!c)return '';
+  if(canonicalCountry(c))return c;
+  S.countries=(S.countries||[]).concat([c]);
   buildCountryList();
-  return v;
+  return c;
 }
 function renderCountries(){
   const host=$('#countryList'); if(!host)return;
@@ -4207,7 +4467,7 @@ function renderCountries(){
   }));
 }
 function addCountry(){
-  const v=$('#newCountry').value.trim();
+  const v=normCountry($('#newCountry').value);
   if(!v)return;
   if(canonicalCountry(v)){ toast('"'+v+'" è già in elenco'); $('#newCountry').value=''; return; }
   S.countries=(S.countries||[]).concat([v]);
@@ -4283,7 +4543,7 @@ function applyRemote(remote){
   S=Object.assign(blankState(),remote);
   S.settings=Object.assign(blankState().settings,remote.settings||{});
   S.fx=Object.assign({EUR:1},remote.fx||{});
-  applyTheme(); applyPrivacy(); applyCollapsed(); buildCountryList(); renderAll();
+  applyTheme(); applyPrivacy(); applyCollapsed(); buildCountryList(); buildSectorList(); renderAll();
 }
 function syncOnStartup(){
   if(!syncOn())return;
