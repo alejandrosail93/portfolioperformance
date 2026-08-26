@@ -80,12 +80,17 @@ html[data-theme="light"]{
    2. BASE
    ========================================================================== */
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* overflow-x va su <html>, non su <body>: per spec, se un asse non è `visible`
+   l'altro diventa `auto`, quindi `overflow-x:hidden` sul body lo trasformava in
+   un secondo contesto di scroll alto quanto l'intera pagina. Gli elementi
+   sticky (topbar, sidebar) restavano ancorati a quel contesto invece che al
+   viewport e la topbar, che ha un backdrop-filter, campionava lo sfondo alla
+   posizione sbagliata: da qui la pagina che sembrava duplicarsi scorrendo. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:hidden}
 body{
   margin:0;background:var(--bg);color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
-  overflow-x:hidden;
 }
 h1,h2,h3,h4,p{margin:0}
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
@@ -1036,7 +1041,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
             <div class="statusline" id="histStatus"></div>
             <div class="field" style="max-width:260px;margin-top:16px;margin-bottom:0">
               <label>Tasso privo di rischio annuo %</label>
-              <input id="fRiskFree" type="number" step="any" value="2">
+              <input id="fRiskFree" type="text" inputmode="decimal" value="2">
             </div>
             <div class="note mt18">Le metriche applicano i <b>pesi attuali</b> delle posizioni ai rendimenti mensili storici: è l'approssimazione più onesta possibile senza conoscere le date esatte di ogni acquisto passato, non un rendimento realmente pesato nel tempo. Nei mesi in cui solo una parte delle posizioni ha storico, i pesi vengono <b>rinormalizzati</b> su quelle disponibili: leggi quindi le metriche come la performance della quota di capitale coperta, indicata qui sotto. I prezzi storici sono nella valuta originale di ciascun titolo, senza effetto cambio.</div>
           </div>
@@ -1119,7 +1124,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
             <div class="card-bd">
               <div class="field">
                 <label>Nuovo capitale da investire</label>
-                <input id="rbCash" type="number" step="any" placeholder="0" value="0">
+                <input id="rbCash" type="text" inputmode="decimal" placeholder="0" value="0">
                 <div class="hint">Il piano tiene conto del capitale extra: ti dice quanto comprare o vendere per raggiungere i target.</div>
               </div>
               <div class="kv"><span class="k">Valore attuale</span><span class="v num mask" id="rbCur">€ 0</span></div>
@@ -1164,9 +1169,9 @@ html[data-theme="light"] .maptbl select{background:#fff}
           <div class="card">
             <div class="card-hd"><h2><span class="chip a" id="chipSim"></span> Parametri</h2></div>
             <div class="card-bd">
-              <div class="field"><label>Capitale iniziale</label><input id="sInit" type="number" step="any" value="10000"></div>
+              <div class="field"><label>Capitale iniziale</label><input id="sInit" type="text" inputmode="decimal" value="10000"></div>
               <div class="frow">
-                <div class="field"><label>Versamento mensile</label><input id="sPac" type="number" step="any" value="300"></div>
+                <div class="field"><label>Versamento mensile</label><input id="sPac" type="text" inputmode="decimal" value="300"></div>
                 <div class="field"><label>Durata (anni)</label><input id="sYears" type="number" step="1" value="20"></div>
               </div>
               <div class="field">
@@ -1390,8 +1395,8 @@ html[data-theme="light"] .maptbl select{background:#fff}
   <div class="mb">
     <div class="field"><label>Data</label><input id="snapDate" type="date"></div>
     <div class="frow">
-      <div class="field"><label>Valore totale</label><input id="snapValue" type="number" step="any"></div>
-      <div class="field"><label>Capitale investito</label><input id="snapCost" type="number" step="any"></div>
+      <div class="field"><label>Valore totale</label><input id="snapValue" type="text" inputmode="decimal"></div>
+      <div class="field"><label>Capitale investito</label><input id="snapCost" type="text" inputmode="decimal"></div>
     </div>
     <div class="note" style="margin-bottom:0">Usa questa finestra anche per inserire snapshot di <b>date passate</b>: puoi ricostruire lo storico da prima di aver iniziato a usare la dashboard. Uno snapshot al giorno; salvarne un altro nello stesso giorno aggiorna quello esistente.</div>
     <input type="hidden" id="snapOrig">
@@ -1412,7 +1417,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
       <div class="field"><label>Icona</label><input id="gIcon" placeholder="🎯" maxlength="4"></div>
     </div>
     <div class="frow">
-      <div class="field"><label>Importo target</label><input id="gTarget" type="number" step="any" placeholder="es. 50000"></div>
+      <div class="field"><label>Importo target</label><input id="gTarget" type="text" inputmode="decimal" placeholder="es. 50000"></div>
       <div class="field"><label>Data target</label><input id="gTargetDate" type="date"></div>
     </div>
     <div class="field"><label>Data inizio</label><input id="gStartDate" type="date">
@@ -1422,7 +1427,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
       <option value="emergency">Usa le posizioni segnate come fondo emergenza</option>
       <option value="manual">Inserisci importo manuale</option></select></div>
     <div class="field" id="gManualWrap" style="display:none;margin-bottom:0">
-      <label>Importo attuale</label><input id="gManual" type="number" step="any" placeholder="0"></div>
+      <label>Importo attuale</label><input id="gManual" type="text" inputmode="decimal" placeholder="0"></div>
     <input type="hidden" id="gId">
   </div>
   <div class="mf">
@@ -1449,15 +1454,15 @@ html[data-theme="light"] .maptbl select{background:#fff}
       <div class="field"><label>Paese / Area</label><input id="fwCountry" list="ctrList" placeholder="es. USA"></div>
     </div>
     <div class="frow">
-      <div class="field"><label>Quantità prevista</label><input id="fwQty" type="number" step="any"></div>
-      <div class="field"><label>Prezzo di acquisto previsto</label><input id="fwAvg" type="number" step="any"></div>
+      <div class="field"><label>Quantità prevista</label><input id="fwQty" type="text" inputmode="decimal"></div>
+      <div class="field"><label>Prezzo di acquisto previsto</label><input id="fwAvg" type="text" inputmode="decimal"></div>
     </div>
     <div class="frow">
       <div class="field"><label>Rischio 3–9</label><input id="fwRisk" type="number" min="3" max="9" step="1" placeholder="6"></div>
-      <div class="field"><label>Peso previsto (%)</label><input id="fwTarget" type="number" step="any" placeholder="es. 5"></div>
+      <div class="field"><label>Peso previsto (%)</label><input id="fwTarget" type="text" inputmode="decimal" placeholder="es. 5"></div>
     </div>
     <div class="frow">
-      <div class="field"><label>Yield dividendo %</label><input id="fwYield" type="number" step="any"></div>
+      <div class="field"><label>Yield dividendo %</label><input id="fwYield" type="text" inputmode="decimal"></div>
       <div class="field"><label>Fattore</label><select id="fwFactor"></select></div>
     </div>
     <div class="field" style="margin-bottom:0"><label>Note</label>
@@ -1497,16 +1502,16 @@ html[data-theme="light"] .maptbl select{background:#fff}
         <div class="field"><label>Paese / Area</label><input id="fCountry" list="ctrList" placeholder="es. USA"></div>
       </div>
       <div class="frow">
-        <div class="field"><label>Quantità</label><input id="fQty" type="number" step="any"></div>
-        <div class="field"><label>Prezzo medio di carico</label><input id="fAvg" type="number" step="any"></div>
+        <div class="field"><label>Quantità</label><input id="fQty" type="text" inputmode="decimal"></div>
+        <div class="field"><label>Prezzo medio di carico</label><input id="fAvg" type="text" inputmode="decimal"></div>
       </div>
       <div class="frow">
-        <div class="field"><label>Prezzo attuale</label><input id="fPrice" type="number" step="any"></div>
-        <div class="field"><label>Peso previsto (%)</label><input id="fTarget" type="number" step="any" placeholder="es. 15"></div>
+        <div class="field"><label>Prezzo attuale</label><input id="fPrice" type="text" inputmode="decimal"></div>
+        <div class="field"><label>Peso previsto (%)</label><input id="fTarget" type="text" inputmode="decimal" placeholder="es. 15"></div>
       </div>
       <div class="frow">
         <div class="field"><label>Rischio 3–9</label><input id="fRisk" type="number" min="3" max="9" step="1" placeholder="6"></div>
-        <div class="field"><label>Yield dividendo %</label><input id="fYield" type="number" step="any"></div>
+        <div class="field"><label>Yield dividendo %</label><input id="fYield" type="text" inputmode="decimal"></div>
       </div>
       <div class="frow">
         <div class="field"><label>Fattore</label><select id="fFactor"></select></div>
@@ -1538,9 +1543,9 @@ html[data-theme="light"] .maptbl select{background:#fff}
           <option value="buy">Acquisto</option><option value="sell">Vendita</option>
           <option value="div">Dividendo</option><option value="fee">Commissione</option></select></div>
         <div class="field"><label>Data</label><input id="txDate" type="date"></div>
-        <div class="field"><label id="txQtyLbl">Quantità</label><input id="txQty" type="number" step="any"></div>
-        <div class="field"><label id="txPriceLbl">Prezzo</label><input id="txPrice" type="number" step="any"></div>
-        <div class="field"><label>Comm.</label><input id="txFee" type="number" step="any" placeholder="0"></div>
+        <div class="field"><label id="txQtyLbl">Quantità</label><input id="txQty" type="text" inputmode="decimal"></div>
+        <div class="field"><label id="txPriceLbl">Prezzo</label><input id="txPrice" type="text" inputmode="decimal"></div>
+        <div class="field"><label>Comm.</label><input id="txFee" type="text" inputmode="decimal" placeholder="0"></div>
         <button class="btn btn-soft" id="txAdd" style="height:36px">＋</button>
       </div>
     </div>
@@ -1882,10 +1887,24 @@ function num(v){
   let s=String(v).trim().replace(/[^\d,.\-]/g,''); if(!s)return 0;
   const lc=s.lastIndexOf(','),ld=s.lastIndexOf('.');
   if(lc>-1&&ld>-1){ s = lc>ld ? s.replace(/\./g,'').replace(',','.') : s.replace(/,/g,''); }
-  else if(lc>-1){ s=s.replace(/,/g,'.'); }
+  else if(lc>-1){
+    /* più virgole e nessun punto = separatori di migliaia ("1,234,567");
+       una sola virgola = sempre decimale, quante che siano le cifre dopo */
+    s = (s.match(/,/g)||[]).length>1 ? s.replace(/,/g,'') : s.replace(',','.'); }
   else if(ld>-1){ const d=(s.match(/\./g)||[]).length, a=s.length-ld-1;
     if(d>1||(a===3&&/^-?\d{1,3}(\.\d{3})+$/.test(s))) s=s.replace(/\./g,''); }
   const n=parseFloat(s); return isFinite(n)?n:0;
+}
+/* Valore numerico dentro un campo di testo: virgola decimale e nessun separatore
+   di migliaia, così num() lo rilegge senza ambiguità. Scriverlo col punto sarebbe
+   una perdita di dato: num('162.345') applicherebbe la regola delle migliaia. */
+function fnum(v){
+  if(v==null||v==='')return '';
+  const x=typeof v==='number'?v:num(v);
+  if(!isFinite(x))return '';
+  let s=String(x);
+  if(s.indexOf('e')>-1)s=x.toFixed(12).replace(/0+$/,'').replace(/\.$/,'');
+  return s.replace('.',',');
 }
 const nf=(n,d)=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d});
 const money=(n,d)=>'€ '+nf(n,d==null?2:d);
@@ -2266,7 +2285,7 @@ function renderSettings(){
   $('#fxRows').innerHTML=cur.length?cur.map(c=>
     '<div class="kv"><span class="k">1 '+esc(c)+' =</span>'+
     '<span class="v" style="display:flex;align-items:center;gap:7px">'+
-    '<input class="inp num" data-fx="'+esc(c)+'" type="number" step="any" value="'+num(S.fx[c])+'" '+
+    '<input class="inp num" data-fx="'+esc(c)+'" type="text" inputmode="decimal" value="'+fnum(num(S.fx[c]))+'" '+
     'style="width:120px;text-align:right;padding:6px 9px">€</span></div>').join('')
     :'<div class="note" style="margin:0">Tutte le posizioni sono in euro: nessun cambio da impostare.</div>';
   $$('#fxRows [data-fx]').forEach(inp=>inp.addEventListener('change',()=>{
@@ -2692,12 +2711,12 @@ function openPos(id){
   $('#fCur').value=p&&p.currency?p.currency:'EUR';
   $('#fSector').value=p?(p.sector||''):'';
   $('#fCountry').value=p?(p.country||''):'';
-  $('#fQty').value=p&&p.qty!=null?p.qty:'';
-  $('#fAvg').value=p&&p.avg!=null?p.avg:'';
-  $('#fPrice').value=p&&p.price!=null?p.price:'';
-  $('#fTarget').value=p&&p.targetWeight!=null?p.targetWeight:'';
+  $('#fQty').value=fnum(p&&p.qty!=null?p.qty:'');
+  $('#fAvg').value=fnum(p&&p.avg!=null?p.avg:'');
+  $('#fPrice').value=fnum(p&&p.price!=null?p.price:'');
+  $('#fTarget').value=fnum(p&&p.targetWeight!=null?p.targetWeight:'');
   $('#fRisk').value=p&&p.risk!=null?p.risk:'';
-  $('#fYield').value=p&&p.yield!=null?p.yield:'';
+  $('#fYield').value=fnum(p&&p.yield!=null?p.yield:'');
   $('#fFactor').value=p?normFactor(p.factor):'Nessuno';
   $('#fEmergency').value=p&&p.emergency?'1':'';
   $('#fCompSector').value=p?(p.compSector||''):'';
@@ -2735,8 +2754,8 @@ function renderTxList(){
       UI.editTx.length+' transazioni registrate'+
       (d.realized?' · realizzato '+(d.realized>=0?'+':'−')+nf(Math.abs(d.realized),2)+' '+esc(cur):'')+
       (d.divCash?' · dividendi '+nf(d.divCash,2)+' '+esc(cur):'')+'.</div>';
-    $('#fQty').value=+d.qty.toFixed(6); $('#fQty').disabled=true;
-    $('#fAvg').value=+d.avg.toFixed(4); $('#fAvg').disabled=true;
+    $('#fQty').value=fnum(+d.qty.toFixed(6)); $('#fQty').disabled=true;
+    $('#fAvg').value=fnum(+d.avg.toFixed(4)); $('#fAvg').disabled=true;
   }else{
     $('#derivedNote').innerHTML=''; $('#fQty').disabled=false; $('#fAvg').disabled=false;
   }
@@ -3492,7 +3511,7 @@ function renderRebalance(){
       '<div class="rb-cat"><span class="dot" style="background:'+PAL[i%PAL.length]+'"></span>'+
         '<span class="nm">'+esc(u.label)+'</span></div>'+
       '<div class="rb-num mask">'+money0(u.value)+'<div class="sub">'+nf(curP,1)+'%</div></div>'+
-      '<div><input class="rb-in" data-rb="'+esc(String(u.key))+'" type="number" step="any" value="'+tgt+'"></div>'+
+      '<div><input class="rb-in" data-rb="'+esc(String(u.key))+'" type="text" inputmode="decimal" value="'+fnum(tgt)+'"></div>'+
       '<div class="rb-act">'+badge+'</div>'+
       '<div class="rb-bar"><div class="track"><i style="width:'+Math.min(100,curP/maxP*100).toFixed(1)+'%;'+
         'background:'+PAL[i%PAL.length]+'"></i></div>'+
@@ -3589,11 +3608,11 @@ function openWatch(id){
   $('#fwCur').value=w&&w.currency?w.currency:'EUR';
   $('#fwSector').value=w?(w.sector||''):'';
   $('#fwCountry').value=w?(w.country||''):'';
-  $('#fwQty').value=w&&num(w.qty)?w.qty:'';
-  $('#fwAvg').value=w&&num(w.avg)?w.avg:'';
+  $('#fwQty').value=fnum(w&&num(w.qty)?w.qty:'');
+  $('#fwAvg').value=fnum(w&&num(w.avg)?w.avg:'');
   $('#fwRisk').value=w&&w.risk!=null?w.risk:'';
-  $('#fwTarget').value=w&&w.targetWeight!=null?w.targetWeight:'';
-  $('#fwYield').value=w&&w.yield!=null?w.yield:'';
+  $('#fwTarget').value=fnum(w&&w.targetWeight!=null?w.targetWeight:'');
+  $('#fwYield').value=fnum(w&&w.yield!=null?w.yield:'');
   $('#fwFactor').value=w?normFactor(w.factor):'Nessuno';
   $('#fwNote').value=w?(w.note||''):'';
   $('#fwId').value=w?w.id:'';
@@ -3706,7 +3725,7 @@ function renderDividends(){
       '<div class="rb-cat"><span class="dot" style="background:'+PAL[i%PAL.length]+'"></span>'+
         '<span class="nm">'+esc(p.ticker||p.name||'—')+'</span></div>'+
       '<div class="rb-num mask">'+money0(p._value)+'</div>'+
-      '<div><input class="rb-in" data-divid="'+p.id+'" type="number" step="any" value="'+(num(p.yield)||0)+'"></div>'+
+      '<div><input class="rb-in" data-divid="'+p.id+'" type="text" inputmode="decimal" value="'+fnum(num(p.yield)||0)+'"></div>'+
       '<div class="rb-act num mask'+(inc>0?' up':'')+'" id="dinc-'+p.id+'">'+money0(inc)+'</div>'+
     '</div>';
   }).join('');
@@ -4041,8 +4060,8 @@ function openSnap(dateKey){
   $('#snapTitle').textContent=s?'Modifica snapshot':'Aggiungi snapshot';
   $('#snapOrig').value=s?s.date:'';
   $('#snapDate').value=s?s.date:todayISO();
-  if(s){ $('#snapValue').value=s.value; $('#snapCost').value=s.cost; }
-  else { $('#snapValue').value=Math.round(T.value*100)/100; $('#snapCost').value=Math.round(T.cost*100)/100; }
+  if(s){ $('#snapValue').value=fnum(s.value); $('#snapCost').value=fnum(s.cost); }
+  else { $('#snapValue').value=fnum(Math.round(T.value*100)/100); $('#snapCost').value=fnum(Math.round(T.cost*100)/100); }
   $('#snapDelete').style.display=s?'':'none';
   $('#ovSnap').classList.add('on');
 }
@@ -4209,11 +4228,11 @@ function openGoal(id){
   $('#goalTitle').textContent=g?'Modifica obiettivo':'Aggiungi obiettivo';
   $('#gName').value=g?(g.name||''):'';
   $('#gIcon').value=g?(g.icon||'🎯'):'🎯';
-  $('#gTarget').value=g&&g.target!=null?g.target:'';
+  $('#gTarget').value=fnum(g&&g.target!=null?g.target:'');
   $('#gTargetDate').value=g?(g.targetDate||''):'';
   $('#gStartDate').value=g?(g.startDate||todayISO()):todayISO();
   $('#gMode').value=g&&(g.mode==='manual'||g.mode==='emergency')?g.mode:'portfolio';
-  $('#gManual').value=g&&g.manual!=null?g.manual:'';
+  $('#gManual').value=fnum(g&&g.manual!=null?g.manual:'');
   $('#gManualWrap').style.display=$('#gMode').value==='manual'?'block':'none';
   $('#gDelete').style.display=g?'':'none';
   $('#gId').value=g?g.id:'';
