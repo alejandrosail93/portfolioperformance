@@ -742,6 +742,11 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .tabbar{display:block}
   .wrap{padding:0 16px}
   body{padding-bottom:66px}
+  .hm{min-width:480px;gap:2px}
+  .hm-c{font-size:9.5px;border-radius:6px}
+  .hm-hd{font-size:9.5px;letter-spacing:.3px}
+  .hm-yl{font-size:10.5px;padding-right:6px}
+  .hm-tiles{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
   .tb-in{min-height:58px;padding:10px 0;gap:10px}
   .tb-title h1{font-size:17px}
   .tb-search{display:none}
@@ -789,7 +794,55 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .kpi .v{font-size:20px}
   .hide-sm{display:none!important}
 }
+/* ==========================================================================
+   HEAT MAP — performance mensile
+   ========================================================================== */
+.hm-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.hm{display:grid;gap:3px;min-width:560px}
+.hm-hd{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--muted);text-align:center;padding-bottom:4px}
+.hm-yl{font-size:11.5px;font-weight:700;color:var(--ink-soft);display:flex;align-items:center;
+  justify-content:flex-end;padding-right:9px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.hm-c{border:0;padding:0;border-radius:7px;aspect-ratio:1/1;display:flex;align-items:center;
+  justify-content:center;font-size:10.5px;font-weight:650;font-variant-numeric:tabular-nums;
+  line-height:1;outline:2px solid transparent;outline-offset:1px;
+  transition:transform .1s,box-shadow .1s,outline-color .1s}
+.hm-c.has{cursor:pointer}
+.hm-c.has:hover,.hm-c.has:focus-visible{transform:scale(1.10);box-shadow:var(--shadow-sm);
+  outline-color:var(--ink);z-index:2;position:relative}
+/* nessun dato ≠ rendimento zero: cella vuota e tratteggiata, mai colorata */
+.hm-c.nod{background:transparent;box-shadow:inset 0 0 0 1px var(--line);cursor:default}
+/* copertura parziale: solo una parte del portafoglio aveva storico quel mese */
+.hm-c.part{outline:1px dashed var(--muted);outline-offset:-3px}
+/* colonna del cumulato annuo, staccata e con bordo marcato */
+.hm-c.tot{box-shadow:inset 0 0 0 2px var(--ink-soft);border-radius:8px}
+.hm-compact .hm-c{font-size:0}
+.hm-lg{display:flex;align-items:center;gap:10px;margin-top:15px;font-size:11.5px;
+  color:var(--muted);flex-wrap:wrap}
+.hm-bar{flex:1;min-width:120px;max-width:250px;height:9px;border-radius:5px}
+.hm-tip{position:absolute;pointer-events:none;background:var(--surface-3);border:1px solid var(--line);
+  border-radius:10px;padding:8px 11px;font-size:12.5px;box-shadow:var(--shadow);opacity:0;
+  transition:opacity .12s;white-space:nowrap;z-index:6;transform:translate(-50%,-118%)}
+.hm-tip.on{opacity:1}
+.hm-tip .d{color:var(--muted);font-size:11px;margin-bottom:2px}
+.hm-tip .v{font-weight:700}
+/* dettaglio per titolo: stessa estetica a rettangoli */
+.hm-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.hm-t{border-radius:10px;padding:11px 10px;min-height:66px;display:flex;flex-direction:column;
+  justify-content:center;gap:3px;overflow:hidden}
+.hm-t .tk{font-size:12px;font-weight:730;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hm-t .rt{font-size:14.5px;font-weight:750;font-variant-numeric:tabular-nums}
+.hm-t .nm{font-size:10px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 @media print{
+  /* la griglia e la legenda restano stampabili: utili in un report annuale */
+  .hm-c.has:hover,.hm-c.has:focus-visible{transform:none;box-shadow:none;outline:0}
+  .hm-tip,#hmSort{display:none!important}
+  .hm-c{aspect-ratio:auto;min-height:26px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .hm-t{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .hm-bar{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .hm-wrap{overflow:visible}
+  .hm{min-width:0}
   .sidebar,.topbar,.tabbar,.btn{display:none!important}
   .page{display:block!important;page-break-after:always}
   body{background:#fff}
@@ -1247,6 +1300,12 @@ html[data-theme="light"] .maptbl select{background:#fff}
           </div>
         </div>
 
+        <div class="card mt18">
+          <div class="card-hd"><h2><span class="chip t" id="chipHeat"></span> Performance mensile</h2>
+            <div class="right"><span class="sub" id="heatSub"></span></div></div>
+          <div class="card-bd" id="heatBody" style="position:relative"></div>
+        </div>
+
         <div class="card mt18" id="closedCard" style="display:none">
           <div class="card-hd"><h2><span class="chip t" id="chipClosed"></span> Posizioni chiuse</h2>
             <div class="right"><span class="sub" id="closedCount"></span></div></div>
@@ -1405,6 +1464,14 @@ html[data-theme="light"] .maptbl select{background:#fff}
 <aside class="drawer" id="drawer"></aside>
 
 <!-- ===================== SNAPSHOT ===================== -->
+<div class="ov" id="ovHeat"><div class="modal" style="max-width:680px">
+  <div class="mh"><h3 id="heatMTitle">Dettaglio mese</h3><button class="x" data-close></button></div>
+  <div class="mb" id="heatMBody"></div>
+  <div class="mf">
+    <button class="btn btn-ghost" data-close>Torna alla griglia</button>
+  </div>
+</div></div>
+
 <div class="ov" id="ovSnap"><div class="modal" style="max-width:460px">
   <div class="mh"><h3 id="snapTitle">Aggiungi snapshot</h3><button class="x" data-close></button></div>
   <div class="mb">
@@ -1842,7 +1909,7 @@ const UI={
   editId:null, editTx:[], drawerId:null,
   expo:{level:'cat',f:{}},
   rbMode:'cat', editWatch:null,
-  histSrc:'snap', editGoal:null
+  histSrc:'snap', editGoal:null, heatM:null, heatSort:'ret'
 };
 
 function load(){
@@ -4220,6 +4287,264 @@ function undatedNote(){
     ' da sempre. Apri la scheda del titolo e compila <b>In portafoglio dal</b> per correggere.</div>';
 }
 
+/* ==========================================================================
+   12p. HEAT MAP — performance mensile
+   --------------------------------------------------------------------------
+   I rendimenti sono gli STESSI usati da Salute → Rischio quantitativo
+   (portfolioSeries → tickerReturns): la griglia non ricalcola nulla, così i
+   due punti dell'app non possono divergere.
+   ========================================================================== */
+const HM_STEPS=[2,5,10,15,20,25,30];
+const MESI_AB=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+const MESI=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto',
+            'Settembre','Ottobre','Novembre','Dicembre'];
+
+/* Estremo della scala: il rendimento più forte in valore assoluto, arrotondato
+   per eccesso al primo valore "pulito". */
+function heatCap(vals){
+  let mx=0;
+  (vals||[]).forEach(v=>{ if(v!=null&&isFinite(v))mx=Math.max(mx,Math.abs(v)); });
+  const p=mx*100;
+  for(let i=0;i<HM_STEPS.length;i++) if(p<=HM_STEPS[i])return HM_STEPS[i];
+  return HM_STEPS[HM_STEPS.length-1];
+}
+function hexRgb(v){
+  let s=String(v==null?'':v).trim();
+  const m=s.match(/rgba?\(([^)]+)\)/);
+  if(m){ const a=m[1].split(',').map(x=>parseInt(x,10)); return [a[0]||0,a[1]||0,a[2]||0]; }
+  s=s.replace('#','');
+  if(s.length===3)s=s[0]+s[0]+s[1]+s[1]+s[2]+s[2];
+  if(!/^[0-9a-fA-F]{6}$/.test(s))return [128,128,128];
+  const n=parseInt(s,16);
+  return [(n>>16)&255,(n>>8)&255,n&255];
+}
+function mixRgb(a,b,t){
+  t=Math.max(0,Math.min(1,isFinite(t)?t:0));
+  return [Math.round(a[0]+(b[0]-a[0])*t),
+          Math.round(a[1]+(b[1]-a[1])*t),
+          Math.round(a[2]+(b[2]-a[2])*t)];
+}
+const rgbCss=c=>'rgb('+c[0]+','+c[1]+','+c[2]+')';
+/* luminanza relativa sRGB: decide se il testo va chiaro o scuro */
+function lumRgb(c){
+  const f=v=>{ v/=255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4); };
+  return .2126*f(c[0])+.7152*f(c[1])+.0722*f(c[2]);
+}
+/* Colore di una cella: dal neutro al polo del segno, intensità |ret|/cap.
+   Scala diverging a due poli: nessun colore intermedio arbitrario. */
+function heatCell(ret,cap,pal){
+  if(ret==null||!isFinite(ret))return null;
+  const t=cap>0?Math.min(Math.abs(ret)*100/cap,1):0;
+  const bg=mixRgb(pal.neutral,ret<0?pal.down:pal.up,t);
+  return {bg:bg,fg:lumRgb(bg)>.45?pal.inkDark:pal.inkLight,t:t};
+}
+/* Rendimento cumulato: si compone, non si somma. */
+function compoundRet(rets){
+  let v=1,n=0;
+  (rets||[]).forEach(r=>{ if(r!=null&&isFinite(r)){ v*=(1+r); n++; } });
+  return n?v-1:null;
+}
+/* Griglia anni × mesi a partire dai rendimenti mensili del portafoglio. */
+function heatGrid(monthly){
+  const by={}; let minY=null,maxY=null;
+  (monthly||[]).forEach(x=>{
+    if(!x||x.m==null||!isFinite(x.m))return;
+    const y=Math.floor(x.m/12), mo=((x.m%12)+12)%12;
+    (by[y]||(by[y]={}))[mo]={ret:x.ret,cov:x.cov==null?1:x.cov,m:x.m};
+    if(minY==null||y<minY)minY=y;
+    if(maxY==null||y>maxY)maxY=y;
+  });
+  if(minY==null)return null;
+  const years=[],cells=[],total={};
+  for(let y=maxY;y>=minY;y--){
+    years.push(y);
+    const arr=[];
+    for(let mo=0;mo<12;mo++){ const c=by[y]&&by[y][mo]; if(c){ cells.push(c.ret); arr.push(c.ret); } }
+    total[y]=compoundRet(arr);
+  }
+  return {years:years,by:by,total:total,cap:heatCap(cells),n:cells.length};
+}
+/* Un titolo compare nel mese se lo possedevi in un giorno qualsiasi di quel
+   mese: comprato dopo o venduto prima non compare, venduto durante sì. */
+function heldInMonth(p,mIdx){
+  if(!p)return false;
+  const y=Math.floor(mIdx/12), mo=((mIdx%12)+12)%12;
+  const a=Date.UTC(y,mo,1,12,0,0), b=Date.UTC(y,mo+1,0,12,0,0);
+  return qtyAt(p,a).qty>EPS_QTY||qtyAt(p,b).qty>EPS_QTY;
+}
+/* Rendimento del singolo titolo nel mese, dai prezzi storici (non ponderato). */
+function heatTickers(mIdx){
+  const out=[];
+  (S.positions||[]).forEach(p=>{
+    if(!p||!p.ticker)return;
+    const hh=MHIST[p.ticker];
+    if(!hh||!hh.pts||hh.pts.length<2)return;
+    const m={}; hh.pts.forEach(q=>{ m[monthIdx(q.t)]=q.v; });
+    const a=m[mIdx-1], b=m[mIdx];
+    if(a==null||b==null||!isFinite(a)||!isFinite(b)||a===0)return;
+    if(!heldInMonth(p,mIdx))return;
+    out.push({id:p.id,ticker:p.ticker,name:p.name||'',ret:b/a-1,closed:isClosed(p)});
+  });
+  return out;
+}
+/* palette corrente, letta dal tema attivo */
+function heatPal(){
+  const cs=getComputedStyle(document.documentElement), g=k=>cs.getPropertyValue(k);
+  return {neutral:hexRgb(g('--surface-3')), up:hexRgb(g('--up')), down:hexRgb(g('--down')),
+          inkLight:'#ffffff', inkDark:hexRgb(g('--ink'))};
+}
+const heatFg=v=>typeof v==='string'?v:rgbCss(v);
+const pctIt=r=>(r>=0?'+':'−')+nf(Math.abs(r)*100,1)+'%';
+
+function renderHeatmap(){
+  const host=$('#heatBody'); if(!host)return;
+  const sub=$('#heatSub'); if(sub)sub.textContent='';
+  if(!activeCount()||T.value<=0){
+    host.innerHTML='<div class="empty" style="padding:20px"><div class="sm">Aggiungi posizioni per vedere la performance mese per mese.</div></div>';return;
+  }
+  if(!hasMonthly()){
+    host.innerHTML='<div class="empty"><div class="ic">'+ic('grid',22)+'</div>'+
+      '<div class="big">Nessuno storico prezzi</div>'+
+      '<div class="sm">Premi <b>Scarica storico</b> in Salute → Rischio quantitativo. '+
+      'Serve una connessione una volta sola, poi i dati restano disponibili offline.</div></div>';return;
+  }
+  const res=portfolioSeries();
+  const G=res?heatGrid(res.monthly):null;
+  if(!G||!G.n){
+    host.innerHTML='<div class="empty" style="padding:20px"><div class="sm">Storico insufficiente per costruire la griglia'+
+      (res?' · copertura attuale '+nf(res.coveragePct,0)+'% del capitale':'')+'.</div></div>';return;
+  }
+  const pal=heatPal(), cap=G.cap;
+  const nowM=monthIdx(Date.now());
+  if(sub)sub.textContent=G.n+(G.n===1?' mese':' mesi')+' · scala ±'+nf(cap,0)+'%';
+
+  const cell=(ret,cov,mIdx,extra,label)=>{
+    const c=heatCell(ret,cap,pal);
+    if(!c){
+      const futuro=mIdx!=null&&mIdx>nowM;
+      return '<div class="hm-c nod" aria-hidden="true" title="'+
+        (futuro?'Mese futuro':'Nessun dato disponibile')+'"></div>';
+    }
+    const parz=cov!=null&&cov<.999;
+    return '<button type="button" class="hm-c has'+(extra||'')+(parz?' part':'')+'" '+
+      'style="background:'+rgbCss(c.bg)+';color:'+heatFg(c.fg)+'" '+
+      (mIdx!=null?'data-hm="'+mIdx+'" ':'')+
+      'data-lab="'+esc(label||'')+'" data-ret="'+ret+'" data-cov="'+(cov==null?'':cov)+'">'+
+      esc(pctIt(ret))+'</button>';
+  };
+
+  let g='<div class="hm-hd"></div>';
+  MESI_AB.forEach(m=>{ g+='<div class="hm-hd">'+m+'</div>'; });
+  g+='<div class="hm-hd">Anno</div>';
+  G.years.forEach(y=>{
+    g+='<div class="hm-yl">'+y+'</div>';
+    for(let mo=0;mo<12;mo++){
+      const c=G.by[y]&&G.by[y][mo];
+      g+=c?cell(c.ret,c.cov,c.m,'',MESI[mo]+' '+y):cell(null,null,y*12+mo);
+    }
+    const t=G.total[y];
+    g+=t==null?'<div class="hm-c nod tot" aria-hidden="true"></div>'
+             :cell(t,null,null,' tot','Anno '+y);
+  });
+
+  const neg=rgbCss(pal.down), neu=rgbCss(pal.neutral), pos=rgbCss(pal.up);
+  host.innerHTML=
+    '<div class="hm-wrap"><div class="hm" id="hmGrid" '+
+      'style="grid-template-columns:auto repeat(12,minmax(0,1fr)) minmax(0,1.15fr)">'+g+'</div></div>'+
+    '<div class="hm-lg">'+
+      '<span>−'+nf(cap,0)+'%</span>'+
+      '<span class="hm-bar" style="background:linear-gradient(90deg,'+neg+' 0%,'+neu+' 50%,'+pos+' 100%)"></span>'+
+      '<span>+'+nf(cap,0)+'%</span>'+
+      '<span style="margin-left:auto">0% al centro · '+
+        '<span style="border:1px dashed var(--muted);padding:1px 5px;border-radius:5px">tratteggio</span> = copertura parziale · '+
+        '<span style="box-shadow:inset 0 0 0 1px var(--line);padding:1px 5px;border-radius:5px">vuoto</span> = nessun dato</span>'+
+    '</div>'+
+    '<div class="hm-tip" id="hmTip"></div>'+
+    '<div class="note mt18">Rendimento mensile del portafoglio, con i pesi delle posizioni che quel mese '+
+      'avevano storico prezzi: sono gli stessi numeri di <b>Salute → Rischio quantitativo</b>. '+
+      'La colonna <b>Anno</b> compone i mesi, non li somma. Clicca un mese per il dettaglio titolo per titolo.</div>';
+
+  /* sotto ~44px il valore dentro la cella diventa illeggibile: resta nel tooltip */
+  const grid=$('#hmGrid'), first=grid.querySelector('.hm-c');
+  if(first)grid.classList.toggle('hm-compact',first.getBoundingClientRect().width<44);
+
+  const tip=$('#hmTip');
+  const show=el=>{
+    const ret=parseFloat(el.getAttribute('data-ret'));
+    const covA=el.getAttribute('data-cov'), cov=covA===''?null:parseFloat(covA);
+    tip.innerHTML='<div class="d">'+esc(el.getAttribute('data-lab'))+'</div>'+
+      '<div class="v">'+esc(pctIt(ret))+'</div>'+
+      (cov!=null&&cov<.999?'<div class="d">copertura '+nf(cov*100,0)+'% del portafoglio</div>':'');
+    const hr=host.getBoundingClientRect(), r=el.getBoundingClientRect();
+    tip.style.left=(r.left-hr.left+r.width/2)+'px';
+    tip.style.top=(r.top-hr.top)+'px';
+    tip.classList.add('on');
+  };
+  const hide=()=>tip.classList.remove('on');
+  $$('#hmGrid .hm-c.has').forEach(el=>{
+    el.addEventListener('pointerenter',()=>show(el));
+    el.addEventListener('pointerleave',hide);
+    el.addEventListener('focus',()=>show(el));
+    el.addEventListener('blur',hide);
+    const m=el.getAttribute('data-hm');
+    if(m!=null)el.addEventListener('click',()=>{ hide(); openHeatMonth(+m); });
+  });
+}
+
+/* ---------- dettaglio del mese, titolo per titolo ---------- */
+function renderHeatMonth(){
+  const body=$('#heatMBody'); if(!body||UI.heatM==null)return;
+  const mIdx=UI.heatM, y=Math.floor(mIdx/12), mo=((mIdx%12)+12)%12;
+  $('#heatMTitle').textContent=MESI[mo]+' '+y;
+  let rows=heatTickers(mIdx);
+  if(!rows.length){
+    body.innerHTML='<div class="empty" style="padding:26px"><div class="ic">'+ic('inbox',22)+'</div>'+
+      '<div class="big">Nessun titolo con dato</div>'+
+      '<div class="sm">In questo mese nessuna delle posizioni che possedevi aveva prezzi storici disponibili.</div></div>';
+    return;
+  }
+  /* cap ricalcolato SOLO su questo mese: i singoli titoli oscillano molto più
+     dell'aggregato, riusare la scala del portafoglio appiattirebbe i colori */
+  const cap=heatCap(rows.map(r=>r.ret)), pal=heatPal();
+  rows=rows.slice().sort(UI.heatSort==='abc'
+    ? (a,b)=>String(a.ticker).localeCompare(String(b.ticker),'it')
+    : (a,b)=>b.ret-a.ret);
+  const neg=rgbCss(pal.down), neu=rgbCss(pal.neutral), pos=rgbCss(pal.up);
+  body.innerHTML=
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">'+
+      '<span class="seg" id="hmSort">'+
+        '<button data-hs="ret"'+(UI.heatSort==='abc'?'':' class="on"')+'>Rendimento</button>'+
+        '<button data-hs="abc"'+(UI.heatSort==='abc'?' class="on"':'')+'>Alfabetico</button>'+
+      '</span>'+
+      '<span class="sub" style="margin-left:auto">'+rows.length+(rows.length===1?' titolo':' titoli')+'</span>'+
+    '</div>'+
+    '<div class="hm-tiles">'+rows.map(r=>{
+      const c=heatCell(r.ret,cap,pal);
+      return '<div class="hm-t" style="background:'+rgbCss(c.bg)+';color:'+heatFg(c.fg)+'" '+
+        'title="'+esc(r.ticker+(r.name?' · '+r.name:''))+'">'+
+        '<div class="tk">'+esc(r.ticker)+(r.closed?' ·':'')+'</div>'+
+        '<div class="rt">'+esc(pctIt(r.ret))+'</div>'+
+        (r.name?'<div class="nm">'+esc(r.name)+'</div>':'')+'</div>';
+    }).join('')+'</div>'+
+    '<div class="hm-lg">'+
+      '<span>−'+nf(cap,0)+'%</span>'+
+      '<span class="hm-bar" style="background:linear-gradient(90deg,'+neg+' 0%,'+neu+' 50%,'+pos+' 100%)"></span>'+
+      '<span>+'+nf(cap,0)+'%</span>'+
+    '</div>'+
+    '<div class="note mt18">Variazione del prezzo del titolo fra la fine del mese precedente e la fine di questo mese, '+
+      'non il contributo ponderato al portafoglio. <b>Scala diversa dalla vista portafoglio</b> (±'+nf(cap,0)+'%): '+
+      'è calcolata sui soli titoli di questo mese. Il punto accanto al ticker segnala una posizione poi chiusa.</div>';
+  $$('#hmSort button').forEach(b=>b.addEventListener('click',()=>{
+    UI.heatSort=b.getAttribute('data-hs'); renderHeatMonth();
+  }));
+}
+function openHeatMonth(mIdx){
+  UI.heatM=mIdx;
+  if(!UI.heatSort)UI.heatSort='ret';
+  renderHeatMonth();
+  $('#ovHeat').classList.add('on');
+}
+
 /* ---------- posizioni chiuse ---------- */
 function renderClosed(){
   const card=$('#closedCard'), body=$('#closedBody'); if(!card||!body)return;
@@ -4300,6 +4625,7 @@ function renderHistory(){
         '<td><button class="rowbtn" data-snap="'+esc(s.date)+'" title="Modifica">'+ic('edit',15)+'</button></td></tr>';
     }).join('');
   }
+  renderHeatmap();
   renderClosed();
   renderBenchmark();
 }
@@ -5271,6 +5597,7 @@ $('#chipSimR').innerHTML=ic('trend',17);
 $('#chipHist').innerHTML=ic('clock',17);
 $('#chipBench').innerHTML=ic('balance',17);
 $('#chipSnap').innerHTML=ic('db',17);
+$('#chipHeat').innerHTML=ic('grid',17);
 $('#chipClosed').innerHTML=ic('inbox',17);
 $('#btnSnap').querySelector('.ic').innerHTML=ic('plus',15);
 $('#btnBench').querySelector('.ic').innerHTML=ic('refresh',15);
