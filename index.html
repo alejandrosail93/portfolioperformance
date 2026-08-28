@@ -1372,11 +1372,18 @@ html[data-theme="light"] .maptbl select{background:#fff}
               le righe con lo stesso ticker confluiscono in un unico titolo con il suo registro transazioni, e quantità e
               prezzo medio vengono calcolati dai movimenti. Un titolo venduto per intero viene chiuso automaticamente.
               <br><br>Per i dividendi puoi usare indifferentemente <b>Dividendo totale</b> (il controvalore incassato) oppure
-              <b>Dividendo per azione</b> (moltiplicato per la quantità della riga): se le compili entrambe vince il totale.</div>
+              <b>Dividendo per azione</b> (moltiplicato per la quantità della riga): se le compili entrambe vince il totale.
+              <br><br><b>Un solo file basta.</b> Alcune colonne descrivono il <i>titolo</i> e non la singola operazione:
+              Nome, Categoria, Settore, Paese, Valuta, Prezzo attuale, Yield, Rischio, Fattore e Peso previsto.
+              Puoi ripeterle su ogni riga oppure compilarle solo una volta: viene preso il primo valore che trovi,
+              ovunque si trovi. Se due righe dello stesso titolo ne portano uno <b>diverso</b> vince il primo,
+              e la differenza ti viene segnalata qui sotto invece di sparire in silenzio.
+              Restano legate alla singola riga: Data, Operazione, Quantità, Prezzo unitario, Commissione e i due Dividendi.</div>
             <div class="field"><input type="file" id="csvFile" accept=".csv,text/csv,text/plain" style="padding:9px"></div>
             <div class="field"><label>…oppure incolla qui</label>
               <textarea id="csvPaste" placeholder="Ticker;Nome;Categoria;Settore;Paese;Valuta;Prezzo attuale;Yield %;Rischio;Fattore;Peso Previsto %;Data;Operazione;Quantità;Prezzo unitario;Commissione;Dividendo totale;Dividendo per azione&#10;AAPL;Apple Inc.;Stocks;Technology;USA;USD;212;0,5;7;Growth;10;15/03/2024;Acquisto;25;150;4,95;;&#10;AAPL;;;;;;;;;;;12/08/2025;;25;;;;0,24&#10;AAPL;;;;;;;;;;;03/02/2026;Vendita;10;212;4,95;;"></textarea></div>
             <button class="btn btn-ghost btn-sm" id="csvParse">Leggi colonne</button>
+            <div id="csvReport"></div>
             <div id="mapArea" style="display:none;margin-top:18px">
               <div class="sec-t" style="margin-top:0">Abbina le colonne</div>
               <table class="maptbl"><tbody id="mapRows"></tbody></table>
@@ -2467,55 +2474,191 @@ function renderSettings(){
 /* ==========================================================================
    11. PREZZI LIVE (Yahoo Finance via proxy CORS)
    ========================================================================== */
-const PROXIES=[u=>u,
-  u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
-  u=>'https://corsproxy.io/?url='+encodeURIComponent(u)];
-function fetchJSON(url){
+/* Il punto debole non e' Yahoo ma i proxy CORS pubblici: rispondono 429 o 5xx
+   quando ricevono decine di richieste tutte insieme. Prima ogni titolo partiva
+   in parallelo con un solo tentativo per proxy, percio' bastava una giornata
+   storta del proxy per veder fallire mezzo portafoglio. Ora: coda a
+   concorrenza limitata, timeout, tentativi con attesa crescente, trasporto
+   "appiccicoso" (si riparte da quello che ha funzionato l'ultima volta), host
+   Yahoo alternativo e cache delle quotazioni. */
+const NET={
+  timeout:10000,   /* un proxy appeso non deve bloccare tutto il resto */
+  tries:2,         /* tentativi per trasporto, con attesa crescente */
+  backoff:700,     /* ms della prima attesa fra un tentativo e l'altro */
+  parallel:3,      /* richieste in volo insieme: oltre, i proxy limitano */
+  gap:120,         /* pausa fra una richiesta e la successiva della stessa corsia */
+  ttl:10*60*1000,  /* quotazione ancora considerata fresca */
+  cooldown:15*60*1000, /* quanto resta in panchina un proxy che non risponde */
+  grace:24*3600*1000 /* quanto a lungo riusare l'ultimo prezzo se la rete non risponde */
+};
+const TRANSPORTS=[
+  /* diretto: se il browser blocca per CORS l'esito e' sempre lo stesso,
+     un tentativo solo e si passa ai proxy */
+  {id:'direct',     url:u=>u, tries:1},
+  {id:'allorigins', url:u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u)},
+  {id:'corsproxy',  url:u=>'https://corsproxy.io/?url='+encodeURIComponent(u)},
+  {id:'codetabs',   url:u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)},
+  {id:'aowrapped',  url:u=>'https://api.allorigins.win/get?url='+encodeURIComponent(u), wrap:true}
+];
+const NETKEY='pf_v2_net', NETSKEY='pf_v2_netstat';
+let NETBEST=null; try{ NETBEST=localStorage.getItem(NETKEY); }catch(e){}
+/* Un proxy caduto non va ritentato per ogni singolo titolo: dopo due buchi
+   finisce in panchina per un quarto d'ora e la coda scorre sugli altri. */
+let NETSTAT={}; try{ NETSTAT=JSON.parse(localStorage.getItem(NETSKEY))||{}; }catch(e){ NETSTAT={}; }
+function netSaveStat(){ try{ localStorage.setItem(NETSKEY,JSON.stringify(NETSTAT)); }catch(e){} }
+function netRemember(id){
+  if(NETSTAT[id]){ delete NETSTAT[id]; netSaveStat(); }
+  if(NETBEST===id)return;
+  NETBEST=id; try{ localStorage.setItem(NETKEY,id); }catch(e){}
+}
+function netPenalize(id){
+  const st=NETSTAT[id]||(NETSTAT[id]={fails:0,until:0});
+  st.fails++;
+  if(st.fails>=2)st.until=Date.now()+NET.cooldown;
+  if(NETBEST===id){ NETBEST=null; try{ localStorage.removeItem(NETKEY); }catch(e){} }
+  netSaveStat();
+}
+function netOrder(){
+  const now=Date.now(), good=[], cold=[];
+  TRANSPORTS.forEach(tr=>{ ((NETSTAT[tr.id]&&NETSTAT[tr.id].until>now)?cold:good).push(tr); });
+  /* Se sono tutti in panchina siamo verosimilmente offline: un solo tentativo
+     di sondaggio, cosi' l'aggiornamento finisce in fretta invece di macinare
+     timeout per ogni titolo. Fra un quarto d'ora si riprova sul serio. */
+  if(!good.length)return {list:cold.slice(0,1),degraded:true};
+  const list=good.concat(cold);   /* i puniti restano come ultima spiaggia */
+  for(let i=1;i<list.length;i++) if(list[i].id===NETBEST){ list.unshift(list.splice(i,1)[0]); break; }
+  return {list:list,degraded:false};
+}
+/* 'symbol': Yahoo ha risposto ma il simbolo non esiste, inutile insistere.
+   'transport'/'offline': proxy o rete, vale la pena riprovare altrove. */
+function netErr(kind){ const e=new Error(kind); e.kind=kind; return e; }
+function netOnce(url,tr){
+  const ctl=(typeof AbortController!=='undefined')?new AbortController():null;
+  let timer=null;
+  const stop=()=>{ if(timer){clearTimeout(timer);timer=null;} };
   return new Promise((resolve,reject)=>{
-    let i=0;
-    (function next(){
-      if(i>=PROXIES.length){reject(new Error('offline'));return;}
-      fetch(PROXIES[i++](url)).then(r=>{if(!r.ok)throw 0;return r.json();}).then(resolve).catch(next);
+    timer=setTimeout(()=>{ timer=null; if(ctl)ctl.abort(); reject(netErr('transport')); },NET.timeout);
+    fetch(tr.url(url),ctl?{signal:ctl.signal}:undefined)
+      .then(r=>r.text().then(txt=>({ok:r.ok,txt:txt})))
+      .then(res=>{
+        stop();
+        let body=res.txt;
+        if(tr.wrap){ try{ body=JSON.parse(body).contents; }catch(e){ throw netErr('transport'); } }
+        let data=null; try{ data=JSON.parse(body); }catch(e){ data=null; }
+        if(data&&data.chart&&data.chart.error)throw netErr('symbol');
+        if(!res.ok||!data)throw netErr('transport');
+        resolve(data);
+      })
+      .catch(e=>{ stop(); reject(e&&e.kind?e:netErr('transport')); });
+  });
+}
+function fetchTry(url,alts){
+  const urls=[url].concat(alts||[]), plan=netOrder(), order=plan.list;
+  return new Promise((resolve,reject)=>{
+    let ti=0,attempt=0;
+    (function step(){
+      if(ti>=order.length){ reject(netErr('offline')); return; }
+      const tr=order[ti], tries=plan.degraded?1:(tr.tries||NET.tries);
+      netOnce(urls[attempt%urls.length],tr).then(d=>{ netRemember(tr.id); resolve(d); },e=>{
+        if(e&&e.kind==='symbol'){ reject(e); return; }
+        attempt++;
+        if(attempt>=tries){ netPenalize(tr.id); attempt=0; ti++; step(); return; }
+        setTimeout(step,NET.backoff*Math.pow(2,attempt-1)*(1+Math.random()*.5));
+      });
     })();
   });
 }
-function yQuote(sym){
-  return fetchJSON('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range=5d')
-    .then(d=>{
-      const res=d&&d.chart&&d.chart.result&&d.chart.result[0], m=res&&res.meta;
-      if(!m||m.regularMarketPrice==null)throw new Error('nd');
-      return {price:m.regularMarketPrice,prevClose:m.chartPreviousClose!=null?m.chartPreviousClose:m.previousClose,currency:m.currency};
-    });
+/* Alla prima richiesta non sappiamo quale trasporto funzioni oggi: la prima
+   fa da apripista e le altre aspettano il suo esito, cosi' un proxy morto lo
+   paga un titolo solo invece di tutto il portafoglio. */
+let NETPROBE=null;
+function fetchJSON(url,alts){
+  if(!NETBEST&&NETPROBE){
+    const again=()=>fetchTry(url,alts);
+    return NETPROBE.then(again,again);
+  }
+  const p=fetchTry(url,alts);
+  if(!NETBEST)NETPROBE=p;
+  return p;
+}
+/* Coda: al massimo NET.parallel richieste in volo. Un elemento che fallisce
+   non trascina con se' gli altri. */
+function netQueue(items,worker){
+  if(!items.length)return Promise.resolve([]);
+  const out=new Array(items.length); let i=0;
+  const lane=()=>{
+    if(i>=items.length)return Promise.resolve();
+    const k=i++;
+    return worker(items[k],k).then(v=>{out[k]=v;},()=>{})
+      .then(()=>new Promise(r=>setTimeout(r,NET.gap))).then(lane);
+  };
+  const lanes=[];
+  for(let j=0;j<Math.min(NET.parallel,items.length);j++)lanes.push(lane());
+  return Promise.all(lanes).then(()=>out);
+}
+const QKEY='pf_v2_quotes';
+let QCACHE={}; try{ QCACHE=JSON.parse(localStorage.getItem(QKEY))||{}; }catch(e){ QCACHE={}; }
+function saveQCache(){ try{ localStorage.setItem(QKEY,JSON.stringify(QCACHE)); }catch(e){} }
+function yURL(host,sym,qs){
+  return 'https://'+host+'.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+qs;
+}
+function yQuote(sym,force){
+  const c=QCACHE[sym], qs='?interval=1d&range=5d';
+  if(!force&&c&&Date.now()-c.at<NET.ttl)return Promise.resolve(c.q);
+  return fetchJSON(yURL('query1',sym,qs),[yURL('query2',sym,qs)]).then(d=>{
+    const res=d&&d.chart&&d.chart.result&&d.chart.result[0], m=res&&res.meta;
+    if(!m||m.regularMarketPrice==null)throw netErr('symbol');
+    const q={price:m.regularMarketPrice,
+      prevClose:m.chartPreviousClose!=null?m.chartPreviousClose:m.previousClose,
+      currency:m.currency};
+    QCACHE[sym]={q:q,at:Date.now()};
+    return q;
+  },e=>{
+    /* servizio irraggiungibile: meglio l'ultimo prezzo noto (segnalato come
+       non aggiornato) che una riga vuota */
+    if(e&&e.kind!=='symbol'&&c&&Date.now()-c.at<NET.grace){
+      const q={}; for(const k in c.q)q[k]=c.q[k]; q.stale=true; return q;
+    }
+    throw e;
+  });
 }
 let refreshing=false;
 function refreshPrices(silent){
   if(refreshing)return Promise.resolve();
   const list=activePositions().filter(p=>p.ticker);
-  if(!list.length){ if(!silent)toast('Nessuna posizione con un ticker da aggiornare'); return Promise.resolve(); }
+  const wl=(S.watchlist||[]).filter(w=>w.ticker);
+  if(!list.length&&!wl.length){ if(!silent)toast('Nessuna posizione con un ticker da aggiornare'); return Promise.resolve(); }
   refreshing=true; $('#btnRefresh').classList.add('spin');
-  const jobs=list.map(p=>yQuote(p.ticker).then(r=>{
-      p.price=r.price; if(r.prevClose)p.prevClose=r.prevClose;
-      if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)p.currency=r.currency;
-      p._stale=false;
-    }).catch(()=>{p._stale=true;}));
-  const wjobs=(S.watchlist||[]).filter(w=>w.ticker).map(w=>yQuote(w.ticker).then(r=>{
-    w.price=r.price; if(r.prevClose)w.prevClose=r.prevClose;
-    if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)w.currency=r.currency;
-  }).catch(()=>{}));
-  return Promise.all(jobs.concat(wjobs)).then(refreshFx).then(()=>{
+  /* aggiornamento manuale: dati freschi. Automatico all'avvio: puo' usare la
+     cache recente ed evitare di stressare il proxy a ogni ricarica. */
+  const force=!silent;
+  const targets=list.map(p=>({o:p,pos:true})).concat(wl.map(w=>({o:w,pos:false})));
+  return netQueue(targets,t=>yQuote(t.o.ticker,force).then(r=>{
+      const o=t.o;
+      o.price=r.price; if(r.prevClose)o.prevClose=r.prevClose;
+      if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)o.currency=r.currency;
+      o._stale=!!r.stale; o._nf=false;
+    },e=>{
+      if(t.pos){ t.o._stale=true; t.o._nf=!!(e&&e.kind==='symbol'); }
+    })).then(()=>refreshFx(force)).then(()=>{
+    saveQCache();
     S.lastUpdate=Date.now(); refreshing=false; $('#btnRefresh').classList.remove('spin');
     save(); renderAll();
-    const ko=activePositions().filter(p=>p._stale).length;
-    if(!silent)toast('Prezzi aggiornati alle '+fmtTime(S.lastUpdate)+(ko?' · '+ko+' non trovati':''),ko?'':'ok');
+    const bad=activePositions().filter(p=>p._stale);
+    const nSym=bad.filter(p=>p._nf).length, ko=bad.length-nSym;
+    let msg='Prezzi aggiornati alle '+fmtTime(S.lastUpdate);
+    if(nSym)msg+=' · '+nSym+(nSym===1?' simbolo inesistente':' simboli inesistenti');
+    if(ko)msg+=' · '+ko+(ko===1?' non raggiungibile':' non raggiungibili');
+    if(!silent)toast(msg,bad.length?'':'ok');
   }).catch(()=>{
     refreshing=false; $('#btnRefresh').classList.remove('spin');
     if(!silent)toast('Aggiornamento non riuscito (servizio non raggiungibile)','err');
   });
 }
-function refreshFx(){
+function refreshFx(force){
   const codes=usedCurrencies();
   if(!codes.length)return Promise.resolve();
-  return Promise.all(codes.map(c=>yQuote(c+BASE+'=X').then(r=>{ if(r.price)S.fx[c]=r.price; }).catch(()=>{})));
+  return netQueue(codes,c=>yQuote(c+BASE+'=X',force).then(r=>{ if(r.price)S.fx[c]=r.price; },()=>{}));
 }
 
 /* ==========================================================================
@@ -2787,7 +2930,7 @@ function renderTable(){
         '<td class="hide-sm"><span class="badge">'+esc(p.cls||'Altro')+'</span></td>'+
         '<td class="num">'+qtyf(p._q)+'</td>'+
         '<td class="num hide-xs">'+locCell(p._avg,p.currency)+'</td>'+
-        '<td class="num">'+locCell(num(p.price),p.currency)+(p._stale?' <span class="stale" title="prezzo non aggiornato online">●</span>':'')+'</td>'+
+        '<td class="num">'+locCell(num(p.price),p.currency)+(p._stale?' <span class="stale" title="'+(p._nf?'simbolo non trovato su Yahoo: controlla il ticker':'prezzo non aggiornato: servizio non raggiungibile')+'">●</span>':'')+'</td>'+
         '<td class="num mask"><b>'+money(p._value)+'</b></td>'+
         '<td class="num hide-xs">'+nf(p._w,1)+'%</td>'+
         '<td class="num mask '+(up?'up':'down')+'"><b>'+(up?'+':'−')+money(Math.abs(p._pnl))+'</b>'+
@@ -3019,13 +3162,19 @@ function openSellAll(id){
 function refreshOne(p){
   if(!p.ticker)return;
   toast('Cerco '+p.ticker+'…');
-  yQuote(p.ticker).then(r=>{
+  yQuote(p.ticker,true).then(r=>{
     p.price=r.price; if(r.prevClose)p.prevClose=r.prevClose;
     if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)p.currency=r.currency;
-    p._stale=false; S.lastUpdate=Date.now(); save(); renderAll();
+    p._stale=!!r.stale; p._nf=false; saveQCache();
+    S.lastUpdate=Date.now(); save(); renderAll();
     if(UI.drawerId===p.id)openDrawer(p.id);
-    toast(p.ticker+' aggiornato a '+nf(r.price,2)+' '+(r.currency||''),'ok');
-  }).catch(()=>{ p._stale=true; toast(p.ticker+' non trovato su Yahoo: controlla il simbolo','err'); });
+    toast(r.stale?p.ticker+': servizio non raggiungibile, mostro l\'ultimo prezzo noto'
+                 :p.ticker+' aggiornato a '+nf(r.price,2)+' '+(r.currency||''),r.stale?'err':'ok');
+  },e=>{
+    p._stale=true; p._nf=!!(e&&e.kind==='symbol'); renderAll();
+    toast(p._nf?p.ticker+' non esiste su Yahoo: controlla il simbolo'
+               :p.ticker+': servizio non raggiungibile, riprova fra un minuto','err');
+  });
 }
 
 /* ==========================================================================
@@ -3036,9 +3185,8 @@ let PHIST={};
 function loadPHist(){ try{ PHIST=JSON.parse(localStorage.getItem(HKEY))||{}; }catch(e){ PHIST={}; } }
 function savePHist(){ try{ localStorage.setItem(HKEY,JSON.stringify(PHIST)); }catch(e){} }
 function yHistory(sym,range,interval){
-  const url='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+
-    '?interval='+(interval||'1d')+'&range='+(range||'1y');
-  return fetchJSON(url).then(d=>{
+  const qs='?interval='+(interval||'1d')+'&range='+(range||'1y');
+  return fetchJSON(yURL('query1',sym,qs),[yURL('query2',sym,qs)]).then(d=>{
     const r=d&&d.chart&&d.chart.result&&d.chart.result[0];
     if(!r||!r.timestamp)throw new Error('nd');
     const ts=r.timestamp, q=r.indicators&&r.indicators.quote&&r.indicators.quote[0];
@@ -3541,17 +3689,18 @@ function downloadHistory(){
   const status=()=>{ $('#histStatus').textContent='Scarico lo storico… '+done+'/'+tickers.length; };
   status();
   const range=historyRange();
-  const jobs=tickers.map(t=>yHistory(t,range,'1mo')
-    .then(pts=>{ MHIST[t]={pts:pts,at:Date.now()}; done++; status(); })
-    .catch(()=>{ ko++; done++; status(); }));
-  Promise.all(jobs).then(()=>{
+  let nSym=0;
+  netQueue(tickers,t=>yHistory(t,range,'1mo')
+    .then(pts=>{ MHIST[t]={pts:pts,at:Date.now()}; done++; status(); },
+          e=>{ ko++; if(e&&e.kind==='symbol')nSym++; done++; status(); })
+  ).then(()=>{
     downloading=false; $('#btnHist').classList.remove('spin');
     saveMHist();
     $('#histStatus').textContent='Storico aggiornato il '+fmtDate(new Date().toISOString())+
       ' · '+(tickers.length-ko)+'/'+tickers.length+' titoli · ultimi '+range.replace('y',' anni')+
-      (ko?' ('+ko+' non trovati su Yahoo)':'');
+      (ko?' ('+ko+' non riusciti'+(nSym?', di cui '+nSym+' con simbolo inesistente':'')+')':'');
     renderPage(UI.page);
-    toast(ko?'Storico scaricato · '+ko+' titoli non trovati':'Storico scaricato',ko?'':'ok');
+    toast(ko?'Storico scaricato · '+ko+' titoli non riusciti':'Storico scaricato',ko?'':'ok');
   });
 }
 function renderQuant(){
@@ -3922,7 +4071,7 @@ function watchToPortfolio(){
 }
 function refreshWatchOne(w){
   if(!w.ticker)return;
-  yQuote(w.ticker).then(r=>{
+  yQuote(w.ticker,true).then(r=>{
     w.price=r.price; if(r.prevClose)w.prevClose=r.prevClose;
     if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)w.currency=r.currency;
     save(); if(UI.page==='watchlist')renderWatchlist();
@@ -4683,9 +4832,8 @@ function downloadBenchmarks(){
   if(benchLoading)return;
   benchLoading=true; $('#btnBench').classList.add('spin');
   $('#benchStatus').textContent='Scarico lo storico degli indici…';
-  const jobs=BENCH_LIST.map(b=>yHistory(b.key,historyRange(1),'1mo')
-    .then(pts=>{ BHIST.data[b.key]=pts; }).catch(()=>{}));
-  Promise.all(jobs).then(()=>{
+  netQueue(BENCH_LIST,b=>yHistory(b.key,historyRange(1),'1mo')
+    .then(pts=>{ BHIST.data[b.key]=pts; },()=>{})).then(()=>{
     benchLoading=false; $('#btnBench').classList.remove('spin');
     BHIST.at=Date.now(); saveBHist();
     const ok=BENCH_LIST.filter(b=>BHIST.data[b.key]&&BHIST.data[b.key].length).length;
@@ -4951,6 +5099,35 @@ function guessAllColumns(headers){
   }
   return pick;
 }
+/* Esito dell'import: resta visibile sotto il riquadro finché non se ne fa un
+   altro. Un valore scartato in silenzio sarebbe il modo peggiore di sbagliare. */
+function csvReport(conflitti,scartate){
+  const host=$('#csvReport'); if(!host)return;
+  if(!conflitti.length&&!scartate){ host.innerHTML=''; return; }
+  let s='';
+  if(conflitti.length){
+    const gruppi={};
+    conflitti.forEach(c=>{ const k=c.ticker+' · '+c.campo;
+      (gruppi[k]||(gruppi[k]=[])).push(c); });
+    s+='<div class="note mt18" style="border-color:var(--warn);color:var(--ink-soft)">'+
+      '<b>'+conflitti.length+(conflitti.length===1?' valore discordante':' valori discordanti')+'</b> '+
+      'fra righe dello stesso titolo. Questi campi descrivono il <b>titolo</b>, non la singola '+
+      'operazione: è stato tenuto il primo valore trovato.<br><br>'+
+      Object.keys(gruppi).slice(0,8).map(k=>{
+        const g=gruppi[k], scart=[];
+        g.forEach(c=>{ const v=String(c.scartato); if(scart.indexOf(v)<0)scart.push(v); });
+        return '• <b>'+esc(k)+'</b>: tenuto <b>'+esc(String(g[0].tenuto))+'</b>, ignorato '+
+               esc(scart.join(', '));
+      }).join('<br>')+
+      (Object.keys(gruppi).length>8?'<br>… e altri '+(Object.keys(gruppi).length-8):'')+
+      '<br><br>Se il valore giusto è un altro, correggilo nella scheda del titolo.</div>';
+  }
+  if(scartate)
+    s+='<div class="note mt18">'+scartate+(scartate===1?' riga non conteneva':' righe non contenevano')+
+       ' né un\'operazione né un dividendo né una commissione: '+
+       (scartate===1?'è stata ignorata':'sono state ignorate')+'.</div>';
+  host.innerHTML=s;
+}
 function csvRead(){
   const txt=$('#csvPaste').value.trim();
   if(!txt){ toast('Incolla del testo CSV o carica un file','err'); return; }
@@ -4969,6 +5146,24 @@ function csvRead(){
   $('#mapArea').style.display='block';
   toast(parsedCSV.data.length+' righe lette · controlla l\'abbinamento','ok');
 }
+/* Colonne che descrivono il TITOLO e non la singola operazione: in un CSV di
+   movimenti si ripetono identiche su ogni riga (o restano vuote). Si prende il
+   primo valore utile; se una riga successiva ne porta uno diverso vince il
+   primo, ma la differenza viene segnalata invece di sparire in silenzio. */
+function csvPosFields(){
+  return [
+    ['name','Nome',v=>v],
+    ['cls','Categoria',v=>normCls(v)],
+    ['sector','Settore',v=>normSector(v)],
+    ['country','Paese / Area',v=>rememberCountry(v)],
+    ['currency','Valuta',v=>{ const c=v.toUpperCase(); return CURRENCIES.indexOf(c)>-1?c:''; }],
+    ['price','Prezzo attuale',v=>num(v)],
+    ['yield','Yield dividendo %',v=>num(v)],
+    ['risk','Rischio',v=>Math.max(3,Math.min(9,Math.round(num(v))))],
+    ['factor','Fattore',v=>normFactor(v)],
+    ['targetWeight','Peso previsto %',v=>num(v)]
+  ];
+}
 function csvDoImport(){
   if(!parsedCSV)return;
   const map={};
@@ -4981,7 +5176,8 @@ function csvDoImport(){
      con il suo registro. Senza quelle colonne resta il comportamento di
      sempre: una riga = una posizione con quantità e prezzo di carico. */
   const txMode=has('txType')||has('fee')||has('divTotal')||has('divShare');
-  const byTicker={}, order=[];
+  const POS_FIELDS=csvPosFields();
+  const byTicker={}, order=[], visti={}, conflitti=[];
   let righe=0, movimenti=0, scartate=0;
 
   parsedCSV.data.forEach(r=>{
@@ -4989,28 +5185,26 @@ function csvDoImport(){
     const key=t.toUpperCase();
     let p=byTicker[key];
     if(!p){
-      let rk=has('risk')?Math.round(num(get(r,'risk'))):0;
-      rk=rk?Math.max(3,Math.min(9,rk)):6;
-      const cur=(get(r,'currency')||'EUR').toUpperCase();
-      const tw=get(r,'targetWeight');
       p=byTicker[key]={
-        id:uid(), ticker:key, name:get(r,'name'),
-        cls:normCls(get(r,'cls'))||'Other', sector:normSector(get(r,'sector')), country:'',
-        currency:CURRENCIES.indexOf(cur)>-1?cur:'EUR',
-        qty:0, avg:0, price:num(get(r,'price')),
-        yield:has('yield')?num(get(r,'yield')):null,
-        risk:rk, factor:normFactor(get(r,'factor')),
-        targetWeight:tw===''?null:num(tw),
-        emergency:0, tx:[]
+        id:uid(), ticker:key, name:'', cls:'Other', sector:'', country:'',
+        currency:'EUR', qty:0, avg:0, price:0, yield:null, risk:6,
+        factor:'Nessuno', targetWeight:null, emergency:0, tx:[]
       };
+      visti[key]={};
       order.push(p);
     }
-    /* le righe successive dello stesso titolo possono completare i campi
-       lasciati vuoti nella prima */
-    if(!p.name)p.name=get(r,'name');
-    if(!p.price)p.price=num(get(r,'price'));
-    const ctry=get(r,'country');
-    if(ctry&&!p.country)p.country=rememberCountry(ctry);
+    /* i dati del titolo si prendono dalla prima riga che li valorizza,
+       ovunque si trovi: non serve che siano tutti sulla prima */
+    POS_FIELDS.forEach(f=>{
+      const k=f[0]; if(!has(k))return;
+      const raw=get(r,k); if(raw==='')return;
+      const v=f[2](raw);
+      if(v===''||v==null||(typeof v==='number'&&!isFinite(v)))return;
+      const sv=visti[key];
+      if(!(k in sv)){ sv[k]=v; p[k]=v; return; }
+      if(String(sv[k])!==String(v))
+        conflitti.push({ticker:key,campo:f[1],tenuto:sv[k],scartato:v});
+    });
     righe++;
 
     const data=has('dateAdded')?parseDateIT(get(r,'dateAdded')):'';
@@ -5061,10 +5255,12 @@ function csvDoImport(){
   $('#csvPaste').value=''; $('#csvFile').value='';
   save(); renderAll();
   const n=order.length;
+  csvReport(conflitti,scartate);
   toast(txMode
     ? n+(n===1?' posizione':' posizioni')+' · '+movimenti+(movimenti===1?' movimento':' movimenti')+
-      (scartate?' · '+scartate+' righe senza dati utilizzabili':'')
-    : n+(n===1?' posizione importata':' posizioni importate'),'ok');
+      (conflitti.length?' · '+conflitti.length+' valori discordanti':'')+
+      (scartate?' · '+scartate+' righe senza dati':'')
+    : n+(n===1?' posizione importata':' posizioni importate'),conflitti.length?'':'ok');
   if(n)refreshPrices(true);
 }
 
