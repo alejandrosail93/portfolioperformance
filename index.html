@@ -609,12 +609,21 @@ tbody tr.clk{cursor:pointer}
    13d. RIBILANCIAMENTO E WATCHLIST
    ========================================================================== */
 .rb-row{display:grid;grid-template-columns:1.5fr 1fr 96px 1.5fr;gap:14px;align-items:center;
-  padding:15px 0 13px;border-bottom:1px solid var(--line-soft)}
+  padding:15px 0 13px;border-bottom:1px solid var(--line-soft);position:relative}
 .rb-row:last-of-type{border-bottom:0}
 .rb-row.hd{padding:0 0 11px;font-size:11px;text-transform:uppercase;letter-spacing:.45px;
   color:var(--muted);font-weight:650;border-bottom:1px solid var(--line)}
+.rb-row.hd>div:first-child{padding-left:21px}
 .rb-cat{display:flex;align-items:center;gap:10px;font-weight:650;font-size:13.5px;min-width:0}
 .rb-cat .dot{width:10px;height:10px;border-radius:3px;flex:none}
+/* la riga si apre e si chiude: chiusa resta su una riga sola, aperta mostra
+   barra, banda e dettaglio fiscale sotto */
+.rb-cat .tg{flex:none;display:grid;place-items:center;color:var(--muted);margin-right:-3px;
+  transition:transform .18s,color .15s}
+.rb-row:hover .rb-cat .tg{color:var(--ink-soft)}
+.rb-row.open .rb-cat .tg{transform:rotate(90deg);color:var(--ink-soft)}
+.rb-detail{grid-column:1/-1;display:none}
+.rb-row.open .rb-detail{display:block}
 .rb-cat .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rb-num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px}
 .rb-num .sub{font-size:11.5px;color:var(--muted)}
@@ -633,11 +642,16 @@ html[data-theme="light"] .rb-in{background:#fff}
    già presente tra i colori categorici, tra --warn e --down. */
 .badge.o{background:rgba(240,138,60,.14);color:#f08a3c}
 html[data-theme="light"] .badge.o{background:rgba(199,102,20,.12);color:#c76614}
-.rb-row.crit{box-shadow:inset 3px 0 0 var(--down);padding-left:12px}
-.rb-dev{grid-column:1/-1;display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px}
+/* spia della banda a riga chiusa: vive nel padding della card, non sposta nulla */
+.rb-row.lv1::before,.rb-row.lv2::before,.rb-row.lv3::before{content:"";position:absolute;
+  left:-11px;top:11px;bottom:11px;width:3px;border-radius:3px}
+.rb-row.lv1::before{background:var(--warn)}
+.rb-row.lv2::before{background:#f08a3c}
+.rb-row.lv3::before{background:var(--down)}
+.rb-dev{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px}
 .rb-dev .dv{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
-.rb-tip{grid-column:1/-1;font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:7px}
-.rb-tax{grid-column:1/-1;margin-top:9px;padding:11px 13px;border-radius:11px;
+.rb-tip{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:7px}
+.rb-tax{margin-top:9px;padding:11px 13px;border-radius:11px;
   background:var(--surface-2);border:1px solid var(--line-soft);font-size:12.5px}
 .rb-tax .tx-r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
   padding:3px 0;font-variant-numeric:tabular-nums}
@@ -792,15 +806,17 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .tmap{height:300px}
   .barbell{height:150px}
   /* su schermi stretti la riga diventa: nome + target sopra, valore + azione sotto */
+  /* su schermo stretto la testata del piano va a capo invece di sbordare:
+     titolo sopra, "espandi tutto" e il selettore di modalità sotto */
+  #pg-ribilanciamento .card-hd{flex-wrap:wrap;row-gap:10px}
+  #pg-ribilanciamento .card-hd .right{margin-left:0;width:100%}
   .rb-row{grid-template-columns:1fr 96px;gap:9px 12px}
   .rb-row .rb-cat{order:1}
   .rb-row>div:nth-child(3){order:2}
   .rb-row .rb-num{order:3;text-align:left}
   .rb-row .rb-act{order:4}
   .rb-row .rb-bar{order:5}
-  .rb-row .rb-dev{order:6}
-  .rb-row .rb-tax{order:7}
-  .rb-row .rb-tip{order:8}
+  .rb-row .rb-detail{order:6}
   .rb-row.hd>div:nth-child(2),.rb-row.hd>div:nth-child(4){display:none}
   .rb-row.hd>div:nth-child(3){order:2}
   .rb-tot{grid-template-columns:1fr 96px}
@@ -1180,7 +1196,8 @@ html[data-theme="light"] .maptbl select{background:#fff}
         <div class="grid g2-wide">
           <div class="card">
             <div class="card-hd"><h2><span class="chip t" id="chipRb"></span> Piano di ribilanciamento</h2>
-              <div class="right"><span class="seg" id="rbMode">
+              <div class="right"><button class="btn btn-ghost btn-sm" id="rbToggleAll">Espandi tutto</button>
+                <span class="seg" id="rbMode">
                 <button data-m="cat" class="on">Per categoria</button><button data-m="pos">Per titolo</button>
               </span></div>
             </div>
@@ -1353,6 +1370,21 @@ html[data-theme="light"] .maptbl select{background:#fff}
           <div class="note mt18">Titoli venduti al 100%. Non fanno più parte del portafoglio operativo, ma il loro
             guadagno/perdita realizzato resta nei totali e lo storico dei mesi in cui li possedevi resta intatto.
             Per togliere davvero un titolo dai dati usa <b>Elimina</b> nella sua scheda: è irreversibile.</div>
+        </div>
+
+        <div class="card mt18" id="txAllCard">
+          <div class="card-hd"><h2><span class="chip a" id="chipTxAll"></span> Storico transazioni</h2>
+            <div class="right"><span class="sub" id="txAllCount"></span></div></div>
+          <div class="filters">
+            <select id="txFltPos"></select>
+            <select id="txFltType"></select>
+            <span class="fcount" id="txFltCount"></span>
+            <button class="fclear" id="txFltClear">Azzera filtri</button>
+          </div>
+          <div id="txAllBody"></div>
+          <div class="note mt18">Tutte le transazioni registrate, di ogni titolo, dalla più recente. Ci sono anche
+            quelle dei titoli venduti al 100% e quelle delle posizioni a quantità zero, che non compaiono più
+            nell'elenco del portafoglio. Clicca una riga per aprire la scheda del titolo.</div>
         </div>
 
         <div class="card mt18">
@@ -1728,6 +1760,7 @@ const P={
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M2 12h2M20 12h2M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5"/>',
   collapse:'<path d="M15 6l-6 6 6 6"/><path d="M20 4v16"/>',
   expand:'<path d="M9 6l6 6-6 6"/><path d="M4 4v16"/>',
+  chev:'<path d="M9 6l6 6-6 6"/>',
   more:'<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>',
   x:'<path d="M6 6l12 12M18 6L6 18"/>',
   db:'<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
@@ -1961,8 +1994,9 @@ const UI={
   sortK:'_value', sortDir:-1,
   editId:null, editTx:[], drawerId:null,
   expo:{level:'cat',f:{}},
-  rbMode:'cat', editWatch:null,
-  histSrc:'snap', editGoal:null, heatM:null, heatSort:'ret'
+  rbMode:'cat', rbOpen:{}, editWatch:null,
+  histSrc:'snap', editGoal:null, heatM:null, heatSort:'ret',
+  txFilters:{pos:'',type:''}
 };
 
 function load(){
@@ -2146,7 +2180,14 @@ let T={value:0,cost:0,pnl:0,pnlPct:0,day:0,dayPct:0,realized:0,dividends:0,n:0,b
    ========================================================================== */
 const EPS_QTY=1e-9;
 const isClosed=p=>!!(p&&p.closed);
-const activePositions=()=>S.positions.filter(p=>!isClosed(p));
+/* "in portafoglio" è una questione di quantità, non di flag: una posizione con
+   registrate solo commissioni o dividendi non è mai stata aperta davvero, e non
+   deve comparire fra le attive — pur restando nei totali di realizzato e
+   dividendi incassati, nello Storico transazioni e apribile dalla sua scheda.
+   Legge p._q, già calcolato da enrich() per ogni posizione; ricalcola solo se
+   enrich() non è ancora passato, per non rifare il replay a ogni render. */
+const isHeld=p=>!!p&&(p._q==null?derive(p).qty:num(p._q))>EPS_QTY;
+const activePositions=()=>S.positions.filter(isHeld);
 const closedPositions=()=>S.positions.filter(isClosed);
 const activeCount=()=>activePositions().length;
 
@@ -2219,7 +2260,7 @@ function enrich(){
   const sorted=act.filter(p=>p._cost>0).slice().sort((a,b)=>b._pnlPct-a._pnlPct);
   T={value,cost,pnl:value-cost,pnlPct:cost>0?(value-cost)/cost*100:0,
      day,dayPct:(value-day)>0?day/(value-day)*100:0,realized,dividends,n:act.length,
-     nClosed:S.positions.length-act.length, closedRealized:closedRealized,
+     nClosed:closedPositions().length, closedRealized:closedRealized,
      best:sorted[0]||null,worst:sorted[sorted.length-1]||null};
   return T;
 }
@@ -4175,6 +4216,14 @@ function rbUnits(){
     set:v=>{ S.targets[k]=v; }
   }));
 }
+/* il bottone in testata dice sempre che cosa farà al prossimo clic */
+function rbSyncAllBtn(){
+  const b=$('#rbToggleAll'); if(!b)return;
+  const rows=$$('#rbRows .rb-row');
+  b.textContent=rows.length&&rows.every(r=>r.classList.contains('open'))
+    ?'Chiudi tutto':'Espandi tutto';
+  b.disabled=!rows.length;
+}
 function renderRebalance(){
   const rows=$('#rbRows'); if(!rows)return;
   /* le due impostazioni vivono qui accanto ai controlli del piano, come il
@@ -4193,6 +4242,7 @@ function renderRebalance(){
     ['rbCur','rbNew','rbTot'].forEach(id=>{ $('#'+id).textContent=money0(0); });
     $('#rbPlan').innerHTML='<div class="empty" style="padding:20px"><div class="sm">Nessuna operazione da fare.</div></div>';
     $('#rbPlanSub').textContent='';
+    rbSyncAllBtn();
     return;
   }
   const cash=num($('#rbCash').value), newTot=total+cash;
@@ -4230,16 +4280,24 @@ function renderRebalance(){
         'prossimi versamenti invece di vendere altre posizioni: eviti l\'impatto fiscale '+
         'di una vendita.</div>';
     }
-    return '<div class="rb-row'+(dv.lvl>=3?' crit':'')+'">'+
-      '<div class="rb-cat"><span class="dot" style="background:'+PAL[i%PAL.length]+'"></span>'+
+    /* a riga chiusa la banda resta leggibile dalla spia colorata a sinistra
+       e dal titolo al passaggio del mouse: nessuna altezza in più */
+    const tip=dv.lvl?lev.lab+' · '+devTxt:lev.lab;
+    return '<div class="rb-row'+(dv.lvl?' lv'+dv.lvl:'')+(UI.rbOpen[u.key]?' open':'')+
+        '" data-rbrow="'+esc(String(u.key))+'" title="'+esc(tip)+'"'+
+        ' aria-expanded="'+(UI.rbOpen[u.key]?'true':'false')+'">'+
+      '<div class="rb-cat"><span class="tg">'+ic('chev',14)+'</span>'+
+        '<span class="dot" style="background:'+PAL[i%PAL.length]+'"></span>'+
         '<span class="nm">'+esc(u.label)+'</span></div>'+
       '<div class="rb-num mask">'+money0(u.value)+'<div class="sub">'+nf(curP,1)+'%</div></div>'+
       '<div><input class="rb-in" data-rb="'+esc(String(u.key))+'" type="text" inputmode="decimal" value="'+fnum(tgt)+'"></div>'+
       '<div class="rb-act">'+badge+'</div>'+
-      '<div class="rb-bar"><div class="track"><i style="width:'+Math.min(100,curP/maxP*100).toFixed(1)+'%;'+
-        'background:'+PAL[i%PAL.length]+'"></i></div>'+
-        '<span class="mk" style="left:'+Math.min(100,tgt/maxP*100).toFixed(1)+'%" title="target '+nf(tgt,1)+'%"></span></div>'+
-      extra+
+      '<div class="rb-detail">'+
+        '<div class="rb-bar"><div class="track"><i style="width:'+Math.min(100,curP/maxP*100).toFixed(1)+'%;'+
+          'background:'+PAL[i%PAL.length]+'"></i></div>'+
+          '<span class="mk" style="left:'+Math.min(100,tgt/maxP*100).toFixed(1)+'%" title="target '+nf(tgt,1)+'%"></span></div>'+
+        extra+
+      '</div>'+
     '</div>';
   }).join('');
   $('#rbSum').textContent=nf(sum,1)+'%';
@@ -4261,6 +4319,18 @@ function renderRebalance(){
     '<span class="am mask '+(p.delta>0?'up':'down')+'">'+money0(Math.abs(p.delta))+'</span></div>').join('')
     :'<div class="empty" style="padding:20px"><div class="sm">Nessuna operazione necessaria: il portafoglio è già in linea con i target.</div></div>';
   $$('#rbPlan [data-id]').forEach(el=>el.addEventListener('click',()=>openDrawer(el.getAttribute('data-id'))));
+
+  /* la riga si apre al clic, ma non quando si scrive nel target o si usa
+     qualcosa dentro il dettaglio già aperto */
+  $$('#rbRows .rb-row').forEach(r=>r.addEventListener('click',e=>{
+    if(e.target.closest('.rb-in')||e.target.closest('.rb-detail'))return;
+    const k=r.getAttribute('data-rbrow'), open=!UI.rbOpen[k];
+    UI.rbOpen[k]=open;
+    r.classList.toggle('open',open);
+    r.setAttribute('aria-expanded',open?'true':'false');
+    rbSyncAllBtn();
+  }));
+  rbSyncAllBtn();
 
   $$('#rbRows [data-rbopen]').forEach(el=>el.addEventListener('click',()=>
     openDrawer(el.getAttribute('data-rbopen'))));
@@ -5063,6 +5133,75 @@ function renderClosed(){
     openDrawer(b.getAttribute('data-closed'))));
 }
 
+/* ---------- storico transazioni (tutte le posizioni) ----------
+   Stessa base dati di exportTx(): ogni transazione di ogni posizione, comprese
+   quelle a quantità zero che non compaiono più fra i titoli in portafoglio.
+   A differenza di renderClosed() la card resta sempre visibile: se non c'è
+   nulla da mostrare lo dice, così la sezione è comunque raggiungibile. */
+function allTxRows(){
+  const rows=[];
+  S.positions.forEach(p=>(p.tx||[]).forEach(t=>{ if(t&&t.type)rows.push({p:p,t:t}); }));
+  return rows.sort((a,b)=>String(b.t.date).localeCompare(String(a.t.date))||
+    String(a.p.ticker||'').localeCompare(String(b.p.ticker||''),'en'));
+}
+const TX_BADGE={buy:'u',sell:'d',div:'g',fee:''};
+function populateTxFilters(all){
+  const sp=$('#txFltPos'), st=$('#txFltType'); if(!sp||!st)return;
+  const seen={},opts=[];
+  all.forEach(({p})=>{ if(!seen[p.id]){ seen[p.id]=1; opts.push(p); } });
+  opts.sort((a,b)=>String(a.ticker||a.name||'').localeCompare(String(b.ticker||b.name||''),'en'));
+  if(UI.txFilters.pos&&!seen[UI.txFilters.pos])UI.txFilters.pos='';
+  sp.innerHTML='<option value="">Titolo: tutti</option>'+opts.map(p=>
+    '<option value="'+esc(p.id)+'"'+(UI.txFilters.pos===p.id?' selected':'')+'>'+
+    esc(p.ticker||p.name||'—')+'</option>').join('');
+  st.innerHTML='<option value="">Tipo: tutti</option>'+Object.keys(TXT).map(k=>
+    '<option value="'+k+'"'+(UI.txFilters.type===k?' selected':'')+'>'+esc(TXT[k].l)+'</option>').join('');
+}
+function renderTxAll(){
+  const body=$('#txAllBody'); if(!body)return;
+  const all=allTxRows();
+  populateTxFilters(all);
+  const f=UI.txFilters;
+  const rows=all.filter(({p,t})=>(!f.pos||p.id===f.pos)&&(!f.type||t.type===f.type));
+  const nPos=Object.keys(all.reduce((m,{p})=>{ m[p.id]=1; return m; },{})).length;
+  $('#txAllCount').textContent=all.length
+    ? all.length+(all.length===1?' transazione · ':' transazioni · ')+nPos+(nPos===1?' titolo':' titoli') : '';
+  $('#txFltCount').textContent=all.length?rows.length+' di '+all.length:'';
+  if(!all.length){
+    body.innerHTML='<div class="empty"><div class="ic">'+ic('fx',22)+'</div>'+
+      '<div class="big">Ancora nessuna transazione</div>'+
+      '<div class="sm">Apri la scheda di un titolo e registra acquisti, vendite, dividendi e commissioni: '+
+      'da lì in poi tutto il registro compare qui, anche quello dei titoli che non hai più in portafoglio.</div></div>';
+    return;
+  }
+  if(!rows.length){
+    body.innerHTML='<div class="empty" style="padding:30px 20px"><div class="sm">'+
+      'Nessuna transazione corrisponde ai filtri.</div></div>';
+    return;
+  }
+  body.innerHTML='<div class="tbl-scroll"><table class="snap-tbl"><thead><tr>'+
+    '<th>Titolo</th><th>Tipo</th><th>Data</th><th>Quantità</th><th>Prezzo</th>'+
+    '<th class="hide-sm">Commissioni</th><th>Importo</th>'+
+    '</tr></thead><tbody>'+
+    rows.map(({p,t})=>{
+      const k=TXT[t.type]||TXT.buy, amt=txAmount(t), cur=p.currency||BASE, fee=num(t.fee);
+      const hasQty=t.type==='buy'||t.type==='sell';
+      /* il dividendo registrato come importo unico non ha un prezzo unitario */
+      const hasPrice=hasQty||(t.type==='div'&&t.amount==null);
+      const dash='<span class="cellsub">–</span>';
+      return '<tr class="clk" data-txpos="'+esc(p.id)+'">'+
+        '<td><div style="font-weight:650">'+esc(p.ticker||p.name||'—')+'</div>'+
+          (p.name&&p.ticker?'<div class="cellsub">'+esc(p.name)+'</div>':'')+'</td>'+
+        '<td><span class="badge '+(TX_BADGE[t.type]||'')+'">'+k.s+' '+esc(k.l)+'</span></td>'+
+        '<td class="num">'+(t.date?fmtDate(t.date):dash)+'</td>'+
+        '<td class="num">'+(hasQty?qtyf(num(t.qty)):dash)+'</td>'+
+        '<td class="num">'+(hasPrice?locCell(num(t.price),cur):dash)+'</td>'+
+        '<td class="num hide-sm">'+(fee?locCell(fee,cur):dash)+'</td>'+
+        '<td class="num mask '+(amt>=0?'up':'down')+'"><b>'+(amt>=0?'+':'−')+nf(Math.abs(amt),2)+'</b>'+
+          (cur!==BASE?' <span class="cellsub">'+esc(cur)+'</span>':'')+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+
 /* ---------- rendering dello storico ---------- */
 function renderHistory(){
   const S1=currentHistSeries();
@@ -5113,6 +5252,7 @@ function renderHistory(){
   }
   renderHeatmap();
   renderClosed();
+  renderTxAll();
   renderBenchmark();
 }
 function openSnap(dateKey){
@@ -5922,6 +6062,18 @@ function wire(){
     $('#globalSearch').value=''; populateFilters(); renderTable();
   });
 
+  /* --- filtri e righe dello storico transazioni --- */
+  [['#txFltPos','pos'],['#txFltType','type']].forEach(([sel,f])=>{
+    $(sel).addEventListener('change',e=>{ UI.txFilters[f]=e.target.value; renderTxAll(); });
+  });
+  $('#txFltClear').addEventListener('click',()=>{
+    UI.txFilters={pos:'',type:''}; renderTxAll();
+  });
+  $('#txAllBody').addEventListener('click',e=>{
+    const tr=e.target.closest('tr[data-txpos]');
+    if(tr)openDrawer(tr.getAttribute('data-txpos'));
+  });
+
   /* --- ordinamento --- */
   $$('#tbl thead th.sortable').forEach(th=>th.addEventListener('click',()=>{
     const k=th.getAttribute('data-k');
@@ -5966,6 +6118,11 @@ function wire(){
     UI.rbMode=b.getAttribute('data-m'); renderRebalance();
   }));
   $('#rbCash').addEventListener('input',renderRebalance);
+  $('#rbToggleAll').addEventListener('click',()=>{
+    const u=rbUnits(), tutte=u.length&&u.every(x=>UI.rbOpen[x.key]);
+    u.forEach(x=>{ UI.rbOpen[x.key]=!tutte; });
+    renderRebalance();
+  });
   ['rbBand1','rbBand2','rbBand3'].forEach((id,i)=>{
     const el=$('#'+id); if(!el)return;
     el.addEventListener('input',e=>{
@@ -6142,6 +6299,7 @@ $('#chipBench').innerHTML=ic('balance',17);
 $('#chipSnap').innerHTML=ic('db',17);
 $('#chipHeat').innerHTML=ic('grid',17);
 $('#chipClosed').innerHTML=ic('inbox',17);
+$('#chipTxAll').innerHTML=ic('fx',17);
 $('#btnSnap').querySelector('.ic').innerHTML=ic('plus',15);
 $('#btnBench').querySelector('.ic').innerHTML=ic('refresh',15);
 $('#btnAddGoal').querySelector('.ic').innerHTML=ic('plus',15);
