@@ -933,6 +933,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
               </div>
             </div>
             <div class="chart-host" id="heroChart"></div>
+            <div id="heroNote"></div>
           </div>
         </div>
 
@@ -1092,6 +1093,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
           <div class="card-bd">
             <div id="quantBody"></div>
             <div class="statusline" id="histStatus"></div>
+            <div class="statusline" id="histOrphans"></div>
             <div class="field" style="max-width:260px;margin-top:16px;margin-bottom:0">
               <label>Tasso privo di rischio annuo %</label>
               <input id="fRiskFree" type="text" inputmode="decimal" value="2">
@@ -1360,6 +1362,11 @@ html[data-theme="light"] .maptbl select{background:#fff}
             <div class="card-bd">
               <div id="fxRows"></div>
               <div class="note" style="margin-top:14px">Valore e P&amp;L sono calcolati in <b>euro</b>. Imposta quanti euro vale 1 unità di ogni valuta usata, oppure scarica i cambi aggiornati.</div>
+              <div class="field" style="margin-top:18px;margin-bottom:0">
+                <label>Proxy personale per i prezzi (opzionale)</label>
+                <input id="fProxy" type="text" spellcheck="false" placeholder="https://tuo-worker.workers.dev/?url={url}">
+              </div>
+              <div class="note" style="margin-top:10px">Yahoo non espone gli header CORS e i proxy pubblici gratuiti sono saturi o a pagamento: da una pagina statica servono spesso decine di tentativi per aggiornare i prezzi. Con un endpoint tuo il problema sparisce. Scrivi qui l'indirizzo usando <code>{url}</code> al posto della richiesta Yahoo: viene provato per primo, e se non risponde si torna ai proxy pubblici.</div>
             </div>
           </div>
         </div>
@@ -1904,7 +1911,7 @@ function blankState(){
   return {
     v:2, positions:[], watchlist:[], goals:[], targets:{}, history:[], countries:[],
     fx:{EUR:1}, lastUpdate:0, updatedAt:0,
-    settings:{theme:'dark',privacy:false,collapsed:false,riskFree:2}
+    settings:{theme:'dark',privacy:false,collapsed:false,riskFree:2,proxy:''}
   };
 }
 let S=blankState();
@@ -2313,11 +2320,27 @@ Chart.area=function(host,pts,opt){
   const col=opt.color||'var(--accent)';
   const gid='g'+Math.random().toString(36).slice(2,8);
 
-  /* linea morbida monotona: non sborda e non torna indietro sui buchi */
+  /* linea morbida monotona: non sborda e non torna indietro sui buchi.
+     Un punto marcato `gap` apre un tratto nuovo: i periodi senza dati restano
+     buchi dichiarati (ponte tratteggiato) invece di essere interpolati. */
   const P2=pts.map(p=>({x:X(p.t),y:Y(p.v)}));
-  const d=smoothPath(P2);
+  const runs=[[P2[0]]];
+  for(let i=1;i<P2.length;i++){
+    if(pts[i]&&pts[i].gap)runs.push([P2[i]]); else runs[runs.length-1].push(P2[i]);
+  }
+  const d=runs.map(r=>smoothPath(r)).join('');
+  let bridges='',dots='';
+  for(let i=1;i<runs.length;i++){
+    const a=runs[i-1][runs[i-1].length-1], b=runs[i][0];
+    bridges+='<line x1="'+a.x.toFixed(1)+'" y1="'+a.y.toFixed(1)+'" x2="'+b.x.toFixed(1)+'" y2="'+b.y.toFixed(1)+
+      '" stroke="'+col+'" stroke-width="1.4" stroke-dasharray="3 4" opacity=".35"/>';
+  }
+  /* un punto isolato fra due buchi sparirebbe: senza segmento non si vede */
+  runs.forEach(r=>{ if(r.length===1)dots+='<circle cx="'+r[0].x.toFixed(1)+'" cy="'+r[0].y.toFixed(1)+'" r="2.6" fill="'+col+'"/>'; });
   const baseY=opt.zeroLine?Y(0):(padT+ih);
-  const area=d+'L'+P2[P2.length-1].x.toFixed(1)+','+baseY.toFixed(1)+'L'+P2[0].x.toFixed(1)+','+baseY.toFixed(1)+'Z';
+  const area=runs.filter(r=>r.length>1).map(r=>
+    smoothPath(r)+'L'+r[r.length-1].x.toFixed(1)+','+baseY.toFixed(1)+
+    'L'+r[0].x.toFixed(1)+','+baseY.toFixed(1)+'Z').join('');
 
   /* griglia orizzontale */
   let grid='';
@@ -2340,10 +2363,12 @@ Chart.area=function(host,pts,opt){
         '<stop offset="100%" stop-color="'+col+'" stop-opacity="0"/></linearGradient></defs>'+
       grid+xl+
       '<path d="'+area+'" fill="url(#'+gid+')"/>'+
-      extras.map(e=>'<path d="'+e.pts.map((q,i)=>(i?'L':'M')+X(q.t).toFixed(1)+','+Y(q.v).toFixed(1)).join('')+
+      extras.map(e=>'<path d="'+e.pts.map((q,i)=>((i&&!q.gap)?'L':'M')+X(q.t).toFixed(1)+','+Y(q.v).toFixed(1)).join('')+
         '" fill="none" stroke="'+(e.color||'var(--muted)')+'" stroke-width="'+(e.width||1.6)+'" '+
         (e.dash?'stroke-dasharray="'+e.dash+'" ':'')+'stroke-linejoin="round"/>').join('')+
+      bridges+
       '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round"/>'+
+      dots+
       '<circle cx="'+last.x.toFixed(1)+'" cy="'+last.y.toFixed(1)+'" r="3.6" fill="'+col+'"/>'+
       '<circle cx="'+last.x.toFixed(1)+'" cy="'+last.y.toFixed(1)+'" r="7" fill="'+col+'" opacity=".22"/>'+
       '<g id="cur" opacity="0"><line class="ct-cursor" x1="0" y1="'+padT+'" x2="0" y2="'+(padT+ih)+'"/>'+
@@ -2464,10 +2489,6 @@ function go(k){
 /* ==========================================================================
    9. DASHBOARD — KPI + grafico performance
    ========================================================================== */
-function historySeries(){
-  /* snapshot se ce ne sono almeno due, altrimenti la ricostruzione dai prezzi storici */
-  return currentHistSeries().pts;
-}
 function rangeCut(series,r){
   if(!series.length)return series;
   const end=series[series.length-1].t; let from=0;
@@ -2487,7 +2508,8 @@ function renderHero(){
     : (T.pnl>=0?'+':'−')+'€ '+Math.round(Math.abs(T.pnl)).toLocaleString('it-IT');
   const chg=$('#heroChg'), lbl=$('#heroChgLbl');
 
-  const full=historySeries();
+  const H=currentHistSeries();
+  const full=H.pts;
   const series=rangeCut(full,UI.heroRange);
   let deltaPct=null,deltaAbs=null;
   if(series.length>=2){
@@ -2504,7 +2526,8 @@ function renderHero(){
   chg.innerHTML=(good?'▲':'▼')+' '+(deltaPct!=null?nf(Math.abs(deltaPct),2)+'%':'')+
     (deltaAbs!=null?'<span style="opacity:.75;font-weight:600;margin-left:2px">('+(good?'+':'−')+money0(Math.abs(deltaAbs)).replace('€ ','€')+')</span>':'');
 
-  const pts=series.map(p=>({t:p.t,v:mode==='value'?p.value:(p.cost>0?(p.value/p.cost-1)*100:0)}));
+  const pts=series.map(p=>({t:p.t,v:mode==='value'?p.value:(p.cost>0?(p.value/p.cost-1)*100:0),gap:p.gap}));
+  const hn=$('#heroNote'); if(hn)hn.innerHTML=H.src==='calc'?histCoverageNote(H.info):'';
   Chart.area($('#heroChart'),pts,{
     height:250,
     color:mode==='value'?'var(--accent)':(pts.length&&pts[pts.length-1].v>=0?'var(--up)':'var(--down)'),
@@ -2515,6 +2538,53 @@ function renderHero(){
     emptyText:activeCount()?'Salva uno snapshot in Storico, oppure scarica lo storico dei prezzi da Salute per ricostruire il grafico automaticamente.'
       :'Aggiungi una posizione o carica i dati di esempio dalle Impostazioni.'
   });
+}
+/* Il grafico ricostruito usa solo le posizioni per cui esiste uno storico
+   mensile scaricato. Se lo storico e' vecchio o incompleto la linea descrive
+   una fetta del portafoglio, non il portafoglio: prima non lo diceva da
+   nessuna parte, e un grafico costruito su due titoli residui sembrava il
+   rendimento di tutto. */
+function histCoverageNote(info){
+  if(!info)return '';
+  const miss=activePositions().filter(p=>p.ticker&&
+    !(MHIST[p.ticker]&&(MHIST[p.ticker].pts||[]).length>=2));
+  let h='Serie <b>ricostruita dai prezzi storici</b>: '+info.nUsed+
+    (info.nUsed===1?' posizione':' posizioni')+' su '+info.nTotal+
+    ', pari al <b>'+nf(info.coveragePct,0)+'%</b> del capitale.';
+  if(miss.length){
+    const names=miss.slice(0,6).map(p=>esc(p.ticker)).join(', ')+
+      (miss.length>6?' e altre '+(miss.length-6):'');
+    h+=' <span style="color:var(--gold)">Manca lo storico di '+miss.length+
+      (miss.length===1?' posizione':' posizioni')+' ('+names+
+      '): scaricalo da <b>Salute</b>, altrimenti la linea non è il tuo portafoglio.</span>';
+  }
+  return '<div class="note" style="margin-top:10px">'+h+'</div>';
+}
+/* Storico mensile di titoli che non sono piu' in portafoglio ne' in
+   watchlist: non entra in nessun grafico, ma resta a occupare spazio e a far
+   sembrare completo uno storico che non lo e'. Si rimuove a mano e non da
+   solo: e' una cache, e finche' i proxy fanno i capricci riscaricarla non e'
+   scontato. */
+function orphanHist(){
+  const live={};
+  (S.positions||[]).forEach(p=>{ if(p&&p.ticker)live[p.ticker]=1; });
+  (S.watchlist||[]).forEach(p=>{ if(p&&p.ticker)live[p.ticker]=1; });
+  return Object.keys(MHIST).filter(t=>!live[t]);
+}
+function dropOrphanHist(){
+  const o=orphanHist(); if(!o.length)return;
+  o.forEach(t=>{ delete MHIST[t]; });
+  saveMHist(); renderPage(UI.page);
+  toast('Rimosso lo storico di '+o.length+(o.length===1?' titolo':' titoli'),'ok');
+}
+function renderOrphanRow(){
+  const el=$('#histOrphans'); if(!el)return;
+  const o=orphanHist();
+  if(!o.length){ el.innerHTML=''; return; }
+  el.innerHTML='Storico mensile di <b>'+o.length+'</b> '+(o.length===1?'titolo non più in portafoglio':'titoli non più in portafoglio')+' ('+
+    o.slice(0,6).map(esc).join(', ')+(o.length>6?' e altri '+(o.length-6):'')+
+    ') · <button class="btn btn-ghost btn-sm" id="btnDropOrph">Rimuovi</button>';
+  const b=$('#btnDropOrph'); if(b)b.addEventListener('click',dropOrphanHist);
 }
 function renderKpis(){
   const cards=[
@@ -2554,6 +2624,19 @@ function renderSettings(){
   $$('#fxRows [data-fx]').forEach(inp=>inp.addEventListener('change',()=>{
     S.fx[inp.getAttribute('data-fx')]=num(inp.value); save(); renderAll();
   }));
+  const px=$('#fProxy');
+  if(px&&document.activeElement!==px)px.value=(S.settings.proxy||'');
+  if(px&&!px._wired){
+    px._wired=1;
+    px.addEventListener('change',()=>{
+      const v=px.value.trim();
+      if(v&&v.indexOf('{url}')<0){ toast('Il modello deve contenere {url}','err'); return; }
+      S.settings.proxy=v; save();
+      /* un proxy nuovo merita una lavagna pulita: le penalita' vecchie no */
+      NETSTAT={}; netSaveStat(); NETBEST=null; try{ localStorage.removeItem(NETKEY); }catch(e){}
+      toast(v?'Proxy impostato':'Proxy rimosso','ok');
+    });
+  }
   renderCountries();
   fillSyncForm();
 }
@@ -2578,14 +2661,19 @@ const NET={
   cooldown:15*60*1000, /* quanto resta in panchina un proxy che non risponde */
   grace:24*3600*1000 /* quanto a lungo riusare l'ultimo prezzo se la rete non risponde */
 };
+/* corsproxy.io e' stato tolto: da quando richiede una API key risponde 401 a
+   ogni richiesta, e restando in lista bruciava due tentativi e una corsia
+   della coda per ogni singolo titolo. L'ordine qui sotto e' quello misurato:
+   allorigins "/get" (incapsulato in {contents}) e' l'unico che regge, il
+   gemello "/raw" e codetabs cadono spesso, quindi scendono in fondo. */
 const TRANSPORTS=[
   /* diretto: se il browser blocca per CORS l'esito e' sempre lo stesso,
      un tentativo solo e si passa ai proxy */
   {id:'direct',     url:u=>u, tries:1},
-  {id:'allorigins', url:u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u)},
-  {id:'corsproxy',  url:u=>'https://corsproxy.io/?url='+encodeURIComponent(u)},
+  {id:'aowrapped',  url:u=>'https://api.allorigins.win/get?url='+encodeURIComponent(u), wrap:true},
+  {id:'corslol',    url:u=>'https://api.cors.lol/?url='+encodeURIComponent(u)},
   {id:'codetabs',   url:u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)},
-  {id:'aowrapped',  url:u=>'https://api.allorigins.win/get?url='+encodeURIComponent(u), wrap:true}
+  {id:'allorigins', url:u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u)}
 ];
 const NETKEY='pf_v2_net', NETSKEY='pf_v2_netstat';
 let NETBEST=null; try{ NETBEST=localStorage.getItem(NETKEY); }catch(e){}
@@ -2605,9 +2693,20 @@ function netPenalize(id){
   if(NETBEST===id){ NETBEST=null; try{ localStorage.removeItem(NETKEY); }catch(e){} }
   netSaveStat();
 }
+/* Proxy personale: i proxy pubblici gratuiti sono tutti saturi o a pagamento,
+   quindi l'unico modo affidabile di leggere Yahoo da una pagina statica e'
+   passare da un endpoint proprio. Se e' configurato viene provato per primo.
+   Nel modello, {url} e' sostituito dall'indirizzo Yahoo gia' urlencodato. */
+function customTransport(){
+  const tpl=String((S.settings&&S.settings.proxy)||'').trim();
+  if(!tpl||tpl.indexOf('{url}')<0)return null;
+  return {id:'custom', url:u=>tpl.replace('{url}',encodeURIComponent(u))};
+}
 function netOrder(){
   const now=Date.now(), good=[], cold=[];
-  TRANSPORTS.forEach(tr=>{ ((NETSTAT[tr.id]&&NETSTAT[tr.id].until>now)?cold:good).push(tr); });
+  const mine=customTransport();
+  const all=mine?[mine].concat(TRANSPORTS):TRANSPORTS;
+  all.forEach(tr=>{ ((NETSTAT[tr.id]&&NETSTAT[tr.id].until>now)?cold:good).push(tr); });
   /* Se sono tutti in panchina siamo verosimilmente offline: un solo tentativo
      di sondaggio, cosi' l'aggiornamento finisce in fretta invece di macinare
      timeout per ogni titolo. Fra un quarto d'ora si riprova sul serio. */
@@ -3690,7 +3789,14 @@ function pearson(xs,ys){
   return (sxx<=0||syy<=0)?null:sxy/Math.sqrt(sxx*syy);
 }
 /* mesi come indice progressivo, così due serie si allineano senza ambiguità */
-const monthIdx=t=>{ const d=new Date(t); return d.getUTCFullYear()*12+d.getUTCMonth(); };
+/* Il mese di una barra mensile va letto in ora locale, come tutto il resto
+   dell'app. Con getUTC* le borse europee finivano nel mese sbagliato: una
+   barra di Milano/Amsterdam/Xetra ha timestamp a mezzanotte locale, cioe' le
+   22:00 UTC del giorno prima, quindi "1 settembre" veniva contato come agosto
+   mentre gli stessi giorni dei titoli USA restavano a settembre. Risultato:
+   i prezzi europei erano attribuiti al mese precedente e disallineati di un
+   mese rispetto a quelli americani dentro lo stesso portafoglio. */
+const monthIdx=t=>{ const d=new Date(t); return d.getFullYear()*12+d.getMonth(); };
 function tickerReturns(rows){
   const maps={}, keys={};
   rows.forEach(r=>{
@@ -3792,6 +3898,7 @@ function downloadHistory(){
 }
 function renderQuant(){
   const wrap=$('#quantBody'); if(!wrap)return;
+  renderOrphanRow();
   const rf=$('#fRiskFree');
   if(rf&&document.activeElement!==rf)rf.value=S.settings.riskFree!=null?S.settings.riskFree:2;
   const info=t=>'<span class="qhelp" title="'+esc(t)+'">?</span>';
@@ -4377,7 +4484,7 @@ Chart.lines=function(host,seriesList,opt){
   const xl=axisLabels(ts,X,iw,H,opt);
   const paths=live.map(s=>{
     let d='',started=false;
-    s.pts.forEach(p=>{ if(p.v==null)return;
+    s.pts.forEach(p=>{ if(p.v==null){ started=false; return; }
       d+=(started?'L':'M')+X(p.t).toFixed(1)+','+Y(p.v).toFixed(1); started=true; });
     return d?'<path d="'+d+'" fill="none" stroke="'+s.color+'" stroke-width="'+(s.main?2.8:1.9)+'" '+
       'stroke-linejoin="round" stroke-linecap="round"'+(s.main?'':' opacity=".8"')+'/>':'';
@@ -4466,7 +4573,12 @@ function reconstructedSeries(){
   });
   let exactAll=true, covered=0;
   rows.forEach(p=>{ if(!(p.tx||[]).length)exactAll=false; covered+=p._value; });
+  /* Un mese senza dati non e' un valore: prima veniva saltato in silenzio e
+     il grafico univa i due bordi con una retta, che sembrava andamento reale
+     (il "tratto piatto" di dieci mesi). Ora il primo punto dopo un buco lo
+     dichiara, e il grafico interrompe la linea invece di inventarla. */
   const out=[];
+  let hole=false, prevK=null;
   keys.forEach(k=>{
     let value=0,cost=0,any=false;
     rows.forEach(p=>{
@@ -4477,7 +4589,11 @@ function reconstructedSeries(){
       cost+=at.cost*fxRate(p.currency);
       any=true;
     });
-    if(any)out.push({t:months[k],value:value,cost:cost});
+    if(any){
+      const jump=prevK!=null&&k-prevK>1;   /* mesi mancanti nell'unione */
+      out.push({t:months[k],value:value,cost:cost,gap:!!out.length&&(hole||jump)});
+      hole=false; prevK=k;
+    }else hole=true;   /* mese coperto dai prezzi ma senza posizioni aperte */
   });
   if(out.length<2)return null;
   return {pts:out,exact:exactAll,nUsed:rows.length,nTotal:S.positions.filter(p=>p.ticker).length,
@@ -4811,9 +4927,9 @@ function renderHistory(){
   const S1=currentHistSeries();
   $$('#histSrc button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-s')===UI.histSrc));
   const pts=S1.pts;
-  Chart.area($('#histChart'),pts.map(p=>({t:p.t,v:p.value})),{
+  Chart.area($('#histChart'),pts.map(p=>({t:p.t,v:p.value,gap:p.gap})),{
     height:230,color:'var(--gold)',
-    extra:[{pts:pts.map(p=>({t:p.t,v:p.cost})),color:'var(--muted)',dash:'5 4'}],
+    extra:[{pts:pts.map(p=>({t:p.t,v:p.cost,gap:p.gap})),color:'var(--muted)',dash:'5 4'}],
     fmtY:v=>Math.abs(v)>=1e6?nf(v/1e6,1)+'M':(Math.abs(v)>=1000?Math.round(v/1000)+'k':Math.round(v)),
     fmtTip:(q,i)=>money0(q.v)+'<div style="color:var(--muted);font-weight:600;font-size:11.5px;margin-top:2px">investito '+
       money0(pts[i]?pts[i].cost:0)+'</div>',
