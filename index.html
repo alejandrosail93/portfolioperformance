@@ -628,6 +628,27 @@ html[data-theme="light"] .rb-in{background:#fff}
 .rb-bar .mk{position:absolute;top:-4px;width:2px;height:15px;background:var(--ink);border-radius:2px}
 .rb-bar .mk:after{content:"";position:absolute;top:-3px;left:-2px;width:6px;height:6px;border-radius:50%;
   background:var(--ink)}
+/* bande di scostamento RELATIVO dal target + stima fiscale di una vendita.
+   Il quarto livello non ha un token dedicato nella palette: usa l'arancio
+   già presente tra i colori categorici, tra --warn e --down. */
+.badge.o{background:rgba(240,138,60,.14);color:#f08a3c}
+html[data-theme="light"] .badge.o{background:rgba(199,102,20,.12);color:#c76614}
+.rb-row.crit{box-shadow:inset 3px 0 0 var(--down);padding-left:12px}
+.rb-dev{grid-column:1/-1;display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px}
+.rb-dev .dv{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rb-tip{grid-column:1/-1;font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:7px}
+.rb-tax{grid-column:1/-1;margin-top:9px;padding:11px 13px;border-radius:11px;
+  background:var(--surface-2);border:1px solid var(--line-soft);font-size:12.5px}
+.rb-tax .tx-r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:3px 0;font-variant-numeric:tabular-nums}
+.rb-tax .tx-r .k{color:var(--muted)}
+.rb-tax .tx-r .v{font-weight:650;text-align:right}
+.rb-tax .tx-r.tot{border-top:1px solid var(--line-soft);margin-top:5px;padding-top:7px}
+.rb-tax .tx-r .up{color:var(--up)}
+.rb-tax .tx-r .down{color:var(--down)}
+.rb-tax .tx-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:9px}
+.rb-tax .tx-miss{color:var(--ink-soft);line-height:1.5}
+.rb-tax .lk{color:var(--accent);font-weight:650;cursor:pointer;text-decoration:underline}
 .rb-tot{display:grid;grid-template-columns:1.5fr 1fr 96px 1.5fr;gap:14px;align-items:center;
   padding:14px 0 0;margin-top:6px;border-top:2px solid var(--line);font-weight:700;font-size:13.5px}
 .warnbox{display:none;align-items:center;gap:10px;padding:11px 14px;border-radius:11px;
@@ -777,6 +798,9 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .rb-row .rb-num{order:3;text-align:left}
   .rb-row .rb-act{order:4}
   .rb-row .rb-bar{order:5}
+  .rb-row .rb-dev{order:6}
+  .rb-row .rb-tax{order:7}
+  .rb-row .rb-tip{order:8}
   .rb-row.hd>div:nth-child(2),.rb-row.hd>div:nth-child(4){display:none}
   .rb-row.hd>div:nth-child(3){order:2}
   .rb-tot{grid-template-columns:1fr 96px}
@@ -1181,6 +1205,20 @@ html[data-theme="light"] .maptbl select{background:#fff}
                 <label>Nuovo capitale da investire</label>
                 <input id="rbCash" type="text" inputmode="decimal" placeholder="0" value="0">
                 <div class="hint">Il piano tiene conto del capitale extra: ti dice quanto comprare o vendere per raggiungere i target.</div>
+              </div>
+              <div class="field">
+                <label>Bande di scostamento dal target %</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                  <input id="rbBand1" type="text" inputmode="decimal" placeholder="10" value="10" aria-label="Soglia Attenzione %">
+                  <input id="rbBand2" type="text" inputmode="decimal" placeholder="20" value="20" aria-label="Soglia Forte deviazione %">
+                  <input id="rbBand3" type="text" inputmode="decimal" placeholder="30" value="30" aria-label="Soglia Critico %">
+                </div>
+                <div class="hint">Le tre soglie aprono <b>Attenzione</b>, <b>Forte deviazione</b> e <b>Critico</b>. Sono scostamenti <b>relativi</b> al target, non punti percentuali: un target del 5% che sta al 6% è +20%.</div>
+              </div>
+              <div class="field">
+                <label>Aliquota stimata sulle plusvalenze %</label>
+                <input id="rbTax" type="text" inputmode="decimal" placeholder="26" value="26">
+                <div class="hint">Serve a stimare l'impatto fiscale di una vendita, solo in modalità <b>Per titolo</b>.</div>
               </div>
               <div class="kv"><span class="k">Valore attuale</span><span class="v num mask" id="rbCur">€ 0</span></div>
               <div class="kv"><span class="k">Da investire</span><span class="v num mask" id="rbNew">€ 0</span></div>
@@ -1911,7 +1949,8 @@ function blankState(){
   return {
     v:2, positions:[], watchlist:[], goals:[], targets:{}, history:[], countries:[],
     fx:{EUR:1}, lastUpdate:0, updatedAt:0,
-    settings:{theme:'dark',privacy:false,collapsed:false,riskFree:2,proxy:''}
+    settings:{theme:'dark',privacy:false,collapsed:false,riskFree:2,proxy:'',
+              rebalanceBands:[10,20,30],capGainTax:26}
   };
 }
 let S=blankState();
@@ -4046,13 +4085,85 @@ function renderHealth(){
 /* ==========================================================================
    12j. RIBILANCIAMENTO — per categoria o per singolo titolo
    ========================================================================== */
+/* --- bande di scostamento RELATIVO dal target -----------------------------
+   Sistema parallelo e indipendente da computeAction/ACTION_OK, che sulla
+   pagina Posizioni ragiona in euro assoluti (300 € di tolleranza). Qui conta
+   di quanto il peso attuale si discosta dal target IN PROPORZIONE al target:
+   un 5% che diventa 6% è uno scostamento del +20%, non di un punto. È quindi
+   normale che le due etichette non coincidano: misurano cose diverse.
+   -------------------------------------------------------------------------- */
+const RB_BANDS_DEF=[10,20,30];
+const RB_LEVELS=[
+  {lab:'In target',cls:'u'},
+  {lab:'Attenzione',cls:'w'},
+  {lab:'Forte deviazione',cls:'o'},
+  {lab:'Critico — ribilanciamento consigliato',cls:'d'}
+];
+/* soglie nell'ordine in cui l'utente le ha scritte: le tre caselle mostrano
+   sempre quello che ha digitato, l'ordinamento serve solo a classificare */
+function rbBands(){
+  const raw=Array.isArray(S.settings.rebalanceBands)?S.settings.rebalanceBands:RB_BANDS_DEF;
+  return RB_BANDS_DEF.map((d,i)=>{ const n=num(raw[i]); return isFinite(n)&&n>0?n:d; });
+}
+function rbTaxRate(){ const n=num(S.settings.capGainTax); return isFinite(n)&&n>=0?n:26; }
+/* scostamento relativo in % e livello di banda. Target 0 con la posizione
+   ancora in portafoglio = critico per definizione, senza dividere per zero. */
+function rbDeviation(curP,tgt){
+  const b=rbBands().slice().sort((x,y)=>x-y);
+  if(!(tgt>0))return {dev:null,lvl:curP>0?3:0};
+  const dev=(curP-tgt)/tgt*100, a=Math.abs(dev);
+  return {dev:dev, lvl:a<b[0]?0:a<b[1]?1:a<b[2]?2:3};
+}
+/* Stima fiscale di una vendita, in valuta di base. La quantità deriva dal
+   delta in € del piano operativo (che include il capitale da investire),
+   non da p._tDiff: così i numeri della pagina restano coerenti tra loro. */
+function rbTaxEstimate(p,sellEur){
+  if(!p)return null;
+  const rate=fxRate(p.currency), price=num(p.price), avg=num(p._avg);
+  if(!(price>0)||!(rate>0)||!(sellEur>0))return null;
+  if(!(avg>0))return {noAvg:true};
+  const qty=sellEur/(price*rate);
+  const gain=(price-avg)*qty*rate;
+  const tax=gain>0?gain*rbTaxRate()/100:0;
+  return {noAvg:false,qty:qty,price:price,avg:avg,gain:gain,tax:tax,net:gain-tax,rate:rbTaxRate()};
+}
+function rbTaxHtml(p,sellEur){
+  const t=rbTaxEstimate(p,sellEur);
+  if(!t)return '';
+  if(t.noAvg){
+    return '<div class="rb-tax"><div class="tx-miss">Prezzo di carico non disponibile: '+
+      'aggiungilo per vedere l\'impatto fiscale stimato di una vendita. '+
+      '<span class="lk" data-rbopen="'+esc(String(p.id))+'">Apri la scheda</span></div></div>';
+  }
+  const cur=p.currency||BASE, gainPos=t.gain>0;
+  return '<div class="rb-tax">'+
+    '<div class="tx-r"><span class="k">Quantità da vendere</span>'+
+      '<span class="v mask">'+qtyf(t.qty)+'</span></div>'+
+    '<div class="tx-r"><span class="k">Prezzo attuale / carico</span>'+
+      '<span class="v">'+nf(t.price,2)+' / '+nf(t.avg,2)+' '+esc(cur)+'</span></div>'+
+    '<div class="tx-r"><span class="k">'+(t.gain<0?'Minusvalenza stimata':'Plusvalenza stimata')+'</span>'+
+      '<span class="v mask '+(gainPos?'up':t.gain<0?'down':'')+'">'+
+        (t.gain>=0?'+':'−')+money0(Math.abs(t.gain))+'</span></div>'+
+    (gainPos
+      ?'<div class="tx-r"><span class="k">Tasse stimate ('+nf(t.rate,t.rate%1?1:0)+'%)</span>'+
+         '<span class="v mask down">−'+money0(t.tax)+'</span></div>'+
+       '<div class="tx-r tot"><span class="k">Netto dopo tasse stimate</span>'+
+         '<span class="v mask">'+money0(t.net)+'</span></div>'
+      :'<div class="tx-r tot"><span class="k">Nessuna tassa stimata</span>'+
+         '<span class="v">'+(t.gain<0?'minusvalenza potenzialmente compensabile in futuro':'nessuna plusvalenza')+'</span></div>')+
+    '<div class="tx-note">Stima indicativa basata sul prezzo medio di carico registrato. '+
+      'Non considera compensazione di minusvalenze pregresse, regime fiscale '+
+      '(amministrato/dichiarativo) né altri fattori: verifica con il tuo commercialista '+
+      'prima di vendere.</div>'+
+  '</div>';
+}
 function rbUnits(){
   /* restituisce le voci del piano: categorie oppure singole posizioni,
      con una chiave stabile per leggere e scrivere il target */
   if(UI.rbMode==='pos'){
     return activePositions().slice().sort((a,b)=>b._value-a._value).map(p=>({
       key:p.id, label:p.ticker||p.name||'—', sub:p.name&&p.ticker?p.name:'',
-      value:p._value, id:p.id,
+      value:p._value, id:p.id, p:p,
       get:()=>p.targetWeight==null||p.targetWeight===''?null:num(p.targetWeight),
       set:v=>{ p.targetWeight=v; }
     }));
@@ -4066,6 +4177,14 @@ function rbUnits(){
 }
 function renderRebalance(){
   const rows=$('#rbRows'); if(!rows)return;
+  /* le due impostazioni vivono qui accanto ai controlli del piano, come il
+     tasso privo di rischio nella sua card. Non tocco il campo su cui l'utente
+     sta scrivendo: renderRebalance() viene richiamata dal suo stesso input. */
+  const bnd=rbBands();
+  ['rbBand1','rbBand2','rbBand3'].forEach((id,i)=>{ const el=$('#'+id);
+    if(el&&document.activeElement!==el)el.value=fnum(bnd[i]); });
+  const txIn=$('#rbTax');
+  if(txIn&&document.activeElement!==txIn)txIn.value=fnum(rbTaxRate());
   const total=T.value;
   const units=rbUnits();
   if(!units.length||total<=0){
@@ -4093,7 +4212,25 @@ function renderRebalance(){
               :'<span class="badge d">▼ vendi '+money0(-delta)+'</span>';
     if(!hold)plan.push({label:u.label,delta:delta,id:u.id});
     const maxP=Math.max(curP,tgt,1);
-    return '<div class="rb-row">'+
+    /* banda di scostamento: sistema aggiuntivo, non sostituisce il badge
+       compra/vendi qui accanto né le azioni della pagina Posizioni */
+    const dv=rbDeviation(curP,tgt), lev=RB_LEVELS[dv.lvl];
+    const devTxt=dv.dev==null
+      ?'target 0% con la posizione ancora in portafoglio'
+      :'scostamento '+pctv(dv.dev,1)+' dal target';
+    let extra='<div class="rb-dev"><span class="badge '+lev.cls+'">'+esc(lev.lab)+'</span>'+
+      '<span class="dv">'+esc(devTxt)+'</span></div>';
+    const over=dv.dev==null||dv.dev>0;
+    if(!hold&&over&&dv.lvl>=2&&delta<0&&UI.rbMode==='pos'&&u.p){
+      /* impatto fiscale solo per titolo: su una categoria non esiste un
+         prezzo di carico unico da cui stimare la plusvalenza */
+      extra+=rbTaxHtml(u.p,-delta);
+    }else if(!hold&&!over&&dv.lvl>=1){
+      extra+='<div class="rb-tip">Per riportarla in target, valuta di indirizzare qui i '+
+        'prossimi versamenti invece di vendere altre posizioni: eviti l\'impatto fiscale '+
+        'di una vendita.</div>';
+    }
+    return '<div class="rb-row'+(dv.lvl>=3?' crit':'')+'">'+
       '<div class="rb-cat"><span class="dot" style="background:'+PAL[i%PAL.length]+'"></span>'+
         '<span class="nm">'+esc(u.label)+'</span></div>'+
       '<div class="rb-num mask">'+money0(u.value)+'<div class="sub">'+nf(curP,1)+'%</div></div>'+
@@ -4102,6 +4239,7 @@ function renderRebalance(){
       '<div class="rb-bar"><div class="track"><i style="width:'+Math.min(100,curP/maxP*100).toFixed(1)+'%;'+
         'background:'+PAL[i%PAL.length]+'"></i></div>'+
         '<span class="mk" style="left:'+Math.min(100,tgt/maxP*100).toFixed(1)+'%" title="target '+nf(tgt,1)+'%"></span></div>'+
+      extra+
     '</div>';
   }).join('');
   $('#rbSum').textContent=nf(sum,1)+'%';
@@ -4123,6 +4261,9 @@ function renderRebalance(){
     '<span class="am mask '+(p.delta>0?'up':'down')+'">'+money0(Math.abs(p.delta))+'</span></div>').join('')
     :'<div class="empty" style="padding:20px"><div class="sm">Nessuna operazione necessaria: il portafoglio è già in linea con i target.</div></div>';
   $$('#rbPlan [data-id]').forEach(el=>el.addEventListener('click',()=>openDrawer(el.getAttribute('data-id'))));
+
+  $$('#rbRows [data-rbopen]').forEach(el=>el.addEventListener('click',()=>
+    openDrawer(el.getAttribute('data-rbopen'))));
 
   $$('#rbRows .rb-in').forEach(inp=>inp.addEventListener('input',()=>{
     const k=inp.getAttribute('data-rb');
@@ -5825,6 +5966,16 @@ function wire(){
     UI.rbMode=b.getAttribute('data-m'); renderRebalance();
   }));
   $('#rbCash').addEventListener('input',renderRebalance);
+  ['rbBand1','rbBand2','rbBand3'].forEach((id,i)=>{
+    const el=$('#'+id); if(!el)return;
+    el.addEventListener('input',e=>{
+      const b=rbBands(); b[i]=num(e.target.value);
+      S.settings.rebalanceBands=b; save(); renderRebalance();
+    });
+  });
+  $('#rbTax').addEventListener('input',e=>{
+    S.settings.capGainTax=num(e.target.value); save(); renderRebalance();
+  });
   $('#rbEqual').addEventListener('click',()=>{
     const u=rbUnits(); if(!u.length)return;
     const eq=Math.round(1000/u.length)/10;
