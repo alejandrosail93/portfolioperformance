@@ -2181,6 +2181,105 @@ function enrich(){
 /* ==========================================================================
    6. GRAFICI SVG — area/linea con hover, riusabile
    ========================================================================== */
+/* --------------------------------------------------------------------------
+   Tacche dell'asse X su confini di calendario.
+   Prima le etichette erano prese a indici equispaziati nell'array dei punti e
+   poi disegnate alla loro x temporale: con punti a spaziatura irregolare
+   cadevano a distanze arbitrarie ("01 mag" e "01 mag" a un anno di distanza) e
+   un buco nella serie restava senza nessuna tacca. Ora il passo dipende solo
+   dall'intervallo coperto, e l'anno compare appena la serie supera i 12 mesi.
+   -------------------------------------------------------------------------- */
+const DAY_MS=864e5;
+const TICK_DAYS=[1,2,3,7,14,30], TICK_MONTHS=[1,2,3,6,12,24,60];
+const tickMonthName=t=>new Date(t).toLocaleDateString('it-IT',{month:'short'}).replace('.','');
+function tickLabelDay(t){
+  const d=new Date(t);
+  return String(d.getDate()).padStart(2,'0')+' '+tickMonthName(t);
+}
+function tickLabelMonth(t,step,withYear){
+  const d=new Date(t);
+  if(step>=12)return String(d.getFullYear());
+  return tickMonthName(t)+(withYear?" '"+String(d.getFullYear()).slice(2):'');
+}
+function pickStep(steps,units,maxN){
+  for(let i=0;i<steps.length;i++) if(units/steps[i]<=maxN)return steps[i];
+  return steps[steps.length-1];
+}
+function timeTicks(t0,t1,maxN){
+  maxN=maxN||6;
+  const span=Math.max(1,t1-t0), out=[];
+  /* i confini di calendario sono in ora locale, gli estremi della serie no:
+     una tolleranza dell'1% evita di perdere la prima o l'ultima tacca per
+     poche ore di scarto, e vale meno di un pixel sull'asse */
+  const tol=span*.01, lo=t0-tol, hi=t1+tol;
+  if(span<=75*DAY_MS){
+    const st=pickStep(TICK_DAYS,span/DAY_MS,maxN);
+    const d=new Date(t0); d.setHours(0,0,0,0);
+    let t=d.getTime(); while(t<lo)t+=DAY_MS;
+    for(;t<=hi;t+=st*DAY_MS) out.push({t:t,l:tickLabelDay(t)});
+  }else{
+    const st=pickStep(TICK_MONTHS,span/(30.44*DAY_MS),maxN);
+    const withYear=span>330*DAY_MS;
+    const d0=new Date(lo);
+    let k=Math.ceil((d0.getFullYear()*12+d0.getMonth())/st)*st;
+    for(;;){
+      const t=new Date(Math.floor(k/12),k%12,1).getTime();
+      if(t>hi)break;
+      if(t>=lo)out.push({t:t,l:tickLabelMonth(t,st,withYear)});
+      k+=st;
+    }
+  }
+  /* serie cortissime o schiacciate: meglio i due estremi che niente */
+  if(out.length<2)return [{t:t0,l:tickLabelDay(t0)},{t:t1,l:tickLabelDay(t1)}];
+  return out;
+}
+/* i grafici con x non temporale (simulatore, dividendi) passano fmtX: per loro
+   le tacche restano quelle dei punti */
+function idxTicks(ts,fmtX){
+  const nX=Math.min(5,ts.length-1), out=[];
+  for(let i=0;i<=nX;i++){ const t=ts[Math.round(i*(ts.length-1)/nX)]; out.push({t:t,l:fmtX(t)}); }
+  return out;
+}
+function axisLabels(ts,X,right,H,opt){
+  const marks=(opt&&opt.fmtX)?idxTicks(ts,opt.fmtX):timeTicks(ts[0],ts[ts.length-1],6);
+  return marks.map(m=>{
+    const x=X(m.t);
+    const anchor=x<28?'start':(x>right-28?'end':'middle');
+    return '<text class="ct-lbl" x="'+x.toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+anchor+'">'+esc(m.l)+'</text>';
+  }).join('');
+}
+
+/* --------------------------------------------------------------------------
+   Linea morbida monotona (Fritsch-Carlson).
+   La Catmull-Rom uniforme costruiva i punti di controllo dai vicini senza
+   tenere conto della lunghezza dei segmenti: dove un segmento e' molto piu'
+   lungo dei confinanti (un buco nella serie accanto a punti mensili) i
+   controlli finivano fuori dal segmento e la curva ripiegava all'indietro su
+   se stessa, con i "becchi" sui massimi e i minimi inventati fra due punti.
+   Questa versione non sborda mai oltre i valori reali e non torna mai indietro.
+   -------------------------------------------------------------------------- */
+function smoothPath(P2){
+  const n=P2.length;
+  if(n<2)return n?'M'+P2[0].x.toFixed(1)+','+P2[0].y.toFixed(1):'';
+  const dx=[],m=[],tg=[];
+  for(let i=0;i<n-1;i++){ dx[i]=(P2[i+1].x-P2[i].x)||1e-6; m[i]=(P2[i+1].y-P2[i].y)/dx[i]; }
+  tg[0]=m[0]; tg[n-1]=m[n-2];
+  for(let i=1;i<n-1;i++) tg[i]=(m[i-1]*m[i]<=0)?0:(m[i-1]+m[i])/2;
+  for(let i=0;i<n-1;i++){
+    if(m[i]===0){ tg[i]=0; tg[i+1]=0; continue; }
+    const a=tg[i]/m[i], b=tg[i+1]/m[i], q=a*a+b*b;
+    if(q>9){ const f=3/Math.sqrt(q); tg[i]=f*a*m[i]; tg[i+1]=f*b*m[i]; }
+  }
+  let d='M'+P2[0].x.toFixed(1)+','+P2[0].y.toFixed(1);
+  for(let i=0;i<n-1;i++){
+    const h=dx[i]/3;
+    d+='C'+(P2[i].x+h).toFixed(1)+','+(P2[i].y+tg[i]*h).toFixed(1)+' '+
+        (P2[i+1].x-h).toFixed(1)+','+(P2[i+1].y-tg[i+1]*h).toFixed(1)+' '+
+        P2[i+1].x.toFixed(1)+','+P2[i+1].y.toFixed(1);
+  }
+  return d;
+}
+
 const Chart={};
 Chart.area=function(host,pts,opt){
   opt=opt||{};
@@ -2214,15 +2313,9 @@ Chart.area=function(host,pts,opt){
   const col=opt.color||'var(--accent)';
   const gid='g'+Math.random().toString(36).slice(2,8);
 
-  /* linea morbida (Catmull-Rom → Bézier) */
+  /* linea morbida monotona: non sborda e non torna indietro sui buchi */
   const P2=pts.map(p=>({x:X(p.t),y:Y(p.v)}));
-  let d='M'+P2[0].x.toFixed(1)+','+P2[0].y.toFixed(1);
-  for(let i=0;i<P2.length-1;i++){
-    const p0=P2[i-1]||P2[i],p1=P2[i],p2=P2[i+1],p3=P2[i+2]||p2;
-    const c1x=p1.x+(p2.x-p0.x)/6, c1y=p1.y+(p2.y-p0.y)/6;
-    const c2x=p2.x-(p3.x-p1.x)/6, c2y=p2.y-(p3.y-p1.y)/6;
-    d+='C'+c1x.toFixed(1)+','+c1y.toFixed(1)+' '+c2x.toFixed(1)+','+c2y.toFixed(1)+' '+p2.x.toFixed(1)+','+p2.y.toFixed(1);
-  }
+  const d=smoothPath(P2);
   const baseY=opt.zeroLine?Y(0):(padT+ih);
   const area=d+'L'+P2[P2.length-1].x.toFixed(1)+','+baseY.toFixed(1)+'L'+P2[0].x.toFixed(1)+','+baseY.toFixed(1)+'Z';
 
@@ -2237,14 +2330,8 @@ Chart.area=function(host,pts,opt){
   if(opt.zeroLine&&mn<0&&mx>0){
     grid+='<line x1="0" y1="'+Y(0).toFixed(1)+'" x2="'+(padL+iw)+'" y2="'+Y(0).toFixed(1)+'" stroke="var(--muted)" stroke-width="1" opacity=".5"/>';
   }
-  /* etichette X */
-  let xl='';
-  const nX=Math.min(5,pts.length-1);
-  for(let i=0;i<=nX;i++){
-    const idx=Math.round(i*(pts.length-1)/nX), p=pts[idx];
-    const anchor=i===0?'start':(i===nX?'end':'middle');
-    xl+='<text class="ct-lbl" x="'+X(p.t).toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+anchor+'">'+esc(opt.fmtX?opt.fmtX(p.t):fmtDateShort(p.t))+'</text>';
-  }
+  /* etichette X su confini di calendario (vedi timeTicks) */
+  const xl=axisLabels(xs,X,padL+iw,H,opt);
   const last=P2[P2.length-1];
   host.innerHTML=
     '<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'">'+
@@ -4287,14 +4374,7 @@ Chart.lines=function(host,seriesList,opt){
   }
   grid+='<line x1="0" y1="'+Y(0).toFixed(1)+'" x2="'+iw+'" y2="'+Y(0).toFixed(1)+
     '" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" opacity=".6"/>';
-  let xl='';
-  const nX=Math.min(5,ts.length-1);
-  for(let i=0;i<=nX;i++){
-    const t=ts[Math.round(i*(ts.length-1)/nX)];
-    const anchor=i===0?'start':(i===nX?'end':'middle');
-    xl+='<text class="ct-lbl" x="'+X(t).toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+anchor+'">'+
-      esc(opt.fmtX?opt.fmtX(t):fmtDateShort(t))+'</text>';
-  }
+  const xl=axisLabels(ts,X,iw,H,opt);
   const paths=live.map(s=>{
     let d='',started=false;
     s.pts.forEach(p=>{ if(p.v==null)return;
