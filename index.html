@@ -216,7 +216,9 @@ html[data-theme="light"] .seg button.on{background:#fff}
    6. CARD
    ========================================================================== */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);min-width:0}
-.card-hd{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line-soft)}
+.card-hd{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line-soft);
+  /* la testata va a capo invece di sbordare quando titolo + controllo non ci stanno in una riga */
+  flex-wrap:wrap;row-gap:10px}
 .card-hd h2{font-size:14.5px;font-weight:700;letter-spacing:-.15px;display:flex;align-items:center;gap:10px}
 .card-hd .sub{font-size:12px;color:var(--muted);font-weight:500}
 .card-hd .right{margin-left:auto;display:flex;align-items:center;gap:8px}
@@ -365,6 +367,9 @@ html[data-theme="light"] .field textarea,html[data-theme="light"] .inp{backgroun
 .note{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:var(--r-sm);
   padding:12px 14px;font-size:12.5px;color:var(--ink-soft);line-height:1.55}
 .note b{color:var(--ink)}
+.note.warn{border-color:var(--warn)}
+.note.warn b{color:var(--warn)}
+.note a{color:var(--accent-ink);text-decoration:underline}
 .empty{text-align:center;padding:44px 20px;color:var(--muted)}
 .empty .ic{width:46px;height:46px;border-radius:14px;background:var(--surface-2);display:grid;
   place-items:center;margin:0 auto 14px;color:var(--muted)}
@@ -465,6 +470,9 @@ html[data-theme="light"] .filters select,html[data-theme="light"] .filters input
   font-size:11px;font-weight:750;color:#fff}
 .rowbtn{width:28px;height:28px;border-radius:8px;display:inline-grid;place-items:center;color:var(--muted)}
 .rowbtn:hover{background:var(--surface-3);color:var(--ink)}
+.rowbtn[disabled]{opacity:.35;cursor:not-allowed}
+.rowbtn[disabled]:hover{background:transparent;color:var(--muted)}
+.rowacts{white-space:nowrap}
 tbody tr.clk{cursor:pointer}
 .minibar{height:4px;border-radius:4px;background:var(--surface-2);margin-top:5px;overflow:hidden;
   min-width:52px}
@@ -583,7 +591,7 @@ tbody tr.clk{cursor:pointer}
   font-variant-numeric:tabular-nums}
 .barbell .bb{width:100%;border-radius:8px 8px 3px 3px;min-height:3px;transition:height .2s}
 .barbell .lv{grid-row:3;font-size:10.5px;color:var(--muted);text-align:center;line-height:1.25;
-  overflow:hidden;text-overflow:ellipsis;width:100%}
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
 
 /* --- matrice di correlazione --- */
 .corr-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -806,9 +814,8 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .tmap{height:300px}
   .barbell{height:150px}
   /* su schermi stretti la riga diventa: nome + target sopra, valore + azione sotto */
-  /* su schermo stretto la testata del piano va a capo invece di sbordare:
-     titolo sopra, "espandi tutto" e il selettore di modalità sotto */
-  #pg-ribilanciamento .card-hd{flex-wrap:wrap;row-gap:10px}
+  /* il va-a-capo della testata ora è il default di .card-hd; qui resta solo
+     la parte specifica del piano: "espandi tutto" + selettore a tutta larghezza */
   #pg-ribilanciamento .card-hd .right{margin-left:0;width:100%}
   .rb-row{grid-template-columns:1fr 96px;gap:9px 12px}
   .rb-row .rb-cat{order:1}
@@ -2562,7 +2569,7 @@ function go(k){
   $$('[data-nav]').forEach(b=>b.classList.toggle('on',b.getAttribute('data-nav')===it.k));
   $('#pgTitle').textContent=it.l; $('#pgSub').textContent=it.sub||'';
   if(location.hash.slice(1)!==it.k) history.replaceState(null,'','#'+it.k);
-  window.scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({top:0,left:0,behavior:'smooth'});
   renderPage(it.k);
 }
 
@@ -2889,6 +2896,11 @@ function yQuote(sym,force){
   });
 }
 let refreshing=false;
+/* Posizioni con un aggiornamento singolo gia' in volo. Sta in un Set e non
+   in una classe sul bottone perche' renderAll() puo' ricreare l'HTML della
+   riga mentre la richiesta e' ancora aperta (basta modificare un'altra
+   posizione): lo stato va riletto a ogni render, non scritto una volta. */
+const refreshingIds=new Set();
 function refreshPrices(silent){
   if(refreshing)return Promise.resolve();
   const list=activePositions().filter(p=>p.ticker);
@@ -2903,15 +2915,16 @@ function refreshPrices(silent){
       const o=t.o;
       o.price=r.price; if(r.prevClose)o.prevClose=r.prevClose;
       if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)o.currency=r.currency;
-      o._stale=!!r.stale; o._nf=false;
+      o._stale=!!r.stale; o._errKind=null; o._lastCheck=Date.now();
     },e=>{
-      if(t.pos){ t.o._stale=true; t.o._nf=!!(e&&e.kind==='symbol'); }
+      if(t.pos){ t.o._stale=true; t.o._lastCheck=Date.now();
+        t.o._errKind=(e&&e.kind==='symbol')?'not_found':'network'; }
     })).then(()=>refreshFx(force)).then(()=>{
     saveQCache();
     S.lastUpdate=Date.now(); refreshing=false; $('#btnRefresh').classList.remove('spin');
     save(); renderAll();
     const bad=activePositions().filter(p=>p._stale);
-    const nSym=bad.filter(p=>p._nf).length, ko=bad.length-nSym;
+    const nSym=bad.filter(p=>p._errKind==='not_found').length, ko=bad.length-nSym;
     let msg='Prezzi aggiornati alle '+fmtTime(S.lastUpdate);
     if(nSym)msg+=' · '+nSym+(nSym===1?' simbolo inesistente':' simboli inesistenti');
     if(ko)msg+=' · '+ko+(ko===1?' non raggiungibile':' non raggiungibili');
@@ -3196,7 +3209,7 @@ function renderTable(){
         '<td class="hide-sm"><span class="badge">'+esc(p.cls||'Altro')+'</span></td>'+
         '<td class="num">'+qtyf(p._q)+'</td>'+
         '<td class="num hide-xs">'+locCell(p._avg,p.currency)+'</td>'+
-        '<td class="num">'+locCell(num(p.price),p.currency)+(p._stale?' <span class="stale" title="'+(p._nf?'simbolo non trovato su Yahoo: controlla il ticker':'prezzo non aggiornato: servizio non raggiungibile')+'">●</span>':'')+'</td>'+
+        '<td class="num">'+locCell(num(p.price),p.currency)+(p._stale?' <span class="stale" title="'+esc(staleMsg(p))+'">●</span>':'')+'</td>'+
         '<td class="num mask"><b>'+money(p._value)+'</b></td>'+
         '<td class="num hide-xs">'+nf(p._w,1)+'%</td>'+
         '<td class="num mask '+(up?'up':'down')+'"><b>'+(up?'+':'−')+money(Math.abs(p._pnl))+'</b>'+
@@ -3208,7 +3221,7 @@ function renderTable(){
         '<td class="num hide-xs">'+(p.targetWeight!=null&&p.targetWeight!==''?nf(num(p.targetWeight),1)+'%':'<span class="cellsub">–</span>')+'</td>'+
         '<td class="num hide-xs mask'+(p._tDiff!=null?(p._tDiff>=0?' up':' down'):'')+'">'+
           (p._tDiff!=null?(p._tDiff>=0?'+':'−')+money0(Math.abs(p._tDiff)):'<span class="cellsub">–</span>')+'</td>'+
-        '<td><button class="rowbtn" data-edit="'+p.id+'" title="Modifica">'+ic('settings',15)+'</button></td>'+
+        '<td class="rowacts">'+refreshBtn(p)+'<button class="rowbtn" data-edit="'+p.id+'" title="Modifica">'+ic('settings',15)+'</button></td>'+
       '</tr>';
     }).join('');
   }
@@ -3425,21 +3438,56 @@ function openSellAll(id){
   $('#txFee').value='';
   toast('Vendita precompilata: controlla prezzo e data, premi Aggiungi e poi Salva');
 }
+/* Testo breve per il tooltip nativo del pallino in tabella. L'attributo title
+   e' testo semplice: il link "Verifica su Yahoo Finance" non ci starebbe, e
+   infatti vive nel riquadro del drawer (vedi openDrawer). */
+function staleMsg(p){
+  return (p._errKind==='not_found'
+      ?'simbolo non trovato su Yahoo: controlla il ticker'
+      :'prezzo non aggiornato: servizio non raggiungibile')+
+    (p._lastCheck?' · ultimo controllo alle '+fmtTime(p._lastCheck):'');
+}
+/* Messaggio esteso: stesso testo per il toast e per il riquadro nel drawer. */
+function priceErrText(p){
+  return p._errKind==='not_found'
+    ?(p.ticker||'Simbolo')+' non trovato su Yahoo Finance: controlla il simbolo'
+    :'Aggiornamento non riuscito per un problema di connessione: il simbolo '+
+     'potrebbe essere corretto, riprova tra qualche minuto';
+}
+const yLookupURL=t=>'https://finance.yahoo.com/lookup?s='+encodeURIComponent(t);
+/* Bottone di aggiornamento della singola riga. Lo stato "in corso" si rilegge
+   da refreshingIds a ogni render, quindi sopravvive a un re-render provocato
+   da un'altra posizione mentre questa richiesta e' ancora in volo. */
+function refreshBtn(p){
+  if(!p.ticker)return '<button class="rowbtn" disabled title="Nessun ticker impostato — '+
+    'inserisci un simbolo per l\'aggiornamento automatico">'+ic('refresh',15)+'</button>';
+  const busy=refreshingIds.has(p.id);
+  return '<button class="rowbtn'+(busy?' spin':'')+'" data-refresh="'+p.id+'"'+(busy?' disabled':'')+
+    ' title="'+(busy?'Aggiornamento in corso…':esc('Aggiorna il prezzo di '+p.ticker))+'">'+
+    ic('refresh',15)+'</button>';
+}
 function refreshOne(p){
   if(!p.ticker)return;
+  if(refreshingIds.has(p.id))return;  /* click ripetuto: una richiesta basta */
+  refreshingIds.add(p.id); renderTable();
   toast('Cerco '+p.ticker+'…');
+  /* l'orario dell'ultimo controllo si aggiorna comunque, riuscito o no */
+  const done=()=>{ refreshingIds.delete(p.id); p._lastCheck=Date.now(); };
   yQuote(p.ticker,true).then(r=>{
+    done();
     p.price=r.price; if(r.prevClose)p.prevClose=r.prevClose;
     if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)p.currency=r.currency;
-    p._stale=!!r.stale; p._nf=false; saveQCache();
+    p._stale=!!r.stale; p._errKind=null; saveQCache();
     S.lastUpdate=Date.now(); save(); renderAll();
     if(UI.drawerId===p.id)openDrawer(p.id);
     toast(r.stale?p.ticker+': servizio non raggiungibile, mostro l\'ultimo prezzo noto'
                  :p.ticker+' aggiornato a '+nf(r.price,2)+' '+(r.currency||''),r.stale?'err':'ok');
   },e=>{
-    p._stale=true; p._nf=!!(e&&e.kind==='symbol'); renderAll();
-    toast(p._nf?p.ticker+' non esiste su Yahoo: controlla il simbolo'
-               :p.ticker+': servizio non raggiungibile, riprova fra un minuto','err');
+    done();
+    p._stale=true; p._errKind=(e&&e.kind==='symbol')?'not_found':'network';
+    renderAll();
+    if(UI.drawerId===p.id)openDrawer(p.id);
+    toast(priceErrText(p),'err');
   });
 }
 
@@ -3519,6 +3567,13 @@ function openDrawer(id){
       '<div style="font-size:12px;color:var(--muted);margin-bottom:16px">'+
         (d.usesTx?'⇄ derivato da '+d.txCount+' transazioni':'inserito manualmente')+
         ' · '+esc(String(p._w.toFixed(1)).replace('.',','))+'% del portafoglio</div>'+
+      (p._stale?'<div class="note warn" style="margin-bottom:14px">'+
+        '<b>Prezzo non aggiornato</b><br>'+esc(priceErrText(p))+
+        (p._errKind==='not_found'&&p.ticker
+          ?'<br><a href="'+yLookupURL(p.ticker)+'" target="_blank" rel="noopener">Verifica su Yahoo Finance</a>'
+          :'')+
+        (p._lastCheck?'<br><span style="color:var(--muted)">Ultimo controllo alle '+
+          fmtTime(p._lastCheck)+'</span>':'')+'</div>':'')+
       '<div class="chart-host" id="dwChart"></div>'+
       '<div class="sec-t">Dati della posizione</div>'+
       '<div class="dw-stats">'+stats.map(s=>
@@ -6085,6 +6140,10 @@ function wire(){
   $('#tbody').addEventListener('click',e=>{
     const ed=e.target.closest('[data-edit]');
     if(ed){ e.stopPropagation(); openPos(ed.getAttribute('data-edit')); return; }
+    const rf=e.target.closest('[data-refresh]');
+    if(rf){ e.stopPropagation();
+      const p=S.positions.filter(x=>x.id===rf.getAttribute('data-refresh'))[0];
+      if(p)refreshOne(p); return; }
     const tr=e.target.closest('tr[data-id]');
     if(tr)openDrawer(tr.getAttribute('data-id'));
   });
