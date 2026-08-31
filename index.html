@@ -1363,7 +1363,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
             <div class="bleg-wrap" id="benchLegend"></div>
             <div class="chart-host" id="benchChart"></div>
             <div class="statusline" id="benchStatus"></div>
-            <div class="note mt18">Confronta il rendimento percentuale del tuo portafoglio con alcuni indici di riferimento, a partire dalla data del primo punto della serie. I rendimenti degli indici sono nella loro valuta originale (nessun effetto cambio) e includono i dividendi reinvestiti. Clicca un'etichetta per mostrarla o nasconderla.</div>
+            <div class="note mt18">Confronta il rendimento percentuale del tuo portafoglio con alcuni indici di riferimento, a partire dalla data del primo punto della serie. Il rendimento del portafoglio è <b>time-weighted</b>: misura quanto hanno reso i titoli, non quanto capitale hai versato, così il confronto con gli indici è alla pari (versamenti e prelievi non lo alterano). I rendimenti degli indici sono nella loro valuta originale (nessun effetto cambio) e includono i dividendi reinvestiti. Clicca un'etichetta per mostrarla o nasconderla.</div>
           </div>
         </div>
 
@@ -4951,32 +4951,73 @@ function reconstructedSeries(){
      (il "tratto piatto" di dieci mesi). Ora il primo punto dopo un buco lo
      dichiara, e il grafico interrompe la linea invece di inventarla. */
   const out=[];
-  let hole=false, prevK=null;
+  let hole=false, prevK=null, prevHold=null, chain=1;
   keys.forEach(k=>{
     let value=0,cost=0,any=false;
+    const hold=[];
     rows.forEach(p=>{
       const price=priceMap[p.ticker][k]; if(price==null)return;
       const at=qtyAt(p,months[k]);
       if(at.qty<=0)return;
-      value+=at.qty*price*fxRate(p.currency);
-      cost+=at.cost*fxRate(p.currency);
+      const fx=fxRate(p.currency);
+      value+=at.qty*price*fx;
+      cost+=at.cost*fx;
+      hold.push({tk:p.ticker,qty:at.qty,price:price,fx:fx});
       any=true;
     });
     if(any){
       const jump=prevK!=null&&k-prevK>1;   /* mesi mancanti nell'unione */
-      out.push({t:months[k],value:value,cost:cost,gap:!!out.length&&(hole||jump)});
-      hole=false; prevK=k;
-    }else hole=true;   /* mese coperto dai prezzi ma senza posizioni aperte */
+      /* Rendimento time-weighted: rivaluta il paniere di INIZIO periodo ai
+         prezzi di FINE periodo, a quantità ferme. Comprare, vendere o versare
+         non muove il rapporto, quindi la serie è confrontabile con un indice.
+         Il valore grezzo no: value/value[0] scambia ogni versamento per un
+         guadagno, e un portafoglio che parte da una posizione sola arriva a
+         percentuali a quattro cifre senza aver reso niente. */
+      if(prevHold){
+        let v0=0,v1=0;
+        prevHold.forEach(h=>{
+          const pk=priceMap[h.tk][k]; if(pk==null)return;
+          v0+=h.qty*h.price*h.fx; v1+=h.qty*pk*h.fx;
+        });
+        if(v0>0)chain*=v1/v0;
+      }
+      out.push({t:months[k],value:value,cost:cost,twr:(chain-1)*100,
+                gap:!!out.length&&(hole||jump)});
+      hole=false; prevK=k; prevHold=hold;
+    }else{
+      /* mese coperto dai prezzi ma senza posizioni aperte: con il portafoglio
+         vuoto non matura rendimento, quindi la catena riparte invece di
+         attribuire al periodo la variazione di prezzo del vecchio paniere */
+      hole=true; prevHold=null;
+    }
   });
   if(out.length<2)return null;
   return {pts:out,exact:exactAll,nUsed:rows.length,nTotal:S.positions.filter(p=>p.ticker).length,
     coveragePct:T.value>0?covered/T.value*100:0};
 }
+/* Rendimento time-weighted per gli snapshot manuali. Qui i singoli movimenti
+   non li conosciamo: di ogni periodo abbiamo solo valore e costo di carico, e
+   il capitale entrato o uscito si stima dalla variazione del costo. Tolto
+   quello dalla variazione di valore, il resto è performance.
+   È un'approssimazione — una vendita in guadagno abbassa il costo di meno di
+   quanto tolga valore, quindi il rendimento esce prudenziale — ma resta molto
+   più vicino al vero del rapporto col primo valore della serie. */
+function snapsWithTwr(snaps){
+  let chain=1;
+  return snaps.map((s,i)=>{
+    if(i>0){
+      const prev=snaps[i-1], flow=s.cost-prev.cost;
+      if(prev.value>0)chain*=(s.value-flow)/prev.value;
+    }
+    return {t:s.t,value:s.value,cost:s.cost,twr:(chain-1)*100};
+  });
+}
 function currentHistSeries(){
   /* la serie da disegnare: snapshot se ce ne sono almeno due, altrimenti la
      ricostruzione dai prezzi storici (e viceversa se scegli tu la sorgente) */
-  const snaps=(S.history||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)))
-    .map(s=>({t:new Date(s.date+'T12:00:00').getTime(),value:num(s.value),cost:num(s.cost)}));
+  const snaps=snapsWithTwr((S.history||[]).slice()
+    .sort((a,b)=>String(a.date).localeCompare(String(b.date)))
+    .map(s=>({t:new Date(s.date+'T12:00:00').getTime(),value:num(s.value),cost:num(s.cost)})));
   if(UI.histSrc==='calc'){
     const r=reconstructedSeries();
     if(r)return {pts:r.pts,src:'calc',info:r};
@@ -5490,8 +5531,13 @@ function renderBenchmark(){
     leg.innerHTML=''; return;
   }
   const base=pts[0];
+  /* Il portafoglio va confrontato con l'indice a parità di regole: l'indice
+     non riceve versamenti, quindi nemmeno la nostra curva deve contarli.
+     Si usa il rendimento time-weighted; il rapporto col primo valore resta
+     solo come ripiego per serie vecchie, salvate prima che esistesse. */
+  const useTwr=pts.every(p=>p.twr!=null&&isFinite(p.twr));
   const series=[{key:'__p',label:'Portafoglio',color:'var(--gold)',main:true,
-    pts:pts.map(p=>({t:p.t,v:base.value>0?(p.value/base.value-1)*100:0}))}];
+    pts:pts.map(p=>({t:p.t,v:useTwr?p.twr:(base.value>0?(p.value/base.value-1)*100:0)}))}];
   BENCH_LIST.forEach(b=>{
     const bd=BHIST.data[b.key]; if(!bd||!bd.length)return;
     const bp=valueAt(bd,base.t); if(!bp)return;
