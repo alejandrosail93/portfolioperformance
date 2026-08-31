@@ -1140,6 +1140,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
           <div class="card-bd">
             <div id="quantBody"></div>
             <div class="statusline" id="histStatus"></div>
+            <div class="statusline" id="histFails"></div>
             <div class="statusline" id="histOrphans"></div>
             <div class="field" style="max-width:260px;margin-top:16px;margin-bottom:0">
               <label>Tasso privo di rischio annuo %</label>
@@ -3498,16 +3499,20 @@ const HKEY='pf_v2_hist';
 let PHIST={};
 function loadPHist(){ try{ PHIST=JSON.parse(localStorage.getItem(HKEY))||{}; }catch(e){ PHIST={}; } }
 function savePHist(){ try{ localStorage.setItem(HKEY,JSON.stringify(PHIST)); }catch(e){} }
+/* Gli scarti hanno cause diverse e vanno distinti, altrimenti "non riuscito"
+   copre tanto il ticker sbagliato quanto il proxy caduto: 'nodata' e' Yahoo
+   che risponde ma per quel simbolo/periodo non ha una serie utilizzabile,
+   'symbol' e' Yahoo che dichiara il simbolo inesistente, il resto e' rete. */
 function yHistory(sym,range,interval){
   const qs='?interval='+(interval||'1d')+'&range='+(range||'1y');
   return fetchJSON(yURL('query1',sym,qs),[yURL('query2',sym,qs)]).then(d=>{
     const r=d&&d.chart&&d.chart.result&&d.chart.result[0];
-    if(!r||!r.timestamp)throw new Error('nd');
+    if(!r||!r.timestamp)throw netErr('nodata');
     const ts=r.timestamp, q=r.indicators&&r.indicators.quote&&r.indicators.quote[0];
     const cl=(r.indicators&&r.indicators.adjclose&&r.indicators.adjclose[0]&&r.indicators.adjclose[0].adjclose)||(q&&q.close)||[];
     const pts=[];
     for(let i=0;i<ts.length;i++) if(cl[i]!=null) pts.push({t:ts[i]*1000,v:cl[i]});
-    if(pts.length<2)throw new Error('nd');
+    if(pts.length<2)throw netErr('nodata');
     return pts;
   });
 }
@@ -4007,23 +4012,45 @@ function historyRange(extra){
   i=Math.min(HIST_STEPS.length-1,i+(extra||0));
   return HIST_STEPS[i]+'y';
 }
-function downloadHistory(){
-  if(downloading)return;
-  const tickers=[];
-  S.positions.forEach(p=>{ if(p.ticker&&tickers.indexOf(p.ticker)<0)tickers.push(p.ticker); });
-  if(!tickers.length){ toast('Nessuna posizione con un ticker','err'); return; }
+/* Esito dell'ultimo scaricamento, titolo per titolo. Prima il conteggio dei
+   non riusciti era l'unica traccia rimasta: sapevi che 13 titoli erano
+   saltati ma non quali, e senza il nome non c'e' niente da correggere.
+   Vive in memoria (non in localStorage): e' la diagnosi di quella corsa. */
+let HISTFAIL=[];
+const HFAIL_LBL={
+  symbol:'simbolo inesistente su Yahoo',
+  nodata:'nessuna serie storica disponibile',
+  transport:'rete o proxy non raggiungibile',
+  offline:'rete o proxy non raggiungibile'
+};
+function histFailKind(e){
+  const k=e&&e.kind;
+  return HFAIL_LBL[k]?k:'transport';
+}
+/* `only` limita la corsa a una lista di ticker: serve al "Riprova" degli
+   scarti, che quasi sempre sono cadute di proxy e al secondo giro passano. */
+function downloadHistory(only){
+  if(downloading)return Promise.resolve();
+  const all=[];
+  S.positions.forEach(p=>{ if(p.ticker&&all.indexOf(p.ticker)<0)all.push(p.ticker); });
+  const tickers=(only&&only.length)?all.filter(t=>only.indexOf(t)>-1):all;
+  if(!tickers.length){ toast('Nessuna posizione con un ticker','err'); return Promise.resolve(); }
   downloading=true; $('#btnHist').classList.add('spin');
-  let done=0,ko=0;
+  let done=0;
+  const fails=[];
   const status=()=>{ $('#histStatus').textContent='Scarico lo storico… '+done+'/'+tickers.length; };
   status();
   const range=historyRange();
-  let nSym=0;
-  netQueue(tickers,t=>yHistory(t,range,'1mo')
+  return netQueue(tickers,t=>yHistory(t,range,'1mo')
     .then(pts=>{ MHIST[t]={pts:pts,at:Date.now()}; done++; status(); },
-          e=>{ ko++; if(e&&e.kind==='symbol')nSym++; done++; status(); })
+          e=>{ fails.push({t:t,kind:histFailKind(e)}); done++; status(); })
   ).then(()=>{
     downloading=false; $('#btnHist').classList.remove('spin');
     saveMHist();
+    /* Su un riscarico parziale gli esiti vecchi degli altri titoli restano
+       validi: si sostituiscono solo quelli dei ticker appena ritentati. */
+    HISTFAIL=HISTFAIL.filter(f=>tickers.indexOf(f.t)<0).concat(fails);
+    const ko=fails.length, nSym=fails.filter(f=>f.kind==='symbol').length;
     $('#histStatus').textContent='Storico aggiornato il '+fmtDate(new Date().toISOString())+
       ' · '+(tickers.length-ko)+'/'+tickers.length+' titoli · ultimi '+range.replace('y',' anni')+
       (ko?' ('+ko+' non riusciti'+(nSym?', di cui '+nSym+' con simbolo inesistente':'')+')':'');
@@ -4031,9 +4058,32 @@ function downloadHistory(){
     toast(ko?'Storico scaricato · '+ko+' titoli non riusciti':'Storico scaricato',ko?'':'ok');
   });
 }
+/* I nomi degli scarti, raggruppati per causa. Il gruppo 'symbol' e' quasi
+   sempre fatto di posizioni chiuse: il listino aggiorna solo le posizioni
+   ancora aperte, quindi un ticker delistato o rinominato anni fa passa
+   inosservato li' e salta fuori solo qui, dove si scaricano anche le chiuse. */
+function renderHistFailRow(){
+  const el=$('#histFails'); if(!el)return;
+  if(!HISTFAIL.length){ el.innerHTML=''; return; }
+  const byKind={};
+  HISTFAIL.forEach(f=>{ (byKind[f.kind]||(byKind[f.kind]=[])).push(f.t); });
+  const held={}; activePositions().forEach(p=>{ if(p.ticker)held[p.ticker]=1; });
+  const parts=Object.keys(byKind).map(k=>{
+    const list=byKind[k].slice().sort();
+    const names=list.map(t=>esc(t)+(held[t]?'':' <span style="color:var(--muted)">(chiusa)</span>')).join(', ');
+    return '<div style="margin-top:4px"><b>'+list.length+'</b> '+esc(HFAIL_LBL[k]||k)+': '+names+'</div>';
+  });
+  const retry=HISTFAIL.filter(f=>f.kind!=='symbol').map(f=>f.t);
+  el.innerHTML='<span style="color:var(--gold)">Non scaricati ('+HISTFAIL.length+'):</span>'+parts.join('')+
+    (retry.length?'<div style="margin-top:6px"><button class="btn btn-ghost btn-sm" id="btnRetryHist">'+
+      (retry.length===1?'Riprova l\'unico non raggiungibile':'Riprova i '+retry.length+' non raggiungibili')+
+      '</button></div>':'');
+  const b=$('#btnRetryHist');
+  if(b)b.addEventListener('click',()=>downloadHistory(retry));
+}
 function renderQuant(){
   const wrap=$('#quantBody'); if(!wrap)return;
-  renderOrphanRow();
+  renderOrphanRow(); renderHistFailRow();
   const rf=$('#fRiskFree');
   if(rf&&document.activeElement!==rf)rf.value=S.settings.riskFree!=null?S.settings.riskFree:2;
   const info=t=>'<span class="qhelp" title="'+esc(t)+'">?</span>';
