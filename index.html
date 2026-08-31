@@ -544,6 +544,8 @@ tbody tr.clk{cursor:pointer}
   white-space:nowrap;color:var(--ink)}
 .tile .p{font-size:17px;font-weight:780;letter-spacing:-.4px;color:var(--ink);line-height:1.15;margin-top:2px}
 .tile .v{font-size:11px;color:var(--ink-soft);margin-top:1px}
+.tile .s{font-size:11px;color:var(--ink-soft);line-height:1.3;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .tile.tiny{padding:5px 7px;justify-content:center}
 .tile.tiny .p{font-size:12px}
 .tile.micro{padding:0}
@@ -1070,7 +1072,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
             <div class="hhi" id="hhiLine"></div>
             <div class="crumb" id="expoCrumb"></div>
             <div class="tmap" id="expoMap"></div>
-            <div class="note mt18">Ogni rettangolo è grande quanto il suo peso, e il colore segnala la concentrazione (verde in linea, ambra da tenere d'occhio, rosso eccessiva). Clicca una voce per scendere al livello successivo. Gli ETF con una <b>composizione dichiarata</b> nella loro scheda vengono scomposti per settore e paese secondo i pesi indicati.</div>
+            <div class="note mt18">Ogni rettangolo è grande quanto il suo peso, e il colore segnala la concentrazione (verde in linea, ambra da tenere d'occhio, rosso eccessiva). Clicca una voce per vedere i <b>titoli che la compongono</b>, ognuno con il suo nome: lì il colore misura quanto pesa la riga sul portafoglio intero, e cliccando una piastrella si apre la scheda del titolo. Il nome della voce in alto riporta alla mappa raggruppata. Gli ETF con una <b>composizione dichiarata</b> nella loro scheda vengono scomposti per settore e paese secondo i pesi indicati.</div>
           </div>
         </div>
 
@@ -2001,7 +2003,7 @@ const UI={
   filters:{search:'',cls:'',sector:'',country:'',action:''},
   sortK:'_value', sortDir:-1,
   editId:null, editTx:[], drawerId:null,
-  expo:{level:'cat',f:{}},
+  expo:{level:'cat',leaf:null},
   rbMode:'cat', rbOpen:{}, editWatch:null,
   histSrc:'snap', editGoal:null, heatM:null, heatSort:'ret',
   txFilters:{pos:'',type:''}
@@ -3678,31 +3680,44 @@ function topShare(m,total){
   Object.keys(m).forEach(k=>{ if(k!=='—'&&k!=='Altro'&&m[k]>bv){bv=m[k];best=k;} });
   return best&&total>0?{name:best,pct:bv/total*100}:null;
 }
-function expoFilterRows(f){
-  return activePositions().filter(p=>{
-    if(f.cat&&(String(p.cls||'Altro').trim()||'Altro')!==f.cat)return false;
-    if(f.sector&&(String(p.sector||'—').trim()||'—')!==f.sector)return false;
-    if(f.country&&(String(p.country||'—').trim()||'—')!==f.country)return false;
-    if(f.currency&&(p.currency||BASE)!==f.currency)return false;
-    return true;
-  });
+/* Come il valore di una posizione si distribuisce fra le voci di un livello.
+   Per categoria e valuta finisce tutto in una voce sola; per settore e paese
+   un ETF con la composizione dichiarata si spezza fra piu' voci secondo i
+   pesi indicati. Serve una funzione sola, usata sia dalla mappa raggruppata
+   sia dal dettaglio dentro una piastrella: se il dettaglio ricalcolasse le
+   quote per conto suo, la somma dei titoli non tornerebbe al totale della
+   piastrella da cui si e' entrati, e sarebbero proprio gli ETF a sballare. */
+function expoParts(p,lvlKey){
+  if(lvlKey==='cat')return [{name:String(p.cls||'Altro').trim()||'Altro',v:p._value}];
+  if(lvlKey==='currency')return [{name:p.currency||BASE,v:p._value}];
+  const comp=p.cls==='ETF'
+    ? (lvlKey==='sector'?parseComposition(p.compSector,normSector)
+                        :parseComposition(p.compCountry,normCountry))
+    : [];
+  if(comp.length){
+    const s=comp.reduce((a,c)=>a+c.pct,0)||1;
+    return comp.map(c=>({name:c.name,v:p._value*c.pct/s}));
+  }
+  const raw=lvlKey==='sector'?p.sector:p.country;
+  return [{name:String(raw||'—').trim()||'—',v:p._value}];
 }
 function computeExposure(rows){
-  const byCat={},bySector={},byCountry={},byCurrency={};
-  rows.forEach(p=>{
-    const v=p._value;
-    const cat=String(p.cls||'Altro').trim()||'Altro'; byCat[cat]=(byCat[cat]||0)+v;
-    const cur=p.currency||BASE; byCurrency[cur]=(byCurrency[cur]||0)+v;
-    const cS=p.cls==='ETF'?parseComposition(p.compSector,normSector):[];
-    if(cS.length){ const s=cS.reduce((a,c)=>a+c.pct,0)||1;
-      cS.forEach(c=>{ bySector[c.name]=(bySector[c.name]||0)+v*c.pct/s; }); }
-    else { const sec=String(p.sector||'—').trim()||'—'; bySector[sec]=(bySector[sec]||0)+v; }
-    const cC=p.cls==='ETF'?parseComposition(p.compCountry,normCountry):[];
-    if(cC.length){ const s=cC.reduce((a,c)=>a+c.pct,0)||1;
-      cC.forEach(c=>{ byCountry[c.name]=(byCountry[c.name]||0)+v*c.pct/s; }); }
-    else { const ct=String(p.country||'—').trim()||'—'; byCountry[ct]=(byCountry[ct]||0)+v; }
+  const out={cat:{},sector:{},country:{},currency:{}};
+  rows.forEach(p=>{ EXPO_ORDER.forEach(k=>{
+    expoParts(p,k).forEach(c=>{ if(c.v>0)out[k][c.name]=(out[k][c.name]||0)+c.v; });
+  }); });
+  return out;
+}
+/* I titoli dentro una voce, con la quota di valore che ciascuno le porta. */
+function expoLeafItems(lvlKey,key){
+  const out=[];
+  activePositions().forEach(p=>{
+    expoParts(p,lvlKey).forEach(c=>{
+      if(c.name===key&&c.v>0)out.push({name:p.ticker||p.name||'—',
+        full:p.name||'',id:p.id,value:c.v,total:p._value});
+    });
   });
-  return {cat:byCat,sector:bySector,country:byCountry,currency:byCurrency};
+  return out.sort((a,b)=>b.value-a.value);
 }
 
 /* --- treemap squarificata: rettangoli proporzionali al peso --- */
@@ -3741,19 +3756,24 @@ function squarify(items,W,H){
   }
   return out;
 }
+const EXPO_LBL={cat:'Categoria',sector:'Settore',country:'Paese',currency:'Valuta'};
+function expoBack(){ UI.expo.leaf=null; renderExposure(); }
 function renderExpoCrumb(){
   const wrap=$('#expoCrumb'); if(!wrap)return;
-  const lbl={cat:'Categoria',sector:'Settore',country:'Paese',currency:'Valuta'};
-  const parts=['<b data-creset="1">Tutte le posizioni</b>'];
-  EXPO_ORDER.forEach(k=>{ if(UI.expo.f[k])
-    parts.push('<span>▸</span><b data-cclear="'+k+'">'+esc(lbl[k])+': '+esc(UI.expo.f[k])+' ×</b>'); });
+  const leaf=UI.expo.leaf;
+  const parts=['<b data-creset="1">'+esc(EXPO_LBL[UI.expo.level]||'Tutte le posizioni')+'</b>'];
+  if(leaf)parts.push('<span>▸</span><b data-cclear="1">'+esc(leaf.key)+' ×</b>');
   wrap.innerHTML=parts.join(' ');
   const r=wrap.querySelector('[data-creset]');
-  if(r)r.addEventListener('click',()=>{ UI.expo={level:'cat',f:{}}; renderExposure(); });
-  $$('#expoCrumb [data-cclear]').forEach(el=>el.addEventListener('click',()=>{
-    const k=el.getAttribute('data-cclear'); delete UI.expo.f[k]; UI.expo.level=k; renderExposure();
-  }));
+  if(r)r.addEventListener('click',expoBack);
+  const c=wrap.querySelector('[data-cclear]');
+  if(c)c.addEventListener('click',expoBack);
 }
+/* Soglie di concentrazione della singola riga: le stesse del pannello Segnali
+   (sopra il 25% il rischio specifico e' alto, sopra il 18% va tenuta d'occhio).
+   Nel dettaglio dentro una voce non si possono usare quelle del livello: una
+   voce con due titoli darebbe due piastrelle rosse per costruzione. */
+const EXPO_POS={warn:18,bad:25};
 function renderExposure(){
   const map=$('#expoMap'), hh=$('#hhiLine'); if(!map)return;
   if(!activeCount()||T.value<=0){
@@ -3765,43 +3785,62 @@ function renderExposure(){
     'Concentrazione (HHI) <b>'+nf(hhi,3)+'</b></span>'+
     '<span class="sm">equivale a <b>'+nf(1/Math.max(hhi,1e-4),1)+'</b> posizioni di pari peso</span>';
   $$('#expoTabs button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-lvl')===UI.expo.level));
+  /* Un titolo aperto vale solo per la scheda da cui e' stato aperto: cambiando
+     scheda la voce non esiste piu' e il dettaglio non avrebbe senso. */
+  const leaf=(UI.expo.leaf&&UI.expo.leaf.k===UI.expo.level)?UI.expo.leaf:null;
+  if(UI.expo.leaf&&!leaf)UI.expo.leaf=null;
   renderExpoCrumb();
   const lvl=EXPO_LEVELS.filter(l=>l.k===UI.expo.level)[0]||EXPO_LEVELS[0];
-  const data=computeExposure(expoFilterRows(UI.expo.f))[lvl.k];
-  let scope=0; Object.keys(data).forEach(k=>{scope+=data[k];});
-  const items=Object.keys(data).map(k=>({name:k,value:data[k]})).filter(i=>i.value>0)
-    .sort((a,b)=>b.value-a.value);
-  if(!items.length){
-    map.innerHTML='<div class="empty" style="padding:120px 20px"><div class="sm">Nessun dato per questo livello.</div></div>';
+  const items=leaf?expoLeafItems(leaf.k,leaf.key)
+    :(()=>{ const d=computeExposure(activePositions())[lvl.k];
+            return Object.keys(d).map(k=>({name:k,value:d[k]})); })();
+  const shown=items.filter(i=>i.value>0).sort((a,b)=>b.value-a.value);
+  let scope=0; shown.forEach(i=>{scope+=i.value;});
+  if(!shown.length){
+    map.innerHTML='<div class="empty" style="padding:120px 20px"><div class="sm">'+
+      (leaf?'Nessun titolo in questa voce.':'Nessun dato per questo livello.')+'</div></div>';
     return;
   }
   const W=Math.max(240,map.clientWidth||map.getBoundingClientRect().width||600);
   const H=map.clientHeight||360;
-  const maxPct=Math.max.apply(null,items.map(i=>scope>0?i.value/scope*100:0));
-  const rects=squarify(items,W,H);
+  const maxPct=Math.max.apply(null,shown.map(i=>scope>0?i.value/scope*100:0));
+  const rects=squarify(shown,W,H);
   const G=3; /* distanza tra i rettangoli */
   map.innerHTML=rects.map(r=>{
-    const pct=scope>0?r.item.value/scope*100:0;
-    const tier=pct>lvl.bad?'bad':pct>lvl.warn?'warn':'ok';
+    const it=r.item, pct=scope>0?it.value/scope*100:0;
+    /* Nel dettaglio il colore misura quanto pesa quella riga sul portafoglio
+       intero, non dentro la voce: e' l'unica lettura di rischio utile qui. */
+    const wPort=T.value>0?it.value/T.value*100:0;
+    const th=leaf?EXPO_POS:lvl;
+    const ref=leaf?wPort:pct;
+    const tier=ref>th.bad?'bad':ref>th.warn?'warn':'ok';
     const alpha=.14+.5*(maxPct>0?pct/maxPct:0);
     const w=Math.max(0,r.w-G), h=Math.max(0,r.h-G);
     const micro=h<26||w<34;          /* troppo piccola per qualsiasi testo */
     const tiny=!micro&&(w<86||h<52); /* spazio solo per la percentuale */
-    return '<div class="tile'+(micro?' micro':(tiny?' tiny':''))+'" data-key="'+esc(r.item.name)+'" '+
-      'title="'+esc(r.item.name)+' · '+nf(pct,1)+'% · '+money0(r.item.value)+'" '+
-      'style="left:'+r.x.toFixed(1)+'px;top:'+r.y.toFixed(1)+'px;width:'+w.toFixed(1)+'px;height:'+h.toFixed(1)+'px;'+
+    const sub=leaf&&it.full&&it.full!==it.name&&h>=86&&w>=110;
+    const tip=leaf
+      ? it.name+(it.full?' · '+it.full:'')+' · '+nf(pct,1)+'% di '+leaf.key+
+        ' · '+money0(it.value)+' · '+nf(wPort,1)+'% del portafoglio'
+      : it.name+' · '+nf(pct,1)+'% · '+money0(it.value);
+    return '<div class="tile'+(micro?' micro':(tiny?' tiny':''))+'" data-key="'+esc(it.name)+'"'+
+      (leaf?' data-id="'+esc(it.id)+'"':'')+
+      ' title="'+esc(tip)+'"'+
+      ' style="left:'+r.x.toFixed(1)+'px;top:'+r.y.toFixed(1)+'px;width:'+w.toFixed(1)+'px;height:'+h.toFixed(1)+'px;'+
       'background:'+tierRgba(tier,alpha)+';border-color:'+TIER_HEX[tier]+'">'+
       (micro?''
         :tiny?'<div class="p">'+nf(pct,0)+'%</div>'
-             :'<div class="n">'+esc(r.item.name)+'</div><div class="p">'+nf(pct,1)+'%</div>'+
-              '<div class="v mask">'+money0(r.item.value)+'</div>')+
+             :'<div class="n">'+esc(it.name)+'</div>'+
+              (sub?'<div class="s">'+esc(it.full)+'</div>':'')+
+              '<div class="p">'+nf(pct,1)+'%</div>'+
+              '<div class="v mask">'+money0(it.value)+'</div>')+
       '</div>';
   }).join('');
   $$('#expoMap .tile').forEach(t=>t.addEventListener('click',()=>{
+    /* Nel dettaglio la piastrella e' un titolo: si apre la sua scheda. */
+    if(leaf){ const id=t.getAttribute('data-id'); if(id)openDrawer(id); return; }
     const key=t.getAttribute('data-key'); if(key==null)return;
-    const i=EXPO_ORDER.indexOf(UI.expo.level);
-    UI.expo.f[UI.expo.level]=key;
-    if(i<EXPO_ORDER.length-1)UI.expo.level=EXPO_ORDER[i+1];
+    UI.expo.leaf={k:UI.expo.level,key:key};
     renderExposure();
   }));
 }
@@ -4047,9 +4086,16 @@ function downloadHistory(only){
   ).then(()=>{
     downloading=false; $('#btnHist').classList.remove('spin');
     saveMHist();
-    /* Su un riscarico parziale gli esiti vecchi degli altri titoli restano
-       validi: si sostituiscono solo quelli dei ticker appena ritentati. */
-    HISTFAIL=HISTFAIL.filter(f=>tickers.indexOf(f.t)<0).concat(fails);
+    /* Una corsa completa ha appena riprovato ogni titolo: il suo esito e'
+       l'unico valido, e se e' andata liscia l'elenco deve sparire. Tenere gli
+       scarti vecchi li rendeva eterni: appena correggevi un ticker sbagliato
+       il nome vecchio non era piu' in portafoglio, quindi nessuna corsa
+       successiva poteva piu' toccarlo e restava in elenco per sempre.
+       Su un riscarico parziale, invece, gli esiti degli altri titoli sono
+       ancora buoni e vanno tenuti — ma solo se quei ticker esistono ancora. */
+    HISTFAIL=(only&&only.length)
+      ? HISTFAIL.filter(f=>tickers.indexOf(f.t)<0&&all.indexOf(f.t)>-1).concat(fails)
+      : fails;
     const ko=fails.length, nSym=fails.filter(f=>f.kind==='symbol').length;
     $('#histStatus').textContent='Storico aggiornato il '+fmtDate(new Date().toISOString())+
       ' · '+(tickers.length-ko)+'/'+tickers.length+' titoli · ultimi '+range.replace('y',' anni')+
@@ -6225,10 +6271,8 @@ function wire(){
 
   /* --- esposizione --- */
   $$('#expoTabs button').forEach(b=>b.addEventListener('click',()=>{
-    const lvl=b.getAttribute('data-lvl');
-    UI.expo.level=lvl;
-    const i=EXPO_ORDER.indexOf(lvl);
-    EXPO_ORDER.forEach((k,j)=>{ if(j>=i)delete UI.expo.f[k]; });
+    UI.expo.level=b.getAttribute('data-lvl');
+    UI.expo.leaf=null;
     renderExposure();
   }));
 
