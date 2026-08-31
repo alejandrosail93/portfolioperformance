@@ -4068,12 +4068,23 @@ function renderHistFailRow(){
   const byKind={};
   HISTFAIL.forEach(f=>{ (byKind[f.kind]||(byKind[f.kind]=[])).push(f.t); });
   const held={}; activePositions().forEach(p=>{ if(p.ticker)held[p.ticker]=1; });
+  /* Accanto al ticker serve il nome della posizione: un simbolo orfano non
+     dice quale strumento fosse, e senza quello non si puo' sostituirlo senza
+     rischiare di infilare nella ricostruzione la serie di un altro titolo. */
+  const nameOf={};
+  (S.positions||[]).forEach(p=>{ if(p&&p.ticker&&!nameOf[p.ticker])nameOf[p.ticker]=p.name||''; });
   const parts=Object.keys(byKind).map(k=>{
     const list=byKind[k].slice().sort();
-    const names=list.map(t=>esc(t)+(held[t]?'':' <span style="color:var(--muted)">(chiusa)</span>')).join(', ');
-    return '<div style="margin-top:4px"><b>'+list.length+'</b> '+esc(HFAIL_LBL[k]||k)+': '+names+'</div>';
+    const rows=list.map(t=>'<div style="margin-left:14px">'+
+      '<a href="'+yLookupURL(t)+'" target="_blank" rel="noopener">'+esc(t)+'</a>'+
+      (nameOf[t]?' <span style="color:var(--muted)">'+esc(nameOf[t])+'</span>':'')+
+      (held[t]?'':' <span style="color:var(--muted)">(chiusa)</span>')+'</div>').join('');
+    return '<div style="margin-top:6px"><b>'+list.length+'</b> '+esc(HFAIL_LBL[k]||k)+':</div>'+rows;
   });
-  const retry=HISTFAIL.filter(f=>f.kind!=='symbol').map(f=>f.t);
+  /* Si ritenta solo cio' che e' caduto per strada. 'symbol' e 'nodata' sono
+     due risposte di Yahoo, non due silenzi: insistere darebbe lo stesso esito
+     e il bottone prometterebbe un recupero che non puo' avvenire. */
+  const retry=HISTFAIL.filter(f=>f.kind==='transport'||f.kind==='offline').map(f=>f.t);
   el.innerHTML='<span style="color:var(--gold)">Non scaricati ('+HISTFAIL.length+'):</span>'+parts.join('')+
     (retry.length?'<div style="margin-top:6px"><button class="btn btn-ghost btn-sm" id="btnRetryHist">'+
       (retry.length===1?'Riprova l\'unico non raggiungibile':'Riprova i '+retry.length+' non raggiungibili')+
