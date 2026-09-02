@@ -685,6 +685,29 @@ html[data-theme="light"] .badge.o{background:rgba(199,102,20,.12);color:#c76614}
 .plan-row .nm{flex:1;min-width:0;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .plan-row .am{font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
 
+/* --- scenari (stress test) --- */
+.sc-legend{display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:12px;
+  color:var(--muted);margin-bottom:6px}
+.sc-legend i{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:6px;
+  vertical-align:-1px}
+.sc-bar-lbl{fill:var(--muted);font-size:11px;font-weight:600}
+.sc-bar-val{font-size:10.5px;font-weight:750}
+.sc-miss{display:flex;flex-wrap:wrap;gap:6px}
+.sc-sens{display:grid;grid-template-columns:1.6fr 88px 88px 88px 68px;gap:9px;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px}
+.sc-sens.hd{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);
+  font-weight:650;border-bottom:1px solid var(--line);text-align:right}
+.sc-sens.hd .nm{text-align:left}
+.sc-sens:last-child{border-bottom:0}
+.sc-sens .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:650}
+.sc-sens.off .nm{color:var(--muted);font-weight:500}
+.sc-sens input{width:100%;text-align:right;padding:6px 9px;font-size:12.5px}
+.sc-sens .wt{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+@media(max-width:760px){
+  .sc-sens{grid-template-columns:1fr 62px 62px 62px;gap:6px}
+  .sc-sens .wt{display:none}
+}
+
 /* watchlist */
 .wl-price{font-variant-numeric:tabular-nums}
 .wl-empty-cta{display:flex;gap:9px;justify-content:center;margin-top:16px;flex-wrap:wrap}
@@ -1152,6 +1175,30 @@ html[data-theme="light"] .maptbl select{background:#fff}
           </div>
         </div>
       </section>
+      <section class="page wrap" id="pg-scenari">
+        <div class="card">
+          <div class="card-hd"><h2><span class="chip d" id="chipScen"></span> Stress test per scenario</h2>
+            <div class="right"><span class="sub hide-sm" id="scSub"></span>
+              <span class="seg" id="scBench">
+                <button data-b="6040" class="on">60/40 globale</button><button data-b="world">MSCI World</button>
+              </span></div>
+          </div>
+          <div class="card-bd">
+            <div class="sc-legend" id="scLegend"></div>
+            <div id="scChart"></div>
+            <div id="scAlerts"></div>
+            <div class="tbl-scroll mt18" id="scTableWrap"></div>
+            <div class="note mt18" id="scNote"></div>
+          </div>
+        </div>
+
+        <div class="card mt18">
+          <div class="card-hd"><h2><span class="chip g" id="chipScenA"></span> Assunzioni</h2>
+            <div class="right"><button class="btn btn-ghost btn-sm" id="scReset">Ripristina predefiniti</button></div></div>
+          <div class="card-bd" id="scAssump"></div>
+        </div>
+      </section>
+
       <section class="page wrap" id="pg-dividendi">
         <div class="grid g2-wide">
           <div class="card">
@@ -1778,7 +1825,8 @@ const P={
   wallet:'<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18v3"/><rect x="3" y="7.5" width="18" height="12.5" rx="2.5"/><circle cx="16.5" cy="14" r="1.4" fill="currentColor"/>',
   edit:'<path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/>',
   trash:'<path d="M4 7h16M10 7V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/><path d="M10 11v6M14 11v6"/>',
-  inbox:'<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M4.6 5.7 3 13v5.5A2.5 2.5 0 0 0 5.5 21h13a2.5 2.5 0 0 0 2.5-2.5V13l-1.6-7.3A2 2 0 0 0 17.5 4h-11a2 2 0 0 0-1.9 1.7z"/>'
+  inbox:'<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M4.6 5.7 3 13v5.5A2.5 2.5 0 0 0 5.5 21h13a2.5 2.5 0 0 0 2.5-2.5V13l-1.6-7.3A2 2 0 0 0 17.5 4h-11a2 2 0 0 0-1.9 1.7z"/>',
+  bolt:'<path d="M13 2.5 4.5 13.5H11l-.9 8L19.5 10H13z"/>'
 };
 function ic(n,s){s=s||18;return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" '+
   'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+(P[n]||'')+'</svg>';}
@@ -1993,7 +2041,8 @@ function blankState(){
     v:2, positions:[], watchlist:[], goals:[], targets:{}, history:[], countries:[],
     fx:{EUR:1}, lastUpdate:0, updatedAt:0,
     settings:{theme:'dark',privacy:false,collapsed:false,riskFree:2,proxy:'',
-              rebalanceBands:[10,20,30],capGainTax:26}
+              rebalanceBands:[10,20,30],capGainTax:26,
+              scenBench:'6040',scenSens:{}}
   };
 }
 let S=blankState();
@@ -2490,6 +2539,114 @@ Chart.area=function(host,pts,opt){
   svg.addEventListener('touchmove',e=>{move(e);},{passive:true});
 };
 
+/* Barre affiancate con linea dello zero. Serve al confronto fra due serie su
+   poche categorie (portafoglio vs benchmark per scenario), dove i valori sono
+   quasi sempre negativi e la metà sotto lo zero conta quanto quella sopra —
+   cosa che Chart.area, ancorata al tempo, non sa fare. Stesse convenzioni:
+   viewBox ridisegnato al resize, etichette dei valori a destra, tooltip
+   .ct-tip. `groups` è [{label, short, values:[{v,color,name}]}]. */
+Chart.bars=function(host,groups,opt){
+  opt=opt||{};
+  if(!host)return;
+  host.innerHTML='';
+  const H=opt.height||300;
+  if(!groups||!groups.length){
+    host.innerHTML='<div class="empty" style="padding:'+(H/2-30)+'px 20px">'+
+      '<div class="big">'+(opt.emptyTitle||'Dati insufficienti')+'</div>'+
+      '<div class="sm">'+(opt.emptyText||'')+'</div></div>';
+    return;
+  }
+  const W=Math.max(280,host.clientWidth||host.getBoundingClientRect().width||700);
+  const padT=18,padR=opt.padR==null?50:opt.padR;
+  /* Con molte categorie su uno schermo stretto le etichette si accavallano:
+     sotto una certa larghezza per gruppo si inclinano di 38°. Inclinata, una
+     etichetta esce dal riquadro in basso e a sinistra, quindi i due margini
+     vengono dimensionati sulla sua lunghezza stimata (~5,8px per carattere a
+     11px) invece che su un valore fisso: con "Mercato mondo" o con una parola
+     più lunga il grafico resta comunque intero. */
+  const tilt=(W-padR)/groups.length<64;
+  const RAD=38*Math.PI/180;
+  const lw=tilt?groups.reduce((a,g)=>Math.max(a,String(g.short||g.label).length),0)*5.8:0;
+  const padB=tilt?Math.round(28+lw*Math.sin(RAD)):42;
+  const gw0=(W-2-padR)/groups.length;
+  const padL=tilt?Math.max(2,Math.round(lw*Math.cos(RAD)-gw0/2)):2;
+  const iw=W-padL-padR, ih=H-padT-padB;
+  const all=[];
+  groups.forEach(g=>g.values.forEach(v=>all.push(num(v.v))));
+  let mn=Math.min(0,Math.min.apply(null,all)), mx=Math.max(0,Math.max.apply(null,all));
+  if(mx===mn){ mx+=1; mn-=1; }
+  const pad=(mx-mn)*.14; mn-=pad; mx+=pad;
+  const Y=v=>padT+(1-(v-mn)/(mx-mn))*ih;
+  const y0=Y(0);
+  const nG=groups.length, gw=iw/nG, nS=groups[0].values.length;
+  const inner=gw*.70, bw=inner/nS;
+  const gx=i=>padL+gw*i;
+
+  /* griglia orizzontale, stessa densità di Chart.area */
+  let grid='';
+  for(let i=0;i<=3;i++){
+    const v=mn+(mx-mn)*i/3, y=Y(v);
+    grid+='<line class="ct-grid" x1="0" y1="'+y.toFixed(1)+'" x2="'+(padL+iw)+'" y2="'+y.toFixed(1)+'"/>'+
+      '<text class="ct-lbl" x="'+(W-4)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end">'+
+      esc(opt.fmtY?opt.fmtY(v):nf(v,0))+'</text>';
+  }
+  grid+='<line x1="0" y1="'+y0.toFixed(1)+'" x2="'+(padL+iw)+'" y2="'+y0.toFixed(1)+
+    '" stroke="var(--muted)" stroke-width="1.2" opacity=".65"/>';
+
+  /* l'etichetta del valore sopra la barra esiste solo se ci sta davvero:
+     con sette scenari su uno schermo stretto sarebbe una macchia di cifre */
+  const showV=bw>=26;
+  let bars='',labels='',hits='';
+  groups.forEach((g,i)=>{
+    const bx=gx(i)+(gw-inner)/2;
+    g.values.forEach((s,j)=>{
+      const v=num(s.v), x=bx+bw*j+1.5, w=Math.max(1,bw-3);
+      const yv=Y(v), top=Math.min(yv,y0), h=Math.max(1.5,Math.abs(yv-y0));
+      bars+='<rect x="'+x.toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+w.toFixed(1)+
+        '" height="'+h.toFixed(1)+'" rx="'+Math.min(3,w/4).toFixed(1)+'" fill="'+(s.color||'var(--accent)')+'"/>';
+      if(showV){
+        const ly=v>=0?top-5:top+h+11;
+        bars+='<text class="sc-bar-val" x="'+(x+w/2).toFixed(1)+'" y="'+ly.toFixed(1)+
+          '" text-anchor="middle" fill="'+(s.color||'var(--accent)')+'">'+
+          esc(opt.fmtV?opt.fmtV(v):nf(v,1))+'</text>';
+      }
+    });
+    const lx=gx(i)+gw/2, ly=padT+ih+(tilt?14:18);
+    labels+='<text class="sc-bar-lbl" x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" text-anchor="'+
+      (tilt?'end':'middle')+'"'+(tilt?' transform="rotate(-38 '+lx.toFixed(1)+' '+ly.toFixed(1)+')"':'')+
+      '>'+esc(g.short||g.label)+'</text>';
+    hits+='<rect x="'+gx(i).toFixed(1)+'" y="'+padT+'" width="'+gw.toFixed(1)+'" height="'+ih+
+      '" fill="transparent" data-gi="'+i+'"/>';
+  });
+
+  host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'">'+
+    grid+bars+labels+
+    '<rect class="sc-hl" x="0" y="'+padT+'" width="'+gw.toFixed(1)+'" height="'+ih+
+      '" fill="var(--ink)" opacity="0" rx="8" style="pointer-events:none"/>'+
+    hits+'</svg><div class="ct-tip" id="tip"></div>';
+
+  const svg=host.querySelector('svg'), tip=host.querySelector('#tip'), hl=host.querySelector('.sc-hl');
+  function show(i,ev){
+    const g=groups[i];
+    hl.setAttribute('x',gx(i).toFixed(1)); hl.setAttribute('opacity','.05');
+    tip.classList.add('on');
+    tip.innerHTML='<div class="d">'+esc(g.label)+'</div>'+
+      g.values.map(s=>'<div class="v" style="color:'+(s.color||'var(--ink)')+'">'+
+        esc(s.name||'')+' '+(opt.fmtV?opt.fmtV(num(s.v)):nf(num(s.v),1))+'</div>').join('');
+    const r=svg.getBoundingClientRect();
+    const px=(gx(i)+gw/2)/W*r.width;
+    tip.style.left=Math.max(70,Math.min(r.width-70,px))+'px';
+    tip.style.top=(padT+ih*.28)/H*r.height+'px';
+  }
+  function out(){ hl.setAttribute('opacity','0'); tip.classList.remove('on'); }
+  Array.prototype.forEach.call(svg.querySelectorAll('[data-gi]'),r=>{
+    const i=+r.getAttribute('data-gi');
+    r.addEventListener('pointerenter',e=>show(i,e));
+    r.addEventListener('pointermove',e=>show(i,e));
+  });
+  svg.addEventListener('pointerleave',out);
+};
+
 /* ridisegna i grafici quando la finestra cambia larghezza */
 let rzT=null;
 window.addEventListener('resize',()=>{ clearTimeout(rzT); rzT=setTimeout(()=>renderPage(UI.page),160); });
@@ -2529,6 +2686,7 @@ const NAV=[
     {k:'dashboard',l:'Dashboard',i:'grid',tab:1,sub:'Valore, andamento e posizioni'},
     {k:'analisi',l:'Analisi',i:'pie',tab:1,sub:'Esposizione, correlazioni, fattori'},
     {k:'salute',l:'Salute',i:'heart',sub:'Punteggio, segnali e metriche di rischio'},
+    {k:'scenari',l:'Scenari',i:'bolt',sub:'Stress test su scenari macro, a confronto con un benchmark'},
     {k:'dividendi',l:'Dividendi',i:'coins',tab:1,sub:'Rendita, calendario e proiezione'}
   ]},
   {g:'Pianificazione',items:[
@@ -4283,6 +4441,473 @@ function renderHealth(){
   if(!al.length)al.push(['ok','✓','Buon equilibrio: nessuna concentrazione eccessiva rilevata.']);
   if(overall>=80)al.push(['ok','✓','Diversificazione complessiva solida. Continua così.']);
   $('#alerts').innerHTML=al.map(a=>'<div class="alert a-'+a[0]+'"><span class="ai">'+a[1]+'</span><div>'+a[2]+'</div></div>').join('');
+}
+
+
+/* ==========================================================================
+   12q. SCENARI — stress test macro
+   --------------------------------------------------------------------------
+   MODELLO. Uno scenario è un vettore di shock sui fattori macro; ogni
+   CATEGORIA (settore, area, valuta) ha un vettore di beta che dice quanto
+   reagisce a ciascun fattore. Il rendimento stimato di una posizione è il
+   prodotto dei due, quello del portafoglio la media pesata sui pesi correnti.
+   Nessuna sensitività è mai definita per singolo titolo: aggiungi o togli un
+   titolo e il risultato cambia da solo, senza toccare il codice.
+
+       r_i = beta_eq   × mix(shock Eurozona, shock mondo)   gamba azionaria
+           + beta_rate × variazione dei rendimenti a 10 anni gamba tassi
+           + beta_infl × sorpresa d'inflazione                gamba inflazione
+           + beta_fx   × variazione del cambio                gamba valutaria
+
+       r_portafoglio = Σ (peso_i × r_i)
+
+   PERCHÉ DUE TABELLE E NON UNA MATRICE categoria × scenario. Con 19 settori e
+   7 scenari la matrice sarebbe 133 numeri da tarare a mano, e aggiungere uno
+   scenario ne chiederebbe 19 nuovi. Così invece un settore nuovo costa una
+   riga di tre numeri e uno scenario nuovo una riga di sei, senza toccare le
+   categorie. E una matrice piatta non saprebbe distinguere un tech americano
+   da un tech europeo, perché la categoria è la stessa: qui area e valuta
+   entrano come fattori a sé.
+
+   I numeri qui sotto sono ipotesi dichiarate, non misure. Il pannello
+   Assunzioni le spiega in italiano e la tabella dei settori è modificabile:
+   si tara una volta per categoria, mai per titolo.
+   ========================================================================== */
+
+/* --- BETA per settore ----------------------------------------------------
+   eq   : beta rispetto al mercato azionario di riferimento (1 = come l'indice).
+   rate : variazione % del prezzo per +1 punto percentuale di rendimento a 10
+          anni, RELATIVA al mercato. La caduta generale sta già nella gamba
+          azionaria: qui c'è solo la dispersione fra settori, altrimenti lo
+          stesso shock verrebbe contato due volte.
+   infl : variazione % per +1 pp di inflazione a sorpresa, anch'essa relativa.
+   Ipotesi: beta azionari dalle medie storiche di lungo periodo dei settori
+   GICS contro MSCI World; segni e ordini di grandezza di rate/infl dal
+   comportamento settoriale nei due episodi di rialzo dei rendimenti (2013
+   taper tantrum, 2022) e nella ripresa d'inflazione 2021-22. Le duration
+   obbligazionarie sono quelle tipiche degli indici: ~6,5 anni per un
+   governativo aggregato, ~4,5 per un corporate investment grade. */
+const SC_SECTOR={
+  'Technology':             {eq:1.15, rate:-3.0, infl:-0.8},
+  'Financials':             {eq:1.10, rate:+2.0, infl:+0.3},
+  'Healthcare':             {eq:0.80, rate:-1.0, infl:-0.3},
+  'Energy':                 {eq:0.95, rate:+0.5, infl:+2.5},
+  'Consumer Discretionary': {eq:1.20, rate:-1.5, infl:-1.2},
+  'Consumer Staples':       {eq:0.65, rate:-0.8, infl:-0.5},
+  'Industrials':            {eq:1.05, rate:+0.2, infl:+0.2},
+  'Materials':              {eq:1.05, rate:+0.3, infl:+1.8},
+  'Utilities':              {eq:0.60, rate:-2.5, infl:+0.5},
+  'Real Estate':            {eq:0.95, rate:-4.0, infl:+0.8},
+  'Communication Services': {eq:1.05, rate:-1.5, infl:-0.4},
+  'Multi-sector':           {eq:1.00, rate: 0.0, infl: 0.0},
+  'Government Bonds':       {eq:0.05, rate:-6.5, infl:-1.5},
+  'Corporate Bonds':        {eq:0.25, rate:-4.5, infl:-1.2},
+  'Crypto-asset':           {eq:1.80, rate:-4.0, infl:+0.5},
+  'Commodity':              {eq:0.35, rate:-0.5, infl:+3.0},
+  'Managed Futures':        {eq:0.00, rate:+0.5, infl:+1.0},
+  'Cash':                   {eq:0.00, rate:+0.1, infl:-1.0},
+  'Emergency fund':         {eq:0.00, rate:-1.5, infl:-1.0}
+};
+
+/* Ripiego quando il settore manca o non è ancora tarato. La categoria c'è
+   sempre, quindi il calcolo non si ferma mai — ma la posizione viene marcata
+   "stimata" e finisce nell'avviso sopra il grafico, mai in silenzio. */
+const SC_CLS={
+  'Stocks':      {eq:1.00, rate:-1.0, infl: 0.0},
+  'ETF':         {eq:1.00, rate:-1.0, infl: 0.0},
+  'Bonds':       {eq:0.15, rate:-5.5, infl:-1.4},
+  'Crypto':      {eq:1.80, rate:-4.0, infl:+0.5},
+  'Cash':        {eq:0.00, rate:+0.1, infl:-1.0},
+  'Commodities': {eq:0.35, rate:-0.5, infl:+3.0},
+  'Other':       {eq:0.80, rate:-1.0, infl: 0.0}
+};
+
+/* --- AREE GEOGRAFICHE ----------------------------------------------------
+   eu/w    : come si ripartisce il beta azionario fra lo shock del mercato
+             Eurozona e quello mondiale. Non sommano a 1: è una media pesata,
+             normalizzata al momento del calcolo.
+   cUS/cEU : quale curva dei rendimenti pesa sulla gamba tassi. Un titolo
+             americano risponde alla curva USA, uno italiano soprattutto a
+             quella dell'area euro ma non solo, perché la parte lunga si
+             muove insieme. */
+const SC_REGION={
+  'Eurozone':         {eu:1.00, w:0.35, cUS:0.30, cEU:0.70},
+  'Europe ex-EZ':     {eu:0.70, w:0.55, cUS:0.40, cEU:0.60},
+  'North America':    {eu:0.10, w:1.00, cUS:1.00, cEU:0.00},
+  'Japan':            {eu:0.15, w:0.80, cUS:0.50, cEU:0.30},
+  'Emerging Markets': {eu:0.20, w:0.95, cUS:0.80, cEU:0.20},
+  'World':            {eu:0.35, w:0.85, cUS:0.65, cEU:0.35}
+};
+/* rollup paese → area. I paesi non elencati ricadono su World e la posizione
+   viene segnalata come stimata: aggiungere un paese qui costa una riga. */
+const SC_CTR2REG={
+  'Italy':'Eurozone','France':'Eurozone','Germany':'Eurozone','Netherlands':'Eurozone',
+  'Spain':'Eurozone','Ireland':'Eurozone','Belgium':'Eurozone','Austria':'Eurozone',
+  'Finland':'Eurozone','Eurozone':'Eurozone',
+  'UK':'Europe ex-EZ','Switzerland':'Europe ex-EZ','Sweden':'Europe ex-EZ',
+  'Denmark':'Europe ex-EZ','Norway':'Europe ex-EZ','Europe':'Europe ex-EZ',
+  'USA':'North America','Canada':'North America','North America':'North America',
+  'Japan':'Japan',
+  'China':'Emerging Markets','India':'Emerging Markets','Brazil':'Emerging Markets',
+  'Taiwan':'Emerging Markets','South Korea':'Emerging Markets',
+  'Emerging Markets':'Emerging Markets',
+  'World':'World','Asia-Pacific':'World','Australia':'World'
+};
+
+/* --- VALUTE --------------------------------------------------------------
+   La gamba valutaria è un effetto di TRADUZIONE, non una stima: enrich()
+   calcola p._value = qty × prezzo × cambio, quindi se il dollaro sale del 3%
+   una riga quotata in USD vale davvero il 3% in più in euro. Il numero qui
+   sotto è quanto quella valuta si muove contro l'euro quando il dollaro si
+   muove dell'1%: 1 per il dollaro, 0 per la corona danese agganciata all'euro,
+   negativo per le valute procicliche che si indeboliscono quando il dollaro
+   si rafforza. La reazione del prezzo sottostante non sta qui: è già nelle
+   altre tre gambe. Attenzione: è la valuta di QUOTAZIONE, non il paese del
+   business — un'azione svizzera quotata in dollari conta come dollaro, ed è
+   giusto così, perché è il valore in euro del portafoglio che stiamo
+   stressando. */
+const SC_FX={EUR:0,USD:1.00,DKK:0.00,CHF:0.15,GBP:0.35,SEK:-0.20,NOK:-0.15,
+  JPY:0.30,CAD:0.20,AUD:-0.10,CNY:0.55,HKD:1.00,PLN:-0.25};
+
+/* --- SCENARI -------------------------------------------------------------
+   Ogni riga è un vettore di shock. eqEU/eqW sono il movimento del mercato
+   azionario (%), rEU/rUS la variazione dei rendimenti a 10 anni (punti
+   percentuali), infl la sorpresa d'inflazione (pp), usd il movimento del
+   dollaro contro l'euro (%). Aggiungere uno scenario costa questa riga sola:
+   nessuna categoria va ritarata. */
+const SC_SCEN=[
+  {k:'inflEU', l:'Inflazione Eurozona in aumento', s:'Infl. EZ',
+   d:'L\'inflazione dell\'area euro sorprende al rialzo di un punto percentuale. '+
+     'La BCE è attesa più restrittiva, i rendimenti salgono soprattutto in Europa, '+
+     'le borse arretrano ma non crollano e l\'euro si rafforza un poco perché il '+
+     'mercato prezza tassi più alti.',
+   sh:{eqEU:-4, eqW:-1.5, rEU:+0.50, rUS:+0.20, infl:+1.0, usd:-1}},
+
+  {k:'ratesUS', l:'Tassi USA in aumento', s:'Tassi USA',
+   d:'Il rendimento del decennale americano sale di un punto percentuale. È lo '+
+     'scenario 2022 in miniatura: soffrono le azioni a lunga duration (tecnologia, '+
+     'crescita), guadagnano le banche, il dollaro si rafforza e per un portafoglio '+
+     'in euro quel rafforzamento compensa in parte la caduta dei prezzi.',
+   sh:{eqEU:-3, eqW:-6, rEU:+0.30, rUS:+1.00, infl:0, usd:+3}},
+
+  {k:'ratesEU', l:'Tassi Eurozona in aumento', s:'Tassi EZ',
+   d:'Il rendimento del Bund sale di un punto percentuale mentre gli Stati Uniti '+
+     'restano quasi fermi. Colpisce soprattutto l\'azionario europeo e i governativi '+
+     'in euro; il differenziale di tasso a favore dell\'area euro indebolisce il '+
+     'dollaro, quindi le posizioni in USD perdono anche sul cambio.',
+   sh:{eqEU:-6, eqW:-2, rEU:+1.00, rUS:+0.20, infl:0, usd:-3}},
+
+  {k:'crashEU', l:'Mercato Eurozona in ribasso', s:'Mercato EZ',
+   d:'Correzione del 15% circa sulle borse dell\'area euro, con contagio limitato '+
+     'al resto del mondo. Nella fuga verso la qualità i rendimenti scendono, quindi '+
+     'i governativi guadagnano, e il dollaro si rafforza leggermente come bene '+
+     'rifugio.',
+   sh:{eqEU:-15, eqW:-5, rEU:-0.30, rUS:-0.10, infl:0, usd:+1}},
+
+  {k:'crashW', l:'Mercato mondiale in ribasso', s:'Mercato mondo',
+   d:'Mercato orso globale: −20% sull\'azionario mondiale, −12% in Europa. È lo '+
+     'scenario in cui la diversificazione conta davvero. I rendimenti crollano, le '+
+     'obbligazioni fanno il loro mestiere e il dollaro si rafforza perché è la '+
+     'valuta rifugio.',
+   sh:{eqEU:-12, eqW:-20, rEU:-0.40, rUS:-0.50, infl:0, usd:+2}},
+
+  {k:'usdUp', l:'Dollaro forte vs euro (+10%)', s:'USD forte',
+   d:'Il dollaro guadagna il 10% sull\'euro. Per un portafoglio in euro è quasi '+
+     'tutto guadagno da traduzione sulle posizioni quotate in USD; in cambio gli '+
+     'esportatori americani soffrono un poco, l\'inflazione importata in Europa sale '+
+     'e i rendimenti USA salgono leggermente.',
+   sh:{eqEU:-1, eqW:+1, rEU:0, rUS:+0.30, infl:+0.3, usd:+10}},
+
+  {k:'usdDown', l:'Dollaro debole vs euro (−10%)', s:'USD debole',
+   d:'Lo specchio del precedente: il dollaro perde il 10% sull\'euro. Le posizioni '+
+     'in USD valgono meno in euro anche se il prezzo locale non si muove. È il '+
+     'rischio meno visibile di un portafoglio molto esposto agli Stati Uniti e non '+
+     'coperto.',
+   sh:{eqEU:+1, eqW:-1, rEU:0, rUS:-0.30, infl:-0.3, usd:-10}}
+];
+
+/* --- BENCHMARK -----------------------------------------------------------
+   Pseudo-portafoglio passato nello stesso motore delle posizioni vere: se
+   cambi una beta cambiano insieme portafoglio e benchmark, e il confronto
+   resta onesto. Il beta valutario del MSCI World è il suo contenuto in
+   dollari (~70%); gli indici obbligazionari globali si prendono di norma
+   coperti in euro, quindi zero. */
+const SC_BENCH={
+  '6040':{l:'60/40 globale', sub:'60% MSCI World · 28% governativo globale · 12% corporate',
+    rows:[{w:60, sec:'Multi-sector', reg:'World', fx:0.70},
+          {w:28, sec:'Government Bonds', reg:'World', fx:0},
+          {w:12, sec:'Corporate Bonds', reg:'World', fx:0}]},
+  'world':{l:'MSCI World', sub:'100% azionario mondiale, non coperto',
+    rows:[{w:100, sec:'Multi-sector', reg:'World', fx:0.70}]}
+};
+const scBenchKey=()=>SC_BENCH[S.settings.scenBench]?S.settings.scenBench:'6040';
+
+/* Tabella effettiva: predefiniti più le tarature dell'utente. Le chiavi
+   passano da normSector, così "Tecnologia" salvata a mano finisce sulla riga
+   Technology e non ne crea una gemella. */
+function scTable(){
+  const t={};
+  Object.keys(SC_SECTOR).forEach(k=>{ t[k]={eq:SC_SECTOR[k].eq,rate:SC_SECTOR[k].rate,infl:SC_SECTOR[k].infl}; });
+  const ov=S.settings.scenSens||{};
+  Object.keys(ov).forEach(k=>{
+    const o=ov[k]; if(!o)return;
+    t[normSector(k)]={eq:num(o.eq),rate:num(o.rate),infl:num(o.infl)};
+  });
+  return t;
+}
+
+/* Beta di una posizione. Settore e area sono medie pesate sulle quote di
+   expoParts, la stessa funzione della treemap dell'Esposizione: un ETF con la
+   composizione dichiarata viene scomposto qui esattamente come là, così le due
+   pagine non raccontano due portafogli diversi. */
+function scResolve(p,TAB){
+  let eq=0,rate=0,infl=0,sv=0; const missSec={};
+  expoParts(p,'sector').forEach(c=>{
+    const b=TAB[c.name];
+    if(b){ eq+=b.eq*c.v; rate+=b.rate*c.v; infl+=b.infl*c.v; }
+    else{
+      const f=SC_CLS[p.cls]||SC_CLS.Other;
+      eq+=f.eq*c.v; rate+=f.rate*c.v; infl+=f.infl*c.v;
+      missSec[c.name==='—'?'':c.name]=1;
+    }
+    sv+=c.v;
+  });
+  if(sv>0){ eq/=sv; rate/=sv; infl/=sv; }
+  let eu=0,w=0,cUS=0,cEU=0,cv=0; const missReg={};
+  expoParts(p,'country').forEach(c=>{
+    const rg=SC_REGION[SC_CTR2REG[c.name]||c.name];
+    const r=rg||SC_REGION.World;
+    if(!rg)missReg[c.name==='—'?'':c.name]=1;
+    eu+=r.eu*c.v; w+=r.w*c.v; cUS+=r.cUS*c.v; cEU+=r.cEU*c.v; cv+=c.v;
+  });
+  if(cv>0){ eu/=cv; w/=cv; cUS/=cv; cEU/=cv; }
+  const cur=p.currency||BASE;
+  return {eq:eq,rate:rate,infl:infl,eu:eu,w:w,cUS:cUS,cEU:cEU,
+    fx:SC_FX[cur]!=null?SC_FX[cur]:0, fxKnown:SC_FX[cur]!=null,
+    missSec:Object.keys(missSec), missReg:Object.keys(missReg)};
+}
+
+/* Le quattro gambe, tenute separate perché il pannello Assunzioni e il
+   tooltip possano mostrare da dove arriva il numero invece di un totale. */
+function scReturn(b,sh){
+  const den=(b.eu+b.w)||1;
+  const eq  = b.eq*(b.eu*sh.eqEU + b.w*sh.eqW)/den;
+  const rate= b.rate*(b.cUS*sh.rUS + b.cEU*sh.rEU);
+  const inf = b.infl*sh.infl;
+  const fx  = b.fx*sh.usd;
+  return {eq:eq, rate:rate, infl:inf, fx:fx, tot:eq+rate+inf+fx};
+}
+function scBenchReturn(sh,TAB){
+  const b=SC_BENCH[scBenchKey()];
+  return b.rows.reduce((a,r)=>{
+    const s=TAB[r.sec]||SC_CLS.Other, rg=SC_REGION[r.reg];
+    return a + r.w/100*scReturn({eq:s.eq,rate:s.rate,infl:s.infl,
+      eu:rg.eu,w:rg.w,cUS:rg.cUS,cEU:rg.cEU,fx:r.fx},sh).tot;
+  },0);
+}
+
+/* Modello completo: pesi, avvisi e una riga per scenario. Un solo passaggio
+   sulle posizioni, riusato da grafico, tabella e pannello assunzioni. */
+function scModel(){
+  const TAB=scTable(), rows=activePositions();
+  const m={ok:false, TAB:TAB, wSum:0, fb:[], fbW:0, scen:[], n:rows.length};
+  if(!rows.length||T.value<=0)return m;
+  const bet=[];
+  rows.forEach(p=>{
+    const b=scResolve(p,TAB);
+    m.wSum+=p._w;
+    const why=[];
+    if(b.missSec.length)why.push(b.missSec[0]?'settore «'+b.missSec[0]+'» non tarato':'settore mancante');
+    if(b.missReg.length)why.push(b.missReg[0]?'paese «'+b.missReg[0]+'» non mappato':'paese mancante');
+    if(!b.fxKnown)why.push('valuta '+(p.currency||'?')+' non tarata');
+    if(why.length){ m.fb.push({id:p.id,ticker:p.ticker||p.name||'—',why:why.join(' · ')}); m.fbW+=p._w; }
+    bet.push({p:p,b:b});
+  });
+  /* i pesi vengono da enrich() e sommano a 100 per costruzione: se non lo
+     fanno c'è un dato rotto a monte e va detto, non normalizzato di nascosto */
+  const norm=m.wSum>0?m.wSum:100;
+  SC_SCEN.forEach(sc=>{
+    let tot=0,eq=0,rate=0,infl=0,fx=0;
+    bet.forEach(x=>{
+      const r=scReturn(x.b,sc.sh), k=x.p._w/norm;
+      tot+=k*r.tot; eq+=k*r.eq; rate+=k*r.rate; infl+=k*r.infl; fx+=k*r.fx;
+    });
+    const bm=scBenchReturn(sc.sh,TAB);
+    m.scen.push({sc:sc, pf:tot, bm:bm, delta:tot-bm,
+      legs:{eq:eq,rate:rate,infl:infl,fx:fx}, eur:T.value*tot/100});
+  });
+  m.ok=true;
+  return m;
+}
+
+/* --- rendering ---------------------------------------------------------- */
+const SC_C_PF='#6c7cff', SC_C_BM='#8b93ad';
+
+function renderScenarios(){
+  const host=$('#scChart'); if(!host)return;
+  const m=scModel();
+  $$('#scBench button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-b')===scBenchKey()));
+  if(!m.ok){
+    $('#scLegend').innerHTML='';
+    host.innerHTML='<div class="empty"><div class="ic">'+ic('bolt',22)+'</div>'+
+      '<div class="big">Nessuna posizione da stressare</div>'+
+      '<div class="sm">Aggiungi almeno una posizione: lo stress test legge i pesi correnti del portafoglio, '+
+      'quindi si aggiorna da solo ogni volta che compri o vendi.</div></div>';
+    $('#scAlerts').innerHTML=''; $('#scTableWrap').innerHTML=''; $('#scSub').textContent='';
+    renderScenAssump(m);
+    return;
+  }
+  const bk=SC_BENCH[scBenchKey()];
+  $('#scSub').textContent=m.n+' posizioni · '+money0(T.value);
+  $('#scLegend').innerHTML=
+    '<span><i style="background:'+SC_C_PF+'"></i>Il tuo portafoglio</span>'+
+    '<span><i style="background:'+SC_C_BM+'"></i>'+esc(bk.l)+'</span>'+
+    '<span style="opacity:.75">'+esc(bk.sub)+'</span>';
+
+  Chart.bars(host,m.scen.map(r=>({
+    label:r.sc.l, short:r.sc.s,
+    values:[{v:r.pf,color:SC_C_PF,name:'Portafoglio'},{v:r.bm,color:SC_C_BM,name:esc(bk.l)}]
+    /* pctv anche sulle barre: stesso segno e stesso meno tipografico della
+       tabella qui sotto, che legge gli stessi numeri. Sull'asse invece lo zero
+       va scritto zero: arrotondato a una cifra un -0,004 diventerebbe "-0%". */
+  })),{height:320, fmtV:v=>pctv(v,1),
+       fmtY:v=>(Math.abs(v)<.5?'0':nf(v,0))+'%'});
+
+  $('#scAlerts').innerHTML=scAlerts(m);
+  $$('#scAlerts [data-scfix]').forEach(b=>b.addEventListener('click',()=>openDrawer(b.getAttribute('data-scfix'))));
+
+  $('#scTableWrap').innerHTML='<table><thead><tr><th>Scenario</th>'+
+    '<th>Portafoglio</th><th class="hide-xs">In euro</th><th>'+esc(bk.l)+'</th><th>Differenza</th></tr></thead><tbody>'+
+    m.scen.map(r=>{
+      const d=r.delta>=0;
+      return '<tr title="'+esc(r.sc.l)+'"><td><b>'+esc(r.sc.l)+'</b></td>'+
+        '<td class="'+(r.pf>=0?'up':'down')+'" style="font-weight:700">'+pctv(r.pf,2)+'</td>'+
+        '<td class="hide-xs mask">'+sgn(r.eur)+money0(Math.abs(r.eur))+'</td>'+
+        '<td>'+pctv(r.bm,2)+'</td>'+
+        '<td><span class="badge '+(d?'u':'d')+'">'+pctv(r.delta,2)+'</span></td></tr>';
+    }).join('')+'</tbody></table>';
+
+  $('#scNote').innerHTML='Ogni barra è il rendimento stimato del portafoglio <b>se quello scenario si realizzasse domani</b>, '+
+    'a parità di posizioni: non è una previsione e non ha una probabilità associata. Il calcolo è '+
+    '<b>Σ (peso della posizione × sensitività della sua categoria)</b> sui pesi correnti, quindi si aggiorna da solo '+
+    'quando compri o vendi. La colonna <b>Differenza</b> dice quanto fai meglio o peggio del benchmark: è lì che si '+
+    'legge se il portafoglio è più fragile o più difensivo di un paniere standard. Il dettaglio delle ipotesi è nel '+
+    'pannello <b>Assunzioni</b> qui sotto.';
+  renderScenAssump(m);
+}
+
+function scAlerts(m){
+  let h='';
+  if(Math.abs(m.wSum-100)>0.1){
+    h+='<div class="warnbox on">⚠ I pesi delle posizioni sommano a '+nf(m.wSum,2)+'%, non a 100%: '+
+       'il risultato è ripesato per non essere sbagliato, ma c\'è un dato da controllare in Posizioni.</div>';
+  }
+  if(m.fb.length){
+    h+='<div class="warnbox on" style="flex-direction:column;align-items:flex-start;gap:8px">'+
+      '<div>⚠ '+m.fb.length+(m.fb.length===1?' posizione usa una sensitività di ripiego':' posizioni usano una sensitività di ripiego')+
+      ' ('+nf(m.fbW,1)+'% del capitale). Sono conteggiate nel risultato, ma con la beta generica della loro '+
+      'categoria invece di quella del settore: il numero è meno preciso.</div>'+
+      '<div class="sc-miss">'+m.fb.map(f=>'<button class="badge w" data-scfix="'+esc(f.id)+'" style="cursor:pointer;border:0">'+
+        esc(f.ticker)+' · '+esc(f.why)+'</button>').join('')+'</div>'+
+      '<div style="font-weight:500;opacity:.85">Clicca un titolo per aprire la sua scheda e compilare settore e paese, '+
+      'oppure tara quel settore nella tabella qui sotto: la taratura vale per ogni titolo di quella categoria, ora e in futuro.</div></div>';
+  }
+  return h;
+}
+
+/* Pannello Assunzioni: nessuna scatola nera. Gli shock degli scenari sono in
+   sola lettura (sono la definizione dello scenario); le beta di settore sono
+   modificabili, perché è lì che si tara un settore nuovo — una volta sola. */
+function renderScenAssump(m){
+  const host=$('#scAssump'); if(!host)return;
+  const TAB=m.TAB||scTable();
+  const ov=S.settings.scenSens||{};
+  const expo=activeCount()?computeExposure(activePositions()).sector:{};
+  const wOf=k=>T.value>0&&expo[k]?expo[k]/T.value*100:0;
+  const names={};
+  Object.keys(TAB).forEach(k=>names[k]=1);
+  Object.keys(expo).forEach(k=>{ if(k!=='—')names[k]=1; });
+  const list=Object.keys(names).sort((a,b)=>(wOf(b)-wOf(a))||a.localeCompare(b));
+
+  let h='<div class="note" style="margin:0">Le sensitività non sono misurate sui tuoi titoli: sono <b>ipotesi dichiarate</b> '+
+    'su come si comporta una <i>categoria</i>. Il portafoglio entra solo con i pesi. Questo vuol dire due cose: il risultato '+
+    'non è una previsione, e nessun numero qui dipende da un titolo in particolare.</div>';
+
+  h+='<h3 style="font-size:13px;font-weight:700;margin:22px 0 4px">Come si legge la formula</h3>'+
+    '<div class="note" style="margin:0">Per ogni posizione il rendimento stimato è la somma di quattro gambe:<br>'+
+    '<b>1. Azionaria</b> — quanto si muove il mercato di riferimento, moltiplicato per la beta del settore. '+
+    'L\'area geografica decide quanto pesa lo shock europeo e quanto quello mondiale.<br>'+
+    '<b>2. Tassi</b> — quanto reagisce quel settore a +1 punto di rendimento a 10 anni, <b>al netto</b> del movimento '+
+    'generale della borsa già contato sopra. Positivo per le banche, molto negativo per le obbligazioni lunghe e '+
+    'per la tecnologia.<br>'+
+    '<b>3. Inflazione</b> — reazione a +1 punto di inflazione a sorpresa, anch\'essa relativa al mercato. '+
+    'Positiva per energia e materie prime, negativa per i consumi discrezionali.<br>'+
+    '<b>4. Valuta</b> — puro effetto di traduzione: se il dollaro sale del 3%, una posizione quotata in dollari vale '+
+    'il 3% in più in euro. Questa gamba non è stimata, è aritmetica.<br>'+
+    'Il rendimento del portafoglio è la media di queste quattro gambe <b>pesata sui valori correnti</b>, e il benchmark '+
+    'passa esattamente dalla stessa formula.</div>';
+
+  h+='<h3 style="font-size:13px;font-weight:700;margin:22px 0 4px">Gli scenari</h3>'+
+    '<div class="tbl-scroll"><table><thead><tr><th>Scenario</th><th>Azioni EZ</th><th>Azioni mondo</th>'+
+    '<th>Tassi EZ</th><th>Tassi USA</th><th>Inflaz.</th><th>USD/EUR</th></tr></thead><tbody>'+
+    SC_SCEN.map(s=>'<tr><td><b>'+esc(s.l)+'</b><div class="cellsub" style="white-space:normal;max-width:520px;'+
+      'font-weight:500;margin-top:3px">'+esc(s.d)+'</div></td>'+
+      /* una cifra decimale anche dove non servirebbe: questa tabella deve
+         mostrare il numero che il motore usa davvero, e con zero decimali
+         un -1,5% comparirebbe come -2% */
+      '<td>'+pctv(s.sh.eqEU,1)+'</td><td>'+pctv(s.sh.eqW,1)+'</td>'+
+      '<td>'+pctv(s.sh.rEU,2).replace('%','pp')+'</td><td>'+pctv(s.sh.rUS,2).replace('%','pp')+'</td>'+
+      '<td>'+pctv(s.sh.infl,1).replace('%','pp')+'</td><td>'+pctv(s.sh.usd,1)+'</td></tr>').join('')+
+    '</tbody></table></div>';
+
+  h+='<h3 style="font-size:13px;font-weight:700;margin:22px 0 4px">Sensitività per settore</h3>'+
+    '<div class="note" style="margin:0 0 12px">Questa è la tabella da modificare quando compri qualcosa in un settore '+
+    'mai visto prima: <b>si tara una volta per categoria</b>, mai per titolo. I settori che compaiono nel tuo '+
+    'portafoglio sono in cima, con il loro peso. Un valore modificato resta salvato e viaggia col resto dei dati.</div>'+
+    '<div class="sc-sens hd"><div class="nm">Settore</div><div>β mercato</div><div>β tassi</div>'+
+    '<div>β inflaz.</div><div class="wt">Peso</div></div>';
+  list.forEach(k=>{
+    const b=TAB[k], w=wOf(k), known=!!b, edited=!!ov[k];
+    const base=SC_SECTOR[k];
+    const cell=(f,v)=>'<input class="inp num" type="text" inputmode="decimal" data-scs="'+esc(k)+'" data-scf="'+f+'" '+
+      'value="'+(v==null?'':fnum(v))+'" aria-label="'+esc(k)+' '+f+'">';
+    h+='<div class="sc-sens'+(w>0?'':' off')+'">'+
+      '<div class="nm" title="'+esc(k)+'">'+esc(k)+
+        (edited?' <span class="badge a" style="font-size:10px;padding:1px 6px">tarato</span>':'')+
+        (!known?' <span class="badge w" style="font-size:10px;padding:1px 6px">da tarare</span>':'')+
+        (base&&!edited?'':'')+'</div>'+
+      cell('eq',known?b.eq:null)+cell('rate',known?b.rate:null)+cell('infl',known?b.infl:null)+
+      '<div class="wt">'+(w>0?nf(w,1)+'%':'—')+'</div></div>';
+  });
+
+  h+='<h3 style="font-size:13px;font-weight:700;margin:22px 0 4px">Aree geografiche e valute</h3>'+
+    '<div class="note" style="margin:0">L\'area decide due cose: quanto della caduta europea e quanto di quella '+
+    'mondiale arriva su quel titolo, e quale curva dei tassi conta. Un titolo americano risponde alla curva USA, '+
+    'uno italiano soprattutto a quella dell\'area euro. I paesi non ancora mappati ricadono su <b>World</b> e il '+
+    'titolo viene segnalato sopra il grafico.<br><br>'+
+    'La valuta agisce solo per traduzione, sul cambio di quotazione: '+
+    Object.keys(SC_FX).filter(c=>SC_FX[c]!==0).map(c=>'<b>'+esc(c)+'</b> '+nf(SC_FX[c],2)).join(' · ')+
+    ' (quanto quella valuta si muove contro l\'euro per ogni +1% del dollaro; la corona danese è a zero perché è '+
+    'agganciata all\'euro).</div>';
+
+  h+='<div class="note warn mt18" style="margin-bottom:0">Limiti da tenere a mente: le beta sono medie storiche e '+
+    'nelle crisi le correlazioni salgono, quindi lo scenario di ribasso mondiale è probabilmente <b>ottimista</b>. '+
+    'Il modello è lineare, quindi non descrive bene shock molto più grandi di quelli tarati. Gli ETF senza '+
+    'composizione dichiarata contano come una riga sola: compilala nella scheda del titolo e verrà usata anche qui.</div>';
+
+  host.innerHTML=h;
+  $$('#scAssump [data-scs]').forEach(inp=>inp.addEventListener('change',()=>{
+    /* un settore mai tarato parte dalla beta generica con cui è stato
+       calcolato finora, non da zero: modificarne uno solo dei tre campi
+       non deve azzerare gli altri due alle spalle dell'utente */
+    const k=inp.getAttribute('data-scs'), TB=scTable(), cur=TB[k]||SC_CLS.Other;
+    if(!S.settings.scenSens)S.settings.scenSens={};
+    const o=Object.assign({eq:cur.eq,rate:cur.rate,infl:cur.infl},S.settings.scenSens[k]||{});
+    o[inp.getAttribute('data-scf')]=num(inp.value);
+    S.settings.scenSens[k]=o;
+    save(); renderScenarios();
+    toast('Sensitività di «'+k+'» aggiornata','ok');
+  }));
 }
 
 /* ==========================================================================
@@ -6186,6 +6811,7 @@ function renderPage(k){
   }
   else if(k==='analisi'){ renderExposure(); renderCorrelation(); renderRiskDist(); renderFactorDist(); renderEtfList(); }
   else if(k==='salute'){ renderHealth(); renderQuant(); }
+  else if(k==='scenari'){ renderScenarios(); }
   else if(k==='ribilanciamento'){ renderRebalance(); }
   else if(k==='watchlist'){ renderWatchlist(); }
   else if(k==='dividendi'){ renderDividends(); }
@@ -6321,6 +6947,16 @@ function wire(){
     UI.expo.leaf=null;
     renderExposure();
   }));
+
+  /* --- scenari --- */
+  $$('#scBench button').forEach(b=>b.addEventListener('click',()=>{
+    S.settings.scenBench=b.getAttribute('data-b'); save(); renderScenarios();
+  }));
+  $('#scReset').addEventListener('click',()=>{
+    if(!Object.keys(S.settings.scenSens||{}).length){ toast('Nessuna taratura da ripristinare'); return; }
+    if(!confirm('Ripristino le sensitività predefinite? Le tarature che hai inserito vengono perse.'))return;
+    S.settings.scenSens={}; save(); renderScenarios(); toast('Sensitività ripristinate','ok');
+  });
 
   /* --- ribilanciamento --- */
   $$('#rbMode button').forEach(b=>b.addEventListener('click',()=>{
@@ -6495,6 +7131,8 @@ $('#chipEtf').innerHTML=ic('db',17);
 $('#chipHealth').innerHTML=ic('heart',17);
 $('#chipAlerts').innerHTML=ic('inbox',17);
 $('#chipQuant').innerHTML=ic('trend',17);
+$('#chipScen').innerHTML=ic('bolt',17);
+$('#chipScenA').innerHTML=ic('settings',17);
 $('#chipRb').innerHTML=ic('balance',17);
 $('#chipRbP').innerHTML=ic('settings',17);
 $('#chipRbPlan').innerHTML=ic('inbox',17);
