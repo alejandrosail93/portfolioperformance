@@ -686,12 +686,26 @@ html[data-theme="light"] .badge.o{background:rgba(199,102,20,.12);color:#c76614}
 .plan-row .am{font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
 
 /* --- scenari (stress test) --- */
-.sc-legend{display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:12px;
-  color:var(--muted);margin-bottom:6px}
-.sc-legend i{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:6px;
-  vertical-align:-1px}
-.sc-bar-lbl{fill:var(--muted);font-size:11px;font-weight:600}
-.sc-bar-val{font-size:10.5px;font-weight:750}
+.sc-pick{display:block;position:relative;width:100%;max-width:520px;margin-bottom:16px}
+.sc-pick select{width:100%;padding:12px 40px 12px 16px;border-radius:12px;border:1px solid var(--line);
+  background:var(--surface-2);color:var(--accent-ink);font-size:14px;font-weight:650;
+  outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;
+  text-overflow:ellipsis;transition:border-color .15s}
+html[data-theme="light"] .sc-pick select{background:#fff}
+.sc-pick select:focus{border-color:var(--accent)}
+.sc-pick .chv{position:absolute;right:14px;top:50%;transform:translateY(-50%) rotate(90deg);
+  color:var(--accent-ink);pointer-events:none;display:flex;opacity:.8}
+.sc-bg-v{fill:#fff;font-size:13px;font-weight:750}
+.sc-bg-n{fill:#fff;font-size:10.5px;font-weight:600;opacity:.82}
+.sc-legend{font-size:12px;color:var(--muted);margin-top:4px}
+.sc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+.sc-stats>div{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:var(--r-sm);
+  padding:12px 14px;min-width:0}
+.sc-stats .l{font-size:11px;font-weight:650;letter-spacing:.3px;color:var(--muted);text-transform:uppercase}
+.sc-stats .v{font-size:18px;font-weight:750;letter-spacing:-.4px;margin-top:5px;overflow-wrap:break-word}
+tbody tr.sc-row{cursor:pointer}
+tbody tr.sc-row.on{background:var(--accent-soft)}
+tbody tr.sc-row.on td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 .sc-miss{display:flex;flex-wrap:wrap;gap:6px}
 .sc-sens{display:grid;grid-template-columns:1.6fr 88px 88px 88px 68px;gap:9px;align-items:center;
   padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px}
@@ -704,10 +718,11 @@ html[data-theme="light"] .badge.o{background:rgba(199,102,20,.12);color:#c76614}
 .sc-sens input{width:100%;text-align:right;padding:6px 9px;font-size:12.5px}
 .sc-sens .wt{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
 @media(max-width:760px){
+  .sc-stats{grid-template-columns:1fr 1fr}
+  .sc-stats>div:last-child{grid-column:1/-1}
   .sc-sens{grid-template-columns:1fr 62px 62px 62px;gap:6px}
   .sc-sens .wt{display:none}
 }
-
 /* watchlist */
 .wl-price{font-variant-numeric:tabular-nums}
 .wl-empty-cta{display:flex;gap:9px;justify-content:center;margin-top:16px;flex-wrap:wrap}
@@ -1184,8 +1199,12 @@ html[data-theme="light"] .maptbl select{background:#fff}
               </span></div>
           </div>
           <div class="card-bd">
-            <div class="sc-legend" id="scLegend"></div>
+            <label class="sc-pick"><select id="scPick" aria-label="Scenario da simulare"></select>
+              <span class="chv" id="scChv"></span></label>
             <div id="scChart"></div>
+            <div class="sc-legend" id="scLegend"></div>
+            <div class="sc-stats" id="scStats"></div>
+            <div class="note mt18" id="scDesc"></div>
             <div id="scAlerts"></div>
             <div class="tbl-scroll mt18" id="scTableWrap"></div>
             <div class="note mt18" id="scNote"></div>
@@ -2042,7 +2061,7 @@ function blankState(){
     fx:{EUR:1}, lastUpdate:0, updatedAt:0,
     settings:{theme:'dark',privacy:false,collapsed:false,riskFree:2,proxy:'',
               rebalanceBands:[10,20,30],capGainTax:26,
-              scenBench:'6040',scenSens:{}}
+              scenBench:'6040',scenSel:'inflEU',scenSens:{}}
   };
 }
 let S=blankState();
@@ -2539,114 +2558,92 @@ Chart.area=function(host,pts,opt){
   svg.addEventListener('touchmove',e=>{move(e);},{passive:true});
 };
 
-/* Barre affiancate con linea dello zero. Serve al confronto fra due serie su
-   poche categorie (portafoglio vs benchmark per scenario), dove i valori sono
-   quasi sempre negativi e la metà sotto lo zero conta quanto quella sopra —
-   cosa che Chart.area, ancorata al tempo, non sa fare. Stesse convenzioni:
-   viewBox ridisegnato al resize, etichette dei valori a destra, tooltip
-   .ct-tip. `groups` è [{label, short, values:[{v,color,name}]}]. */
-Chart.bars=function(host,groups,opt){
+/* Curva di shock e recupero per UN solo scenario alla volta.
+   --------------------------------------------------------------------------
+   Il numero vero è uno: il rendimento stimato, che sta nel punto più profondo
+   della curva. L'andamento intorno è una forma illustrativa, non una serie
+   storica — non c'è nessuna ipotesi su quando lo shock arrivi né su quanto
+   duri, e il grafico non deve lasciar credere il contrario (la nota sotto il
+   grafico lo dice a parole). Serve perché con due soli valori la profondità
+   relativa si legge in un colpo d'occhio, cosa che due cifre affiancate non
+   comunicano altrettanto in fretta.
+   `series` è [{name, v, color, side}], side 'left' o 'right' per l'etichetta. */
+Chart.shock=function(host,series,opt){
   opt=opt||{};
   if(!host)return;
   host.innerHTML='';
   const H=opt.height||300;
-  if(!groups||!groups.length){
+  if(!series||!series.length){
     host.innerHTML='<div class="empty" style="padding:'+(H/2-30)+'px 20px">'+
       '<div class="big">'+(opt.emptyTitle||'Dati insufficienti')+'</div>'+
       '<div class="sm">'+(opt.emptyText||'')+'</div></div>';
     return;
   }
   const W=Math.max(280,host.clientWidth||host.getBoundingClientRect().width||700);
-  const padT=18,padR=opt.padR==null?50:opt.padR;
-  /* Con molte categorie su uno schermo stretto le etichette si accavallano:
-     sotto una certa larghezza per gruppo si inclinano di 38°. Inclinata, una
-     etichetta esce dal riquadro in basso e a sinistra, quindi i due margini
-     vengono dimensionati sulla sua lunghezza stimata (~5,8px per carattere a
-     11px) invece che su un valore fisso: con "Mercato mondo" o con una parola
-     più lunga il grafico resta comunque intero. */
-  const tilt=(W-padR)/groups.length<64;
-  const RAD=38*Math.PI/180;
-  const lw=tilt?groups.reduce((a,g)=>Math.max(a,String(g.short||g.label).length),0)*5.8:0;
-  const padB=tilt?Math.round(28+lw*Math.sin(RAD)):42;
-  const gw0=(W-2-padR)/groups.length;
-  const padL=tilt?Math.max(2,Math.round(lw*Math.cos(RAD)-gw0/2)):2;
+  const padT=22,padB=22,padL=6,padR=6;
   const iw=W-padL-padR, ih=H-padT-padB;
-  const all=[];
-  groups.forEach(g=>g.values.forEach(v=>all.push(num(v.v))));
-  let mn=Math.min(0,Math.min.apply(null,all)), mx=Math.max(0,Math.max.apply(null,all));
+  const vs=series.map(s=>num(s.v));
+  let mn=Math.min.apply(null,[0].concat(vs)), mx=Math.max.apply(null,[0].concat(vs));
   if(mx===mn){ mx+=1; mn-=1; }
-  const pad=(mx-mn)*.14; mn-=pad; mx+=pad;
+  /* Margine ampio dal lato dove la curva arriva davvero, perché l'etichetta
+     sta all'altezza del suo estremo e deve restarci dentro. Dal lato dello
+     zero la curva è piatta e basta un filo d'aria: un margine simmetrico
+     lascerebbe sempre vuoto un terzo dell'altezza, e su uno schermo di
+     telefono si vede. */
+  const rng=(mx-mn)||1;
+  mn-=rng*(mn<0?.26:.08);
+  mx+=rng*(mx>0?.26:.08);
   const Y=v=>padT+(1-(v-mn)/(mx-mn))*ih;
   const y0=Y(0);
-  const nG=groups.length, gw=iw/nG, nS=groups[0].values.length;
-  const inner=gw*.70, bw=inner/nS;
-  const gx=i=>padL+gw*i;
 
-  /* griglia orizzontale, stessa densità di Chart.area */
-  let grid='';
-  for(let i=0;i<=3;i++){
-    const v=mn+(mx-mn)*i/3, y=Y(v);
-    grid+='<line class="ct-grid" x1="0" y1="'+y.toFixed(1)+'" x2="'+(padL+iw)+'" y2="'+y.toFixed(1)+'"/>'+
-      '<text class="ct-lbl" x="'+(W-4)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end">'+
-      esc(opt.fmtY?opt.fmtY(v):nf(v,0))+'</text>';
+  /* Profilo: tratto piatto, discesa, minimo, risalita un po' più lenta,
+     tratto piatto. Due mezze cosinusoidi rialzate: continua, senza spigoli,
+     e torna esattamente al livello di partenza. */
+  const T0=.07,TC=.46,T1=.95;
+  function shape(t){
+    if(t<=T0||t>=T1)return 0;
+    if(t<=TC)return .5*(1-Math.cos(Math.PI*(t-T0)/(TC-T0)));
+    return .5*(1+Math.cos(Math.PI*(t-TC)/(T1-TC)));
   }
-  grid+='<line x1="0" y1="'+y0.toFixed(1)+'" x2="'+(padL+iw)+'" y2="'+y0.toFixed(1)+
-    '" stroke="var(--muted)" stroke-width="1.2" opacity=".65"/>';
-
-  /* l'etichetta del valore sopra la barra esiste solo se ci sta davvero:
-     con sette scenari su uno schermo stretto sarebbe una macchia di cifre */
-  const showV=bw>=26;
-  let bars='',labels='',hits='';
-  groups.forEach((g,i)=>{
-    const bx=gx(i)+(gw-inner)/2;
-    g.values.forEach((s,j)=>{
-      const v=num(s.v), x=bx+bw*j+1.5, w=Math.max(1,bw-3);
-      const yv=Y(v), top=Math.min(yv,y0), h=Math.max(1.5,Math.abs(yv-y0));
-      bars+='<rect x="'+x.toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+w.toFixed(1)+
-        '" height="'+h.toFixed(1)+'" rx="'+Math.min(3,w/4).toFixed(1)+'" fill="'+(s.color||'var(--accent)')+'"/>';
-      if(showV){
-        const ly=v>=0?top-5:top+h+11;
-        bars+='<text class="sc-bar-val" x="'+(x+w/2).toFixed(1)+'" y="'+ly.toFixed(1)+
-          '" text-anchor="middle" fill="'+(s.color||'var(--accent)')+'">'+
-          esc(opt.fmtV?opt.fmtV(v):nf(v,1))+'</text>';
-      }
-    });
-    const lx=gx(i)+gw/2, ly=padT+ih+(tilt?14:18);
-    labels+='<text class="sc-bar-lbl" x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" text-anchor="'+
-      (tilt?'end':'middle')+'"'+(tilt?' transform="rotate(-38 '+lx.toFixed(1)+' '+ly.toFixed(1)+')"':'')+
-      '>'+esc(g.short||g.label)+'</text>';
-    hits+='<rect x="'+gx(i).toFixed(1)+'" y="'+padT+'" width="'+gw.toFixed(1)+'" height="'+ih+
-      '" fill="transparent" data-gi="'+i+'"/>';
+  const N=140;
+  const curves=series.map(s=>{
+    const v=num(s.v); let d='';
+    for(let i=0;i<=N;i++){
+      const t=i/N, x=padL+t*iw, y=Y(v*shape(t));
+      d+=(i?'L':'M')+x.toFixed(1)+','+y.toFixed(1);
+    }
+    return {s:s, v:v, d:d, tx:padL+TC*iw, ty:Y(v)};
   });
 
-  host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'">'+
-    grid+bars+labels+
-    '<rect class="sc-hl" x="0" y="'+padT+'" width="'+gw.toFixed(1)+'" height="'+ih+
-      '" fill="var(--ink)" opacity="0" rx="8" style="pointer-events:none"/>'+
-    hits+'</svg><div class="ct-tip" id="tip"></div>';
-
-  const svg=host.querySelector('svg'), tip=host.querySelector('#tip'), hl=host.querySelector('.sc-hl');
-  function show(i,ev){
-    const g=groups[i];
-    hl.setAttribute('x',gx(i).toFixed(1)); hl.setAttribute('opacity','.05');
-    tip.classList.add('on');
-    tip.innerHTML='<div class="d">'+esc(g.label)+'</div>'+
-      g.values.map(s=>'<div class="v" style="color:'+(s.color||'var(--ink)')+'">'+
-        esc(s.name||'')+' '+(opt.fmtV?opt.fmtV(num(s.v)):nf(num(s.v),1))+'</div>').join('');
-    const r=svg.getBoundingClientRect();
-    const px=(gx(i)+gw/2)/W*r.width;
-    tip.style.left=Math.max(70,Math.min(r.width-70,px))+'px';
-    tip.style.top=(padT+ih*.28)/H*r.height+'px';
+  /* etichetta: valore in grande, nome sotto. Larghezza dal testo più lungo,
+     così "60/40 globale" non esce dal riquadro come farebbe con una fissa. */
+  function badge(c){
+    const val=opt.fmtV?opt.fmtV(c.v):nf(c.v,2)+'%';
+    const nm=c.s.name||'';
+    const bw=Math.round(Math.max(val.length*8.2, nm.length*6.1)+22);
+    const bh=38;
+    const left=c.s.side==='left';
+    const bx=left?padL:(W-padR-bw);
+    const by=Math.max(padT+2,Math.min(padT+ih-bh-2,c.ty-bh/2));
+    const lx=left?bx+bw:bx;                       /* estremo interno */
+    const lead='<line x1="'+lx.toFixed(1)+'" y1="'+c.ty.toFixed(1)+'" x2="'+c.tx.toFixed(1)+
+      '" y2="'+c.ty.toFixed(1)+'" stroke="'+c.s.color+'" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>';
+    return lead+
+      '<rect x="'+bx+'" y="'+by.toFixed(1)+'" width="'+bw+'" height="'+bh+'" rx="9" fill="'+c.s.color+'"/>'+
+      '<text class="sc-bg-v" x="'+(bx+bw/2)+'" y="'+(by+16).toFixed(1)+'" text-anchor="middle">'+esc(val)+'</text>'+
+      '<text class="sc-bg-n" x="'+(bx+bw/2)+'" y="'+(by+29).toFixed(1)+'" text-anchor="middle">'+esc(nm)+'</text>';
   }
-  function out(){ hl.setAttribute('opacity','0'); tip.classList.remove('on'); }
-  Array.prototype.forEach.call(svg.querySelectorAll('[data-gi]'),r=>{
-    const i=+r.getAttribute('data-gi');
-    r.addEventListener('pointerenter',e=>show(i,e));
-    r.addEventListener('pointermove',e=>show(i,e));
-  });
-  svg.addEventListener('pointerleave',out);
+
+  host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" '+
+    'aria-label="'+esc(opt.alt||'')+'">'+
+    '<line x1="'+padL+'" y1="'+y0.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y0.toFixed(1)+
+      '" class="ct-grid" stroke-dasharray="4 5"/>'+
+    curves.map(c=>'<path d="'+c.d+'" fill="none" stroke="'+c.s.color+'" stroke-width="2.6" '+
+      'stroke-linecap="round" stroke-linejoin="round"/>').join('')+
+    curves.map(c=>'<circle cx="'+c.tx.toFixed(1)+'" cy="'+c.ty.toFixed(1)+'" r="3.4" fill="'+c.s.color+'"/>').join('')+
+    curves.map(badge).join('')+
+    '</svg>';
 };
-
 /* ridisegna i grafici quando la finestra cambia larghezza */
 let rzT=null;
 window.addEventListener('resize',()=>{ clearTimeout(rzT); rzT=setTimeout(()=>renderPage(UI.page),160); });
@@ -4743,56 +4740,75 @@ function scModel(){
 /* --- rendering ---------------------------------------------------------- */
 const SC_C_PF='#6c7cff', SC_C_BM='#8b93ad';
 
+/* Lo scenario mostrato è uno solo: la curva confronta il portafoglio col
+   benchmark dentro QUELLA ipotesi. La tabella sotto resta l'elenco completo —
+   serve a scegliere, e a leggere i sette numeri senza cliccare sette volte. */
+const scSelKey=()=>{
+  const k=S.settings.scenSel;
+  return SC_SCEN.some(x=>x.k===k)?k:SC_SCEN[0].k;
+};
+
 function renderScenarios(){
   const host=$('#scChart'); if(!host)return;
-  const m=scModel();
+  const m=scModel(), sel=scSelKey();
   $$('#scBench button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-b')===scBenchKey()));
+  $('#scPick').innerHTML=SC_SCEN.map(x=>'<option value="'+esc(x.k)+'"'+(x.k===sel?' selected':'')+
+    '>'+esc(x.l)+'</option>').join('');
   if(!m.ok){
-    $('#scLegend').innerHTML='';
     host.innerHTML='<div class="empty"><div class="ic">'+ic('bolt',22)+'</div>'+
       '<div class="big">Nessuna posizione da stressare</div>'+
       '<div class="sm">Aggiungi almeno una posizione: lo stress test legge i pesi correnti del portafoglio, '+
       'quindi si aggiorna da solo ogni volta che compri o vendi.</div></div>';
-    $('#scAlerts').innerHTML=''; $('#scTableWrap').innerHTML=''; $('#scSub').textContent='';
+    ['scLegend','scStats','scDesc','scAlerts','scTableWrap','scNote'].forEach(id=>$('#'+id).innerHTML='');
+    $('#scSub').textContent='';
     renderScenAssump(m);
     return;
   }
   const bk=SC_BENCH[scBenchKey()];
+  const row=m.scen.filter(r=>r.sc.k===sel)[0]||m.scen[0];
   $('#scSub').textContent=m.n+' posizioni · '+money0(T.value);
-  $('#scLegend').innerHTML=
-    '<span><i style="background:'+SC_C_PF+'"></i>Il tuo portafoglio</span>'+
-    '<span><i style="background:'+SC_C_BM+'"></i>'+esc(bk.l)+'</span>'+
-    '<span style="opacity:.75">'+esc(bk.sub)+'</span>';
 
-  Chart.bars(host,m.scen.map(r=>({
-    label:r.sc.l, short:r.sc.s,
-    values:[{v:r.pf,color:SC_C_PF,name:'Portafoglio'},{v:r.bm,color:SC_C_BM,name:esc(bk.l)}]
-    /* pctv anche sulle barre: stesso segno e stesso meno tipografico della
-       tabella qui sotto, che legge gli stessi numeri. Sull'asse invece lo zero
-       va scritto zero: arrotondato a una cifra un -0,004 diventerebbe "-0%". */
-  })),{height:320, fmtV:v=>pctv(v,1),
-       fmtY:v=>(Math.abs(v)<.5?'0':nf(v,0))+'%'});
+  Chart.shock(host,[
+    {name:bk.l,          v:row.bm, color:SC_C_BM, side:'left'},
+    {name:'Portafoglio', v:row.pf, color:SC_C_PF, side:'right'}
+  ],{height:300, fmtV:v=>pctv(v,2),
+     alt:row.sc.l+': portafoglio '+pctv(row.pf,2)+', '+bk.l+' '+pctv(row.bm,2)});
+
+  $('#scLegend').innerHTML='<span>Benchmark: <b style="color:var(--ink)">'+esc(bk.l)+'</b> · '+
+    esc(bk.sub)+'</span>';
+
+  const after=T.value*(1+row.pf/100);
+  const st=(l,v,cls,mask)=>'<div><div class="l">'+esc(l)+'</div><div class="v'+(cls?' '+cls:'')+
+    (mask?' mask':'')+'">'+v+'</div></div>';
+  $('#scStats').innerHTML=
+    st('Impatto sul capitale', sgn(row.eur)+money0(Math.abs(row.eur)), row.eur>=0?'up':'down', 1)+
+    st('Valore dopo lo shock', money0(after), '', 1)+
+    st('Differenza dal benchmark', pctv(row.delta,2), row.delta>=0?'up':'down', 0);
+
+  $('#scDesc').innerHTML='<b>'+esc(row.sc.l)+'.</b> '+esc(row.sc.d);
 
   $('#scAlerts').innerHTML=scAlerts(m);
   $$('#scAlerts [data-scfix]').forEach(b=>b.addEventListener('click',()=>openDrawer(b.getAttribute('data-scfix'))));
 
   $('#scTableWrap').innerHTML='<table><thead><tr><th>Scenario</th>'+
     '<th>Portafoglio</th><th class="hide-xs">In euro</th><th>'+esc(bk.l)+'</th><th>Differenza</th></tr></thead><tbody>'+
-    m.scen.map(r=>{
-      const d=r.delta>=0;
-      return '<tr title="'+esc(r.sc.l)+'"><td><b>'+esc(r.sc.l)+'</b></td>'+
-        '<td class="'+(r.pf>=0?'up':'down')+'" style="font-weight:700">'+pctv(r.pf,2)+'</td>'+
-        '<td class="hide-xs mask">'+sgn(r.eur)+money0(Math.abs(r.eur))+'</td>'+
-        '<td>'+pctv(r.bm,2)+'</td>'+
-        '<td><span class="badge '+(d?'u':'d')+'">'+pctv(r.delta,2)+'</span></td></tr>';
-    }).join('')+'</tbody></table>';
+    m.scen.map(r=>'<tr class="sc-row'+(r.sc.k===sel?' on':'')+'" data-scsel="'+esc(r.sc.k)+'">'+
+      '<td><b>'+esc(r.sc.l)+'</b></td>'+
+      '<td class="'+(r.pf>=0?'up':'down')+'" style="font-weight:700">'+pctv(r.pf,2)+'</td>'+
+      '<td class="hide-xs mask">'+sgn(r.eur)+money0(Math.abs(r.eur))+'</td>'+
+      '<td>'+pctv(r.bm,2)+'</td>'+
+      '<td><span class="badge '+(r.delta>=0?'u':'d')+'">'+pctv(r.delta,2)+'</span></td></tr>').join('')+
+    '</tbody></table>';
+  $$('#scTableWrap [data-scsel]').forEach(tr=>tr.addEventListener('click',()=>{
+    S.settings.scenSel=tr.getAttribute('data-scsel'); save(); renderScenarios();
+  }));
 
-  $('#scNote').innerHTML='Ogni barra è il rendimento stimato del portafoglio <b>se quello scenario si realizzasse domani</b>, '+
-    'a parità di posizioni: non è una previsione e non ha una probabilità associata. Il calcolo è '+
-    '<b>Σ (peso della posizione × sensitività della sua categoria)</b> sui pesi correnti, quindi si aggiorna da solo '+
-    'quando compri o vendi. La colonna <b>Differenza</b> dice quanto fai meglio o peggio del benchmark: è lì che si '+
-    'legge se il portafoglio è più fragile o più difensivo di un paniere standard. Il dettaglio delle ipotesi è nel '+
-    'pannello <b>Assunzioni</b> qui sotto.';
+  $('#scNote').innerHTML='La curva racconta un numero solo: il <b>punto più profondo</b>, cioè il rendimento stimato '+
+    'se quello scenario si realizzasse. La discesa e la risalita intorno sono una forma illustrativa — '+
+    '<b>non c\'è nessuna ipotesi su quando lo shock arrivi né su quanto duri</b>, e non è una previsione. '+
+    'Il calcolo è <b>Σ (peso della posizione × sensitività della sua categoria)</b> sui pesi correnti, quindi si '+
+    'aggiorna da solo quando compri o vendi. Clicca una riga della tabella per cambiare scenario; il dettaglio '+
+    'delle ipotesi è nel pannello <b>Assunzioni</b> qui sotto.';
   renderScenAssump(m);
 }
 
@@ -6949,6 +6965,9 @@ function wire(){
   }));
 
   /* --- scenari --- */
+  $('#scPick').addEventListener('change',()=>{
+    S.settings.scenSel=$('#scPick').value; save(); renderScenarios();
+  });
   $$('#scBench button').forEach(b=>b.addEventListener('click',()=>{
     S.settings.scenBench=b.getAttribute('data-b'); save(); renderScenarios();
   }));
@@ -7132,6 +7151,7 @@ $('#chipHealth').innerHTML=ic('heart',17);
 $('#chipAlerts').innerHTML=ic('inbox',17);
 $('#chipQuant').innerHTML=ic('trend',17);
 $('#chipScen').innerHTML=ic('bolt',17);
+$('#scChv').innerHTML=ic('chev',16);
 $('#chipScenA').innerHTML=ic('settings',17);
 $('#chipRb').innerHTML=ic('balance',17);
 $('#chipRbP').innerHTML=ic('settings',17);
