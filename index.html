@@ -723,6 +723,17 @@ tbody tr.sc-row.on td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
   .sc-sens{grid-template-columns:1fr 62px 62px 62px;gap:6px}
   .sc-sens .wt{display:none}
 }
+.sc-hedge-hd{font-size:11px;font-weight:650;letter-spacing:.3px;color:var(--muted);text-transform:uppercase;
+  margin:20px 0 10px}
+.sc-hedge-list{display:flex;flex-direction:column;gap:9px}
+.sc-hedge-item{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+/* la .badge condivisa e' nowrap perche' nasce per etichette corte
+   ("▲ compra €500"): qui il testo e' una frase e su un telefono
+   sfora la card di 60px, quindi qui e solo qui va a capo */
+.sc-hedge-item .badge{flex:none;white-space:normal;text-align:left;max-width:100%}
+.sc-hedge-why{font-size:12.5px;color:var(--muted);flex:1;min-width:200px}
+@media(max-width:520px){.sc-hedge-item{flex-direction:column;align-items:flex-start;gap:3px}}
+
 /* watchlist */
 .wl-price{font-variant-numeric:tabular-nums}
 .wl-empty-cta{display:flex;gap:9px;justify-content:center;margin-top:16px;flex-wrap:wrap}
@@ -1205,6 +1216,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
             <div class="sc-legend" id="scLegend"></div>
             <div class="sc-stats" id="scStats"></div>
             <div class="note mt18" id="scDesc"></div>
+            <div id="scHedge"></div>
             <div id="scAlerts"></div>
             <div class="tbl-scroll mt18" id="scTableWrap"></div>
             <div class="note mt18" id="scNote"></div>
@@ -4578,49 +4590,83 @@ const SC_SCEN=[
      'La BCE è attesa più restrittiva, i rendimenti salgono soprattutto in Europa, '+
      'le borse arretrano ma non crollano e l\'euro si rafforza un poco perché il '+
      'mercato prezza tassi più alti.',
-   sh:{eqEU:-4, eqW:-1.5, rEU:+0.50, rUS:+0.20, infl:+1.0, usd:-1}},
+   sh:{eqEU:-4, eqW:-1.5, rEU:+0.50, rUS:+0.20, infl:+1.0, usd:-1},
+   hedge:[
+     {t:'ETF ampio su materie prime (commodity broad)', w:'La sorpresa d\'inflazione è il fattore che pesa di più in questo scenario, ed è la leva a cui le materie prime reagiscono meglio nel modello.'},
+     {t:'ETF sul settore Energy', w:'Beneficia sia della sorpresa d\'inflazione sia, in piccola parte, del rialzo dei tassi che l\'accompagna.'},
+     {t:'ETF sul settore Financials (banche)', w:'I tassi più alti sono il canale con cui il settore compensa la gamba azionaria in calo.'},
+   ]},
 
   {k:'ratesUS', l:'Tassi USA in aumento', s:'Tassi USA',
    d:'Il rendimento del decennale americano sale di un punto percentuale. È lo '+
      'scenario 2022 in miniatura: soffrono le azioni a lunga duration (tecnologia, '+
      'crescita), guadagnano le banche, il dollaro si rafforza e per un portafoglio '+
      'in euro quel rafforzamento compensa in parte la caduta dei prezzi.',
-   sh:{eqEU:-3, eqW:-6, rEU:+0.30, rUS:+1.00, infl:0, usd:+3}},
+   sh:{eqEU:-3, eqW:-6, rEU:+0.30, rUS:+1.00, infl:0, usd:+3},
+   hedge:[
+     {t:'ETF sul settore Financials (banche)', w:'È il settore che nel modello guadagna di più da un rendimento a 10 anni USA più alto.'},
+     {t:'ETF monetario o governativo a brevissima duration', w:'Duration quasi nulla: il prezzo si muove poco quando i tassi salgono, a differenza di un governativo lungo.'},
+     {t:'Strategie trend-following (Managed Futures)', w:'Nel modello hanno beta azionaria nulla e beta positiva sui tassi: si muovono per conto loro rispetto al resto del portafoglio.'},
+   ]},
 
   {k:'ratesEU', l:'Tassi Eurozona in aumento', s:'Tassi EZ',
    d:'Il rendimento del Bund sale di un punto percentuale mentre gli Stati Uniti '+
      'restano quasi fermi. Colpisce soprattutto l\'azionario europeo e i governativi '+
      'in euro; il differenziale di tasso a favore dell\'area euro indebolisce il '+
      'dollaro, quindi le posizioni in USD perdono anche sul cambio.',
-   sh:{eqEU:-6, eqW:-2, rEU:+1.00, rUS:+0.20, infl:0, usd:-3}},
+   sh:{eqEU:-6, eqW:-2, rEU:+1.00, rUS:+0.20, infl:0, usd:-3},
+   hedge:[
+     {t:'ETF sul settore Financials (banche), area euro', w:'Stesso meccanismo dello scenario USA: i tassi europei più alti sono un vento a favore per le banche.'},
+     {t:'ETF monetario o governativo a brevissima duration in euro', w:'Poco sensibile al rialzo del Bund, evita la duration lunga che qui perde di più.'},
+     {t:'ETF World o obbligazionari in dollari con copertura valutaria in euro', w:'Qui il dollaro si indebolisce (-3%): la copertura evita che la perdita valutaria si sommi a quella di prezzo.'},
+   ]},
 
   {k:'crashEU', l:'Mercato Eurozona in ribasso', s:'Mercato EZ',
    d:'Correzione del 15% circa sulle borse dell\'area euro, con contagio limitato '+
      'al resto del mondo. Nella fuga verso la qualità i rendimenti scendono, quindi '+
      'i governativi guadagnano, e il dollaro si rafforza leggermente come bene '+
      'rifugio.',
-   sh:{eqEU:-15, eqW:-5, rEU:-0.30, rUS:-0.10, infl:0, usd:+1}},
+   sh:{eqEU:-15, eqW:-5, rEU:-0.30, rUS:-0.10, infl:0, usd:+1},
+   hedge:[
+     {t:'ETF obbligazionario governativo Eurozona, duration medio-lunga', w:'Nella fuga verso la qualità i rendimenti scendono: è la leva che nel modello genera un guadagno netto in questo scenario.'},
+     {t:'ETF monetario o liquidità', w:'Non partecipa al ribasso azionario: è il modo più diretto per restare fermi mentre il resto scende.'},
+     {t:'Treasury USA a breve termine o esposizione in dollari', w:'Il dollaro si rafforza come bene rifugio anche quando la crisi resta europea.'},
+   ]},
 
   {k:'crashW', l:'Mercato mondiale in ribasso', s:'Mercato mondo',
    d:'Mercato orso globale: −20% sull\'azionario mondiale, −12% in Europa. È lo '+
      'scenario in cui la diversificazione conta davvero. I rendimenti crollano, le '+
      'obbligazioni fanno il loro mestiere e il dollaro si rafforza perché è la '+
      'valuta rifugio.',
-   sh:{eqEU:-12, eqW:-20, rEU:-0.40, rUS:-0.50, infl:0, usd:+2}},
+   sh:{eqEU:-12, eqW:-20, rEU:-0.40, rUS:-0.50, infl:0, usd:+2},
+   hedge:[
+     {t:'ETF obbligazionario governativo globale o USA, duration lunga', w:'È la leva più forte del modello in questo scenario: il crollo dei rendimenti genera il guadagno più grande fra tutte le categorie.'},
+     {t:'ETF monetario o liquidità', w:'Beta azionaria zero: nella diversificazione che qui conta davvero, è la parte che non partecipa al -20%.'},
+     {t:'Treasury USA a breve termine o esposizione in dollari', w:'Il dollaro è la valuta rifugio per definizione di questo scenario (+2%).'},
+   ]},
 
   {k:'usdUp', l:'Dollaro forte vs euro (+10%)', s:'USD forte',
    d:'Il dollaro guadagna il 10% sull\'euro. Per un portafoglio in euro è quasi '+
      'tutto guadagno da traduzione sulle posizioni quotate in USD; in cambio gli '+
      'esportatori americani soffrono un poco, l\'inflazione importata in Europa sale '+
      'e i rendimenti USA salgono leggermente.',
-   sh:{eqEU:-1, eqW:+1, rEU:0, rUS:+0.30, infl:+0.3, usd:+10}},
+   sh:{eqEU:-1, eqW:+1, rEU:0, rUS:+0.30, infl:+0.3, usd:+10},
+   hedge:[
+     {t:'ETF azionari o obbligazionari in dollari, senza copertura valutaria', w:'È il canale dominante dello scenario: il rialzo del 10% del dollaro si traduce quasi per intero in guadagno per chi possiede asset in USD non coperti.'},
+     {t:'ETF sul settore Financials', w:'Beneficia del piccolo rialzo dei tassi USA che accompagna il dollaro forte.'},
+   ]},
 
   {k:'usdDown', l:'Dollaro debole vs euro (−10%)', s:'USD debole',
    d:'Lo specchio del precedente: il dollaro perde il 10% sull\'euro. Le posizioni '+
      'in USD valgono meno in euro anche se il prezzo locale non si muove. È il '+
      'rischio meno visibile di un portafoglio molto esposto agli Stati Uniti e non '+
      'coperto.',
-   sh:{eqEU:+1, eqW:-1, rEU:0, rUS:-0.30, infl:-0.3, usd:-10}}
+   sh:{eqEU:+1, eqW:-1, rEU:0, rUS:-0.30, infl:-0.3, usd:-10},
+   hedge:[
+     {t:'ETF azionario Eurozona', w:'È l\'unica gamba azionaria positiva dello scenario (+1%).'},
+     {t:'ETF World o USA con copertura valutaria in euro (hedged)', w:'Isola il rendimento del mercato dal deprezzamento del dollaro, che qui pesa il 10%.'},
+     {t:'ETF obbligazionario governativo USD con copertura cambio', w:'Il rendimento USA scende (-0,30 pp): la copertura incassa il guadagno di prezzo senza la perdita valutaria.'},
+   ]}
 ];
 
 /* --- BENCHMARK -----------------------------------------------------------
@@ -4759,7 +4805,7 @@ function renderScenarios(){
       '<div class="big">Nessuna posizione da stressare</div>'+
       '<div class="sm">Aggiungi almeno una posizione: lo stress test legge i pesi correnti del portafoglio, '+
       'quindi si aggiorna da solo ogni volta che compri o vendi.</div></div>';
-    ['scLegend','scStats','scDesc','scAlerts','scTableWrap','scNote'].forEach(id=>$('#'+id).innerHTML='');
+    ['scLegend','scStats','scDesc','scHedge','scAlerts','scTableWrap','scNote'].forEach(id=>$('#'+id).innerHTML='');
     $('#scSub').textContent='';
     renderScenAssump(m);
     return;
@@ -4786,6 +4832,7 @@ function renderScenarios(){
     st('Differenza dal benchmark', pctv(row.delta,2), row.delta>=0?'up':'down', 0);
 
   $('#scDesc').innerHTML='<b>'+esc(row.sc.l)+'.</b> '+esc(row.sc.d);
+  $('#scHedge').innerHTML=scHedgeHtml(row.sc);
 
   $('#scAlerts').innerHTML=scAlerts(m);
   $$('#scAlerts [data-scfix]').forEach(b=>b.addEventListener('click',()=>openDrawer(b.getAttribute('data-scfix'))));
@@ -4810,6 +4857,23 @@ function renderScenarios(){
     'aggiorna da solo quando compri o vendi. Clicca una riga della tabella per cambiare scenario; il dettaglio '+
     'delle ipotesi è nel pannello <b>Assunzioni</b> qui sotto.';
   renderScenAssump(m);
+}
+
+/* Tipologie di ETF (non titoli) che storicamente compensano lo scenario
+   selezionato: dedotte dalle stesse beta di settore del motore sopra, non
+   da una lista a parte. Non e' un consiglio di investimento. */
+function scHedgeHtml(sc){
+  if(!sc.hedge||!sc.hedge.length)return '';
+  return '<div class="sc-hedge-hd">Tipologie di ETF che reggono meglio in questo scenario</div>'+
+    '<div class="sc-hedge-list">'+
+    sc.hedge.map(h=>'<div class="sc-hedge-item"><span class="badge u">'+esc(h.t)+'</span>'+
+      '<span class="sc-hedge-why">'+esc(h.w)+'</span></div>').join('')+
+    '</div>'+
+    '<div class="note" style="margin-top:10px">Sono tipologie di ETF, non titoli: derivano dalle stesse beta '+
+    'di settore usate per il calcolo qui sopra (pannello <b>Assunzioni</b>). <b>Reggere meglio non vuol dire '+
+    'guadagnare</b>: in diversi scenari la tipologia perde comunque, solo meno del portafoglio. '+
+    'Non è un consiglio di investimento '+
+    'né una previsione: la correlazione storica può non ripetersi nella prossima crisi.</div>';
 }
 
 function scAlerts(m){
