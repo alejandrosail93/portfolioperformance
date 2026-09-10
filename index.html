@@ -2069,7 +2069,7 @@ function normComposition(text,norm){
 
 function blankState(){
   return {
-    v:2, positions:[], watchlist:[], goals:[], targets:{}, history:[], countries:[],
+    v:3, positions:[], watchlist:[], goals:[], targets:{}, history:[], countries:[],
     fx:{EUR:1}, lastUpdate:0, updatedAt:0,
     settings:{theme:'dark',privacy:false,collapsed:false,riskFree:2,proxy:'',
               rebalanceBands:[10,20,30],capGainTax:26,
@@ -2125,6 +2125,18 @@ function normalizeState(){
     const first=tx.map(t=>String(t.date).slice(0,10)).sort()[0];
     if(/^\d{4}-\d{2}-\d{2}$/.test(first)){ p.dateAdded=first; dirty=true; }
   });
+  /* v3: fino alla v2 prevClose arrivava da una richiesta range=5d, in cui
+     chartPreviousClose è la chiusura di cinque sedute prima: "Variazione di
+     oggi" era in realtà la variazione della settimana. Quei valori si buttano:
+     il prossimo aggiornamento prezzi li riscrive, e intanto la variazione resta
+     vuota invece che sbagliata. Come le altre migrazioni, segnala una modifica
+     solo se ha tolto davvero qualcosa. */
+  if(!(S.v>=3)){
+    (S.positions||[]).concat(S.watchlist||[]).forEach(o=>{
+      if(o&&o.prevClose!=null){ delete o.prevClose; dirty=true; }
+    });
+    S.v=3;
+  }
   /* paesi personalizzati: normalizzati, deduplicati, e assorbiti se ormai standard */
   const seen={},cc=[];
   (S.countries||[]).forEach(c=>{ const v=normCountry(c);
@@ -3046,7 +3058,15 @@ function yURL(host,sym,qs){
   return 'https://'+host+'.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+qs;
 }
 function yQuote(sym,force){
-  const c=QCACHE[sym], qs='?interval=1d&range=5d';
+  /* range=1d, non 5d: chartPreviousClose e' la chiusura che precede la prima
+     barra del grafico, quindi con 5d era quella di cinque sedute prima e la
+     "Variazione di oggi" era in realta' quella della settimana. Con 1d e' la
+     seduta precedente; a borsa chiusa o nel weekend Yahoo restituisce l'ultima
+     seduta, come sul sito. Le barre giornaliere non sono un'alternativa: Yahoo
+     ci lascia buchi (close null) proprio sulle sedute recenti.
+     La voce di cache ricorda la richiesta che l'ha prodotta: quelle nate con
+     un'altra non valgono, nemmeno come ultimo prezzo noto a rete giu'. */
+  const qs='?interval=1d&range=1d', c=QCACHE[sym]&&QCACHE[sym].qs===qs?QCACHE[sym]:null;
   if(!force&&c&&Date.now()-c.at<NET.ttl)return Promise.resolve(c.q);
   return fetchJSON(yURL('query1',sym,qs),[yURL('query2',sym,qs)]).then(d=>{
     const res=d&&d.chart&&d.chart.result&&d.chart.result[0], m=res&&res.meta;
@@ -3054,7 +3074,7 @@ function yQuote(sym,force){
     const q={price:m.regularMarketPrice,
       prevClose:m.chartPreviousClose!=null?m.chartPreviousClose:m.previousClose,
       currency:m.currency};
-    QCACHE[sym]={q:q,at:Date.now()};
+    QCACHE[sym]={q:q,at:Date.now(),qs:qs};
     return q;
   },e=>{
     /* servizio irraggiungibile: meglio l'ultimo prezzo noto (segnalato come
@@ -3083,7 +3103,10 @@ function refreshPrices(silent){
   const targets=list.map(p=>({o:p,pos:true})).concat(wl.map(w=>({o:w,pos:false})));
   return netQueue(targets,t=>yQuote(t.o.ticker,force).then(r=>{
       const o=t.o;
-      o.price=r.price; if(r.prevClose)o.prevClose=r.prevClose;
+      /* prezzo e chiusura precedente vanno in coppia: una chiusura rimasta da
+         un aggiornamento vecchio accanto al prezzo nuovo darebbe la variazione
+         di piu' sedute, meglio nessuna */
+      o.price=r.price; o.prevClose=r.prevClose||null;
       if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)o.currency=r.currency;
       o._stale=!!r.stale; o._errKind=null; o._lastCheck=Date.now();
     },e=>{
@@ -3645,7 +3668,7 @@ function refreshOne(p){
   const done=()=>{ refreshingIds.delete(p.id); p._lastCheck=Date.now(); };
   yQuote(p.ticker,true).then(r=>{
     done();
-    p.price=r.price; if(r.prevClose)p.prevClose=r.prevClose;
+    p.price=r.price; p.prevClose=r.prevClose||null;   /* in coppia: vedi refreshPrices() */
     if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)p.currency=r.currency;
     p._stale=!!r.stale; p._errKind=null; saveQCache();
     S.lastUpdate=Date.now(); save(); renderAll();
@@ -5344,7 +5367,7 @@ function watchToPortfolio(){
 function refreshWatchOne(w){
   if(!w.ticker)return;
   yQuote(w.ticker,true).then(r=>{
-    w.price=r.price; if(r.prevClose)w.prevClose=r.prevClose;
+    w.price=r.price; w.prevClose=r.prevClose||null;   /* in coppia: vedi refreshPrices() */
     if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)w.currency=r.currency;
     save(); if(UI.page==='watchlist')renderWatchlist();
   }).catch(()=>{});
