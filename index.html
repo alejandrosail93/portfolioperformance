@@ -2777,7 +2777,7 @@ function renderHero(){
     : (T.pnl>=0?'+':'−')+'€ '+Math.round(Math.abs(T.pnl)).toLocaleString('it-IT');
   const chg=$('#heroChg'), lbl=$('#heroChgLbl');
 
-  const H=currentHistSeries();
+  const H=heroHistSeries();
   const full=H.pts;
   const series=rangeCut(full,UI.heroRange);
   let deltaPct=null,deltaAbs=null;
@@ -5755,6 +5755,20 @@ function currentHistSeries(){
   const r=reconstructedSeries();
   if(r)return {pts:r.pts,src:'calc',info:r};
   return {pts:snaps,src:'snap',info:null};
+}
+/* Il grafico della dashboard ha i pulsanti di intervallo, quindi gli serve la
+   serie che va più indietro nel tempo. Prima prendeva gli snapshot appena ce
+   n'erano due: salvato il secondo, la ricostruzione di tre anni lasciava il
+   posto a due punti, e 1M, 6M, 1A e MAX mostravano tutti lo stesso tratto.
+   Gli snapshot restano la scelta quando coprono, a meno di un mese, lo stesso
+   arco della ricostruzione. Lo Storico continua a seguire il suo selettore. */
+function heroHistSeries(){
+  const H=currentHistSeries();
+  if(H.src!=='snap')return H;
+  const r=reconstructedSeries();
+  if(!r)return H;
+  const t0=p=>p.length?p[0].t:Infinity;
+  return t0(r.pts)<t0(H.pts)-31*864e5?{pts:r.pts,src:'calc',info:r}:H;
 }
 
 /* Posizioni per cui non sappiamo da quando sono in portafoglio: senza questa
