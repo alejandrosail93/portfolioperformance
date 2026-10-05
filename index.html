@@ -891,6 +891,9 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .kpi{padding:13px 14px}
   .kpi .v{font-size:20px}
   .hide-sm{display:none!important}
+  /* 9 fattori non stanno in orizzontale: etichette in verticale, dal basso */
+  #factorBar{gap:5px;height:230px}
+  #factorBar .lv{writing-mode:vertical-rl;transform:rotate(180deg);width:auto;height:64px;text-align:end}
 }
 /* ==========================================================================
    HEAT MAP — performance mensile
@@ -1145,7 +1148,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
               <div class="right"><span class="sub" id="factorTop"></span></div></div>
             <div class="card-bd">
               <div class="barbell" id="factorBar"></div>
-              <div class="note mt18">Assegna un <b>fattore</b> (Growth, Quality, Value, Speculative…) a ogni titolo per vedere come si distribuisce il portafoglio per stile di investimento.</div>
+              <div class="note mt18">Assegna un <b>fattore</b> (Market Beta, Growth, Quality, Value, Diversifiers…) a ogni titolo per vedere come si distribuisce il portafoglio per stile di investimento.</div>
             </div>
           </div>
         </div>
@@ -3198,7 +3201,7 @@ function demoData(){
    ========================================================================== */
 const PAL=['#6c7cff','#e8b13c','#2bb9c4','#a072f0','#25c685','#f2565b','#4b9bff','#f08a3c',
            '#5ad0a8','#c98ae0','#8b93ad','#d4c05a'];
-const FACTORS=['Nessuno','Value','Quality','Quality-Growth','Growth','Thematic Growth','Trend Following','Speculative'];
+const FACTORS=['Nessuno','Market Beta','Value','Quality','Quality-Growth','Growth','Speculative','Diversifiers','Real Assets / Inflation Hedge'];
 const ACTION_OK=300; /* tolleranza in € entro cui la posizione è considerata a target */
 const ACT={
   'Ok':{c:'',s:'●',t:'In linea con il peso previsto'},
@@ -4089,9 +4092,10 @@ function renderRiskDist(){
   activePositions().forEach(p=>{ const r=Math.max(3,Math.min(9,Math.round(num(p.risk))||6)); ws+=p._value*r; vs+=p._value; });
   $('#riskAvg').textContent=vs>0?nf(ws/vs,1):'–';
 }
-const FACTOR_COLORS={'Value':'#25c685','Quality':'#5cc48d','Quality-Growth':'#b9b23f','Growth':'#e8b13c',
-  'Thematic Growth':'#2bb9c4','Trend Following':'#ef8f3c','Speculative':'#f2565b','Nessuno':'#8b93ad'};
-const FACTOR_ORDER=['Value','Quality','Quality-Growth','Growth','Thematic Growth','Trend Following','Speculative','Nessuno'];
+const FACTOR_COLORS={'Market Beta':'#6c7cff','Value':'#25c685','Quality':'#5cc48d','Quality-Growth':'#b9b23f','Growth':'#e8b13c',
+  'Speculative':'#f2565b','Diversifiers':'#a072f0','Real Assets / Inflation Hedge':'#c08552','Nessuno':'#8b93ad'};
+const FACTOR_ORDER=['Market Beta','Value','Quality','Quality-Growth','Growth','Speculative','Diversifiers','Real Assets / Inflation Hedge','Nessuno'];
+const FACTOR_SHORT={'Market Beta':'Beta','Quality-Growth':'Qual-Gr','Speculative':'Spec.','Diversifiers':'Divers.','Real Assets / Inflation Hedge':'Real Ass.'};
 function renderFactorDist(){
   const host=$('#factorBar'); if(!host)return;
   const counts={},vals={};
@@ -4103,7 +4107,7 @@ function renderFactorDist(){
     '<div class="cnt">'+(counts[f]||'')+'</div>'+
     '<div class="bw"><div class="bb" style="height:'+(counts[f]?Math.max(6,counts[f]/maxC*100):2)+'%;background:'+
       (counts[f]?FACTOR_COLORS[f]:'var(--surface-2)')+'"></div></div>'+
-    '<div class="lv">'+esc(f==='Quality-Growth'?'Qual-Gr':(f==='Thematic Growth'?'Them.':(f==='Trend Following'?'Trend':f)))+'</div></div>').join('');
+    '<div class="lv">'+esc(FACTOR_SHORT[f]||f)+'</div></div>').join('');
   let best=null,bv=0;
   FACTOR_ORDER.forEach(f=>{ if(f!=='Nessuno'&&vals[f]>bv){bv=vals[f];best=f;} });
   $('#factorTop').textContent=(best&&T.value>0)?best+' · '+nf(bv/T.value*100,0)+'% del capitale':'nessuna posizione classificata';
