@@ -3803,7 +3803,7 @@ function openDrawer(id){
     '</div>';
 
   $('#dwClose').addEventListener('click',closeDrawer);
-  $('#dwEdit').addEventListener('click',()=>openPos(p.id));
+  $('#dwEdit').addEventListener('click',()=>{ closeDrawer(); openPos(p.id); });
   $('#dwRefresh').addEventListener('click',()=>refreshOne(p));
   if($('#dwSell'))$('#dwSell').addEventListener('click',()=>openSellAll(p.id));
   $('#dwDel').addEventListener('click',()=>deletePos(p.id));
