@@ -431,6 +431,9 @@ html[data-theme="light"] .filters select,html[data-theme="light"] .filters input
 .filters select:focus,.filters input:focus{border-color:var(--accent)}
 .filters .fs{flex:1;min-width:170px;max-width:250px}
 .fcount{font-size:12px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.flbl{font-size:12px;color:var(--muted);font-weight:600}
+#contribSort button{padding:5px 11px;font-size:12px}
+#contribSort .ar{margin-left:4px;font-size:10px;color:var(--accent-ink)}
 .fclear{font-size:12px;color:var(--accent-ink);font-weight:650;padding:6px 10px;border-radius:8px}
 .fclear:hover{background:var(--accent-soft)}
 
@@ -1088,10 +1091,19 @@ html[data-theme="light"] .maptbl select{background:#fff}
           </div>
           <div class="card">
             <div class="card-hd"><h2><span class="chip g" id="chipContrib"></span> Contributo al risultato</h2>
-              <div class="right"><span class="sub" id="contribSub"></span>
+              <div class="right">
                 <span class="seg" id="contribSeg">
                   <button data-v="total" class="on">Totale</button><button data-v="day">Oggi</button>
-                </span></div></div>
+                </span>
+                <button class="btn btn-ghost btn-ic btn-sm" id="contribRefresh"
+                  title="Aggiorna i prezzi dei titoli in portafoglio"></button></div></div>
+            <div class="filters">
+              <span class="flbl">Ordina</span>
+              <span class="seg" id="contribSort">
+                <button data-k="perf" class="on">Performance</button><button data-k="name">Titolo</button>
+              </span>
+              <span class="fcount" id="contribSub"></span>
+            </div>
             <div class="card-bd"><div class="contrib" id="contrib"></div></div>
           </div>
         </div>
@@ -2108,7 +2120,7 @@ function blankState(){
 let S=blankState();
 const UI={
   page:'dashboard', heroRange:'1A', heroMode:'value',
-  allocView:'pos', allocGroup:'', contribView:'total', allocFilters:{cls:'',sector:'',country:''},
+  allocView:'pos', allocGroup:'', contribView:'total', contribSort:{k:'perf',dir:-1}, allocFilters:{cls:'',sector:'',country:''},
   filters:{search:'',platform:'',cls:'',sector:'',country:'',action:''},
   sortK:'_value', sortDir:-1,
   editId:null, editTx:[], drawerId:null,
@@ -3120,12 +3132,19 @@ let refreshing=false;
    riga mentre la richiesta e' ancora aperta (basta modificare un'altra
    posizione): lo stato va riletto a ogni render, non scritto una volta. */
 const refreshingIds=new Set();
-function refreshPrices(silent){
+/* il giro di aggiornamento è uno solo: girano la freccia in alto e quella del
+   riquadro Contributo, chiunque dei due l'abbia avviato */
+function refreshSpin(on){
+  ['#btnRefresh','#contribRefresh'].forEach(s=>{ const b=$(s); if(b)b.classList[on?'add':'remove']('spin'); });
+}
+/* onlyPortfolio: solo i titoli in portafoglio (e i cambi), senza la watchlist:
+   è l'aggiornamento del riquadro Contributo */
+function refreshPrices(silent,onlyPortfolio){
   if(refreshing)return Promise.resolve();
   const list=activePositions().filter(p=>p.ticker);
-  const wl=(S.watchlist||[]).filter(w=>w.ticker);
+  const wl=onlyPortfolio?[]:(S.watchlist||[]).filter(w=>w.ticker);
   if(!list.length&&!wl.length){ if(!silent)toast('Nessuna posizione con un ticker da aggiornare'); return Promise.resolve(); }
-  refreshing=true; $('#btnRefresh').classList.add('spin');
+  refreshing=true; refreshSpin(true);
   /* aggiornamento manuale: dati freschi. Automatico all'avvio: puo' usare la
      cache recente ed evitare di stressare il proxy a ogni ricarica. */
   const force=!silent;
@@ -3143,7 +3162,7 @@ function refreshPrices(silent){
         t.o._errKind=(e&&e.kind==='symbol')?'not_found':'network'; }
     })).then(()=>refreshFx(force)).then(()=>{
     saveQCache();
-    S.lastUpdate=Date.now(); refreshing=false; $('#btnRefresh').classList.remove('spin');
+    S.lastUpdate=Date.now(); refreshing=false; refreshSpin(false);
     save(); renderAll();
     const bad=activePositions().filter(p=>p._stale);
     const nSym=bad.filter(p=>p._errKind==='not_found').length, ko=bad.length-nSym;
@@ -3152,7 +3171,7 @@ function refreshPrices(silent){
     if(ko)msg+=' · '+ko+(ko===1?' non raggiungibile':' non raggiungibili');
     if(!silent)toast(msg,bad.length?'':'ok');
   }).catch(()=>{
-    refreshing=false; $('#btnRefresh').classList.remove('spin');
+    refreshing=false; refreshSpin(false);
     if(!silent)toast('Aggiornamento non riuscito (servizio non raggiungibile)','err');
   });
 }
@@ -3438,8 +3457,18 @@ function renderAlloc(){
 function renderContrib(){
   const day=UI.contribView==='day', k=day?'_day':'_pnl';
   $$('#contribSeg button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-v')===UI.contribView));
+  /* Performance = l'importo in € della barra; Titolo = il nome mostrato */
+  const cs=UI.contribSort, nm=p=>String(p.name||p.ticker||'');
+  $$('#contribSort button').forEach(b=>{
+    const on=b.getAttribute('data-k')===cs.k;
+    b.classList.toggle('on',on);
+    b.querySelectorAll('.ar').forEach(e=>e.remove());
+    if(on){ const a=document.createElement('span'); a.className='ar'; a.textContent=cs.dir<0?'▼':'▲'; b.appendChild(a); }
+  });
   const act=activePositions();
-  const arr=act.filter(p=>day?num(p.prevClose)>0:p._cost>0).slice().sort((a,b)=>b[k]-a[k]);
+  const arr=act.filter(p=>day?num(p.prevClose)>0:p._cost>0).slice().sort(cs.k==='name'
+    ?(a,b)=>nm(a).localeCompare(nm(b),'it',{sensitivity:'base'})*cs.dir
+    :(a,b)=>(a[k]-b[k])*cs.dir);
   const host=$('#contrib');
   if(!arr.length){
     host.innerHTML='<div class="note" style="margin:0">'+(!day
@@ -7125,6 +7154,15 @@ function wire(){
   $$('#contribSeg button').forEach(b=>b.addEventListener('click',()=>{
     UI.contribView=b.getAttribute('data-v'); renderContrib();
   }));
+  /* ordinamento comune alle due schede: un clic sul criterio attivo inverte
+     il verso; cambiando criterio si riparte dal verso naturale (migliori
+     prima, nomi dalla A) */
+  $$('#contribSort button').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-k'), cs=UI.contribSort;
+    UI.contribSort=cs.k===k?{k:k,dir:-cs.dir}:{k:k,dir:k==='name'?1:-1};
+    renderContrib();
+  }));
+  $('#contribRefresh').addEventListener('click',()=>refreshPrices(false,true));
 
   /* --- allocazione --- */
   $$('#allocSeg button').forEach(b=>b.addEventListener('click',()=>{
@@ -7378,6 +7416,7 @@ function wire(){
    15. AVVIO
    ========================================================================== */
 $('#btnRefresh').innerHTML=ic('refresh',17);
+$('#contribRefresh').innerHTML=ic('refresh',15);
 $('#btnAdd').querySelector('.ic').innerHTML=ic('plus',16);
 $('#chipAlloc').innerHTML=ic('pie',17);
 $('#chipContrib').innerHTML=ic('trend',17);
