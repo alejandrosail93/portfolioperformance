@@ -453,6 +453,16 @@ html[data-theme="light"] .filters select,html[data-theme="light"] .filters input
 .leg .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .leg .am{color:var(--muted);font-size:12px;min-width:62px;text-align:right;font-variant-numeric:tabular-nums}
 .leg .pc{font-weight:700;min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+/* titoli raggruppati: intestazione del gruppo col suo totale, titoli rientrati sotto */
+.leg-g{display:flex;align-items:center;gap:9px;padding:10px 9px 4px;border-radius:8px;font-size:11px;
+  font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);cursor:default}
+.leg-g:first-child{padding-top:4px}
+.leg-g .dot{width:9px;height:9px;border-radius:3px;flex:none}
+.leg-g .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leg-g .am{color:var(--muted);min-width:62px;text-align:right;font-variant-numeric:tabular-nums}
+.leg-g .pc{min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.leg.sub{padding-left:24px}
+.leg.sub .dot{width:6px;height:6px;border-radius:2px}
 
 /* --- contributo al risultato --- */
 .contrib{display:flex;flex-direction:column;gap:12px;max-height:320px;overflow-y:auto;padding-right:4px}
@@ -1057,6 +1067,11 @@ html[data-theme="light"] .maptbl select{background:#fff}
               </div>
             </div>
             <div class="filters">
+              <select id="aGroup" aria-label="Raggruppa i titoli">
+                <option value="">Raggruppa: nessuno</option><option value="cls">Raggruppa: Categoria</option>
+                <option value="sector">Raggruppa: Settore</option><option value="country">Raggruppa: Paese</option>
+                <option value="factor">Raggruppa: Fattore</option><option value="risk">Raggruppa: Rischio</option>
+              </select>
               <select id="aFltCls"></select>
               <select id="aFltSector"></select>
               <select id="aFltCountry"></select>
@@ -2088,7 +2103,7 @@ function blankState(){
 let S=blankState();
 const UI={
   page:'dashboard', heroRange:'1A', heroMode:'value',
-  allocView:'pos', allocFilters:{cls:'',sector:'',country:''},
+  allocView:'pos', allocGroup:'', allocFilters:{cls:'',sector:'',country:''},
   filters:{search:'',platform:'',cls:'',sector:'',country:'',action:''},
   sortK:'_value', sortDir:-1,
   editId:null, editTx:[], drawerId:null,
@@ -3298,29 +3313,50 @@ function populateFilters(){
 }
 
 /* ---------- allocazione (donut) ---------- */
+/* Chiave e colore di gruppo, comuni alle schede e al "Raggruppa" della scheda
+   Titolo. Fattore e Rischio si leggono come nel resto della dashboard (fattore
+   mancante = Nessuno, rischio mancante = 6) e tengono i colori dei grafici in
+   Analisi; il rischio è una scala, quindi va dal 3 al 9 invece che per peso. */
+const ALLOC_KEY={
+  factor:p=>normFactor(p.factor),
+  risk:p=>'Rischio '+Math.max(3,Math.min(9,Math.round(num(p.risk))||6))
+};
+function allocGroups(rows,v){
+  const key=ALLOC_KEY[v]||(p=>String(p[v]||'').trim()||'—'), m={};
+  rows.forEach(p=>{ const k=key(p); const g=m[k]||(m[k]={name:k,value:0,rows:[]});
+    g.value+=p._value; g.rows.push(p); });
+  const lv=g=>parseInt(g.name.slice(8),10);
+  const gs=Object.keys(m).map(k=>m[k]).filter(g=>g.value>0)
+    .sort(v==='risk'?(a,b)=>lv(a)-lv(b):(a,b)=>b.value-a.value);
+  gs.forEach((g,i)=>{ g.c=v==='factor'?(FACTOR_COLORS[g.name]||PAL[i%PAL.length])
+    :v==='risk'?riskColor(lv(g)):PAL[i%PAL.length]; });
+  return gs;
+}
 function allocList(){
   const rows=allocPositions(), v=UI.allocView;
-  if(v==='pos'){
-    return rows.map(p=>({name:(p.name||'').trim()||(p.ticker||'').trim()||'—',value:p._value,id:p.id}))
+  const title=p=>(p.name||'').trim()||(p.ticker||'').trim()||'—';
+  if(v!=='pos')return allocGroups(rows,v).map(g=>({name:g.name,value:g.value,c:g.c}));
+  if(!UI.allocGroup){
+    return rows.map(p=>({name:title(p),value:p._value,id:p.id}))
       .filter(g=>g.value>0).sort((a,b)=>b.value-a.value);
   }
-  /* Fattore e Rischio si leggono come nel resto della dashboard (fattore
-     mancante = Nessuno, rischio mancante = 6) e tengono i colori dei grafici
-     in Analisi; il rischio è una scala, quindi va dal 3 al 9 invece che per peso */
-  if(v==='risk'){
-    const m={};
-    rows.forEach(p=>{ const r=Math.max(3,Math.min(9,Math.round(num(p.risk))||6)); m[r]=(m[r]||0)+p._value; });
-    return [3,4,5,6,7,8,9].filter(r=>m[r]>0).map(r=>({name:'Rischio '+r,value:m[r],c:riskColor(r)}));
-  }
-  const key=v==='factor'?(p=>normFactor(p.factor)):(p=>String(p[v]||'').trim()||'—');
-  const m={};
-  rows.forEach(p=>{ const k=key(p); m[k]=(m[k]||0)+p._value; });
-  return Object.keys(m).map(k=>({name:k,value:m[k],c:v==='factor'?FACTOR_COLORS[k]:null}))
-    .filter(g=>g.value>0).sort((a,b)=>b.value-a.value);
+  /* titoli raggruppati: ognuno prende il colore del suo gruppo, i gruppi
+     seguono l'ordine della scheda corrispondente e dentro vanno per valore */
+  const out=[];
+  allocGroups(rows,UI.allocGroup).forEach(g=>g.rows.filter(p=>p._value>0)
+    .sort((a,b)=>b._value-a._value)
+    .forEach(p=>out.push({name:title(p),value:p._value,id:p.id,c:g.c,group:g.name,groupValue:g.value})));
+  return out;
 }
 function renderAlloc(){
   const arr=allocList(), total=arr.reduce((a,g)=>a+g.value,0);
   const donut=$('#donut'), legend=$('#legend');
+  /* un ridisegno a mouse fermo sopra una voce non deve lasciare la ciambella in penombra */
+  donut.classList.remove('hovering');
+  const grouped=arr.length&&arr[0].group!=null;
+  const pct=v=>nf(total>0?v/total*100:0,1)+'%';
+  const ag=$('#aGroup');
+  ag.style.display=UI.allocView==='pos'?'':'none'; ag.value=UI.allocGroup||'';
   const R=72,CX=100,CY=100,SW=26,circ=2*Math.PI*R;
   let segs='',off=0;
   if(total<=0||!arr.length){
@@ -3328,37 +3364,51 @@ function renderAlloc(){
   }else{
     arr.forEach((g,i)=>{
       const len=g.value/total*circ;
-      segs+='<circle class="dseg" data-i="'+i+'" cx="'+CX+'" cy="'+CY+'" r="'+R+'" fill="none" '+
-        'stroke="'+(g.c||PAL[i%PAL.length])+'" stroke-width="'+SW+'" stroke-dasharray="'+len.toFixed(2)+' '+(circ-len).toFixed(2)+'" '+
+      /* titoli dello stesso gruppo hanno lo stesso colore: un filo di stacco li separa */
+      const gap=grouped?Math.min(1.2,len*.35):0;
+      segs+='<circle class="dseg" data-i="'+i+'"'+(grouped?' data-g="'+esc(g.group)+'"':'')+
+        ' cx="'+CX+'" cy="'+CY+'" r="'+R+'" fill="none" '+
+        'stroke="'+(g.c||PAL[i%PAL.length])+'" stroke-width="'+SW+'" stroke-dasharray="'+(len-gap).toFixed(2)+' '+(circ-len+gap).toFixed(2)+'" '+
         'stroke-dashoffset="'+(-off).toFixed(2)+'" transform="rotate(-90 '+CX+' '+CY+')"/>';
       off+=len;
     });
   }
   donut.innerHTML='<svg viewBox="0 0 200 200" width="200" height="200">'+segs+'</svg>'+
     '<div class="dcenter" id="dcenter"></div>';
-  const def=()=>{ $('#dcenter').innerHTML='<div><div class="l">Totale</div>'+
-    '<div class="v num mask">'+money0(total)+'</div>'+
-    '<div class="s">'+arr.length+(arr.length===1?' voce':' voci')+'</div></div>'; };
+  const center=(l,v,s)=>{ $('#dcenter').innerHTML='<div><div class="l">'+esc(l)+'</div>'+
+    '<div class="v num mask">'+money0(v)+'</div><div class="s">'+s+'</div></div>'; };
+  const def=()=>center('Totale',total,arr.length+(arr.length===1?' voce':' voci'));
   def();
   legend.innerHTML=arr.length?arr.map((g,i)=>
-    '<div class="leg" data-i="'+i+'"><span class="dot" style="background:'+(g.c||PAL[i%PAL.length])+'"></span>'+
+    (grouped&&(i===0||arr[i-1].group!==g.group)
+      ?'<div class="leg-g" data-g="'+esc(g.group)+'"><span class="dot" style="background:'+g.c+'"></span>'+
+       '<span class="nm">'+esc(g.group)+'</span><span class="am mask">'+money0(g.groupValue)+'</span>'+
+       '<span class="pc">'+pct(g.groupValue)+'</span></div>':'')+
+    '<div class="leg'+(grouped?' sub" data-g="'+esc(g.group):'')+'" data-i="'+i+'"><span class="dot" style="background:'+(g.c||PAL[i%PAL.length])+'"></span>'+
     '<span class="nm">'+esc(g.name)+'</span><span class="am mask">'+money0(g.value)+'</span>'+
-    '<span class="pc">'+nf(total>0?g.value/total*100:0,1)+'%</span></div>').join('')
+    '<span class="pc">'+pct(g.value)+'</span></div>').join('')
     :'<div class="note" style="margin:0">'+(activeCount()?'Nessun titolo corrisponde ai filtri.'
       :'Aggiungi una posizione per vedere l\'allocazione.')+'</div>';
 
+  /* evidenzia i segmenti e le righe che soddisfano `on` */
+  const mark=on=>{
+    donut.classList.add('hovering');
+    $$('#donut .dseg').forEach(s=>s.classList.toggle('hi',on(s)));
+    $$('#legend .leg,#legend .leg-g').forEach(l=>l.style.background=on(l)?'var(--surface-2)':'');
+  };
   const hi=i=>{
     const g=arr[i]; if(!g)return;
-    donut.classList.add('hovering');
-    $$('#donut .dseg').forEach(s=>s.classList.toggle('hi',s.getAttribute('data-i')===String(i)));
-    $$('#legend .leg').forEach(l=>l.style.background=l.getAttribute('data-i')===String(i)?'var(--surface-2)':'');
-    $('#dcenter').innerHTML='<div><div class="l">'+esc(g.name)+'</div>'+
-      '<div class="v num mask">'+money0(g.value)+'</div>'+
-      '<div class="s">'+nf(total>0?g.value/total*100:0,1)+'% del totale</div></div>';
+    mark(e=>e.getAttribute('data-i')===String(i));
+    center(g.name,g.value,(grouped?esc(g.group)+' · ':'')+pct(g.value)+' del totale');
+  };
+  const hiG=k=>{
+    const g=arr.filter(x=>x.group===k)[0]; if(!g)return;
+    mark(e=>e.getAttribute('data-g')===k);
+    center(k,g.groupValue,pct(g.groupValue)+' del totale');
   };
   const off2=()=>{ donut.classList.remove('hovering');
     $$('#donut .dseg').forEach(s=>s.classList.remove('hi'));
-    $$('#legend .leg').forEach(l=>l.style.background=''); def(); };
+    $$('#legend .leg,#legend .leg-g').forEach(l=>l.style.background=''); def(); };
   $$('#donut .dseg').forEach(s=>{
     s.addEventListener('mouseenter',()=>hi(+s.getAttribute('data-i')));
     s.addEventListener('mouseleave',off2);
@@ -3368,6 +3418,10 @@ function renderAlloc(){
     l.addEventListener('mouseenter',()=>hi(i));
     l.addEventListener('mouseleave',off2);
     l.addEventListener('click',()=>{ if(UI.allocView==='pos'&&arr[i].id)openDrawer(arr[i].id); });
+  });
+  $$('#legend .leg-g').forEach(l=>{
+    l.addEventListener('mouseenter',()=>hiG(l.getAttribute('data-g')));
+    l.addEventListener('mouseleave',off2);
   });
 }
 
@@ -7051,6 +7105,7 @@ function wire(){
     $$('#allocSeg button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
     UI.allocView=b.getAttribute('data-v'); renderAlloc();
   }));
+  $('#aGroup').addEventListener('change',e=>{ UI.allocGroup=e.target.value; renderAlloc(); });
   [['#aFltCls','cls'],['#aFltSector','sector'],['#aFltCountry','country']].forEach(([sel,f])=>{
     $(sel).addEventListener('change',e=>{ UI.allocFilters[f]=e.target.value; renderAlloc(); });
   });
