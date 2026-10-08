@@ -894,6 +894,10 @@ html[data-theme="light"] .maptbl select{background:#fff}
   /* 9 fattori non stanno in orizzontale: etichette in verticale, dal basso */
   #factorBar{gap:5px;height:230px}
   #factorBar .lv{writing-mode:vertical-rl;transform:rotate(180deg);width:auto;height:64px;text-align:end}
+  /* le 6 schede dell'allocazione non stanno in una riga: griglia 3×2 a tutta larghezza */
+  .card-hd .right.wide-sm{margin-left:0;width:100%}
+  #allocSeg{display:grid;grid-template-columns:repeat(3,1fr);width:100%}
+  #allocSeg button{padding:6px 4px}
 }
 /* ==========================================================================
    HEAT MAP — performance mensile
@@ -1044,10 +1048,11 @@ html[data-theme="light"] .maptbl select{background:#fff}
           <div class="card">
             <div class="card-hd">
               <h2><span class="chip a" id="chipAlloc"></span> Allocazione</h2>
-              <div class="right">
+              <div class="right wide-sm">
                 <span class="seg" id="allocSeg">
                   <button data-v="pos" class="on">Titolo</button><button data-v="cls">Categoria</button>
                   <button data-v="sector">Settore</button><button data-v="country">Paese</button>
+                  <button data-v="factor">Fattore</button><button data-v="risk">Rischio</button>
                 </span>
               </div>
             </div>
@@ -1078,6 +1083,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
           </div>
           <div class="filters">
             <input type="text" class="fs" id="fltSearch" placeholder="Cerca titolo o nome…">
+            <select id="fltPlatform" aria-label="Piattaforma"></select>
             <select id="fltCls"></select>
             <select id="fltSector"></select>
             <select id="fltCountry"></select>
@@ -1778,7 +1784,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
       <div class="frow">
         <div class="field"><label>Fondo emergenza</label><select id="fEmergency">
           <option value="">—</option><option value="1">Sì</option></select></div>
-        <div class="field"></div>
+        <div class="field"><label>Piattaforma</label><select id="fPlatform"></select></div>
       </div>
       <div class="field"><label>Mesi di stacco dividendi</label>
         <input id="fDivMonths" placeholder="es. 3, 6, 9, 12">
@@ -2083,7 +2089,7 @@ let S=blankState();
 const UI={
   page:'dashboard', heroRange:'1A', heroMode:'value',
   allocView:'pos', allocFilters:{cls:'',sector:'',country:''},
-  filters:{search:'',cls:'',sector:'',country:'',action:''},
+  filters:{search:'',platform:'',cls:'',sector:'',country:'',action:''},
   sortK:'_value', sortDir:-1,
   editId:null, editTx:[], drawerId:null,
   expo:{level:'cat',leaf:null},
@@ -3160,6 +3166,7 @@ function demoData(){
      titolo è entrato davvero in portafoglio */
   const ago=m=>{ const d=new Date(); d.setMonth(d.getMonth()-m); return d.toISOString().slice(0,10); };
   [28,26,24,20,16,14,10,7,4].forEach((m,i)=>{ if(P[i])P[i].dateAdded=ago(m); });
+  P.forEach((p,i)=>{ p.platform=PLATFORMS[i%PLATFORMS.length].k; });
   /* la prima posizione mostra il registro transazioni in azione */
   P[1].tx=[
     {id:uid(),type:'buy',date:'2023-03-14',qty:20,price:148.2,fee:2.5},
@@ -3220,6 +3227,25 @@ function riskColor(v){
   return {3:'#25c685',4:'#5cc48d',5:'#b9b23f',6:'#e8b13c',7:'#ef8f3c',8:'#f2565b',9:'#d4353c'}[v];
 }
 function normFactor(f){ f=(f||'').trim(); return FACTORS.indexOf(f)>-1?f:'Nessuno'; }
+/* Piattaforma su cui è stato acquistato il titolo. Non ha una colonna in
+   tabella: si sceglie nella scheda, si legge nel dettaglio e serve al filtro.
+   Il simbolo è un pallino colorato, così il colore resta visibile anche nei
+   menu a tendina nativi, che non accettano stili sulle opzioni. */
+const PLATFORMS=[
+  {k:'Fineco',s:'🔵'},
+  {k:'Directa',s:'🟠'},
+  {k:'Scalable Capital',s:'🟢'}
+];
+const PF_NONE='-'; /* valore del filtro per i titoli senza piattaforma */
+function normPlatform(v){
+  const s=String(v==null?'':v).toLowerCase();
+  if(s.indexOf('fineco')>-1)return 'Fineco';
+  if(s.indexOf('directa')>-1)return 'Directa';
+  if(s.indexOf('scalable')>-1)return 'Scalable Capital';
+  return '';
+}
+const platformOf=v=>PLATFORMS.filter(x=>x.k===normPlatform(v))[0]||null;
+const platformLabel=v=>{ const pf=platformOf(v); return pf?pf.s+' '+pf.k:''; };
 
 /* ---------- filtri ---------- */
 function matchFilters(p,f){
@@ -3230,6 +3256,7 @@ function matchFilters(p,f){
   if(f.cls&&(p.cls||'')!==f.cls)return false;
   if(f.sector&&(p.sector||'')!==f.sector)return false;
   if(f.country&&(p.country||'')!==f.country)return false;
+  if(f.platform&&normPlatform(p.platform)!==(f.platform===PF_NONE?'':f.platform))return false;
   if(f.action&&p._action!==f.action)return false;
   return true;
 }
@@ -3255,6 +3282,15 @@ function populateFilters(){
   fillSelect('#aFltCls','cls','Categoria: tutte',UI.allocFilters);
   fillSelect('#aFltSector','sector','Settore: tutti',UI.allocFilters);
   fillSelect('#aFltCountry','country','Paese: tutti',UI.allocFilters);
+  /* piattaforme: elenco fisso con il numero di titoli di ognuna; "Senza
+     piattaforma" compare solo finché c'è qualcosa da assegnare */
+  const fp=$('#fltPlatform'), nPf={};
+  activePositions().forEach(p=>{ const k=normPlatform(p.platform)||PF_NONE; nPf[k]=(nPf[k]||0)+1; });
+  if(UI.filters.platform===PF_NONE&&!nPf[PF_NONE])UI.filters.platform='';
+  fp.innerHTML='<option value="">Piattaforma: tutte</option>'+
+    PLATFORMS.concat(nPf[PF_NONE]?[{k:PF_NONE,s:'⚪',l:'Senza piattaforma'}]:[]).map(pf=>
+      '<option value="'+esc(pf.k)+'"'+(UI.filters.platform===pf.k?' selected':'')+'>'+
+      pf.s+' '+esc(pf.l||pf.k)+' ('+(nPf[pf.k]||0)+')</option>').join('');
   const fa=$('#fltAction');
   fa.innerHTML='<option value="">Azione: tutte</option>'+
     Object.keys(ACT).map(a=>'<option'+(UI.filters.action===a?' selected':'')+'>'+esc(a)+'</option>').join('');
@@ -3268,9 +3304,19 @@ function allocList(){
     return rows.map(p=>({name:(p.name||'').trim()||(p.ticker||'').trim()||'—',value:p._value,id:p.id}))
       .filter(g=>g.value>0).sort((a,b)=>b.value-a.value);
   }
+  /* Fattore e Rischio si leggono come nel resto della dashboard (fattore
+     mancante = Nessuno, rischio mancante = 6) e tengono i colori dei grafici
+     in Analisi; il rischio è una scala, quindi va dal 3 al 9 invece che per peso */
+  if(v==='risk'){
+    const m={};
+    rows.forEach(p=>{ const r=Math.max(3,Math.min(9,Math.round(num(p.risk))||6)); m[r]=(m[r]||0)+p._value; });
+    return [3,4,5,6,7,8,9].filter(r=>m[r]>0).map(r=>({name:'Rischio '+r,value:m[r],c:riskColor(r)}));
+  }
+  const key=v==='factor'?(p=>normFactor(p.factor)):(p=>String(p[v]||'').trim()||'—');
   const m={};
-  rows.forEach(p=>{ const k=String(p[v]||'').trim()||'—'; m[k]=(m[k]||0)+p._value; });
-  return Object.keys(m).map(k=>({name:k,value:m[k]})).filter(g=>g.value>0).sort((a,b)=>b.value-a.value);
+  rows.forEach(p=>{ const k=key(p); m[k]=(m[k]||0)+p._value; });
+  return Object.keys(m).map(k=>({name:k,value:m[k],c:v==='factor'?FACTOR_COLORS[k]:null}))
+    .filter(g=>g.value>0).sort((a,b)=>b.value-a.value);
 }
 function renderAlloc(){
   const arr=allocList(), total=arr.reduce((a,g)=>a+g.value,0);
@@ -3283,7 +3329,7 @@ function renderAlloc(){
     arr.forEach((g,i)=>{
       const len=g.value/total*circ;
       segs+='<circle class="dseg" data-i="'+i+'" cx="'+CX+'" cy="'+CY+'" r="'+R+'" fill="none" '+
-        'stroke="'+PAL[i%PAL.length]+'" stroke-width="'+SW+'" stroke-dasharray="'+len.toFixed(2)+' '+(circ-len).toFixed(2)+'" '+
+        'stroke="'+(g.c||PAL[i%PAL.length])+'" stroke-width="'+SW+'" stroke-dasharray="'+len.toFixed(2)+' '+(circ-len).toFixed(2)+'" '+
         'stroke-dashoffset="'+(-off).toFixed(2)+'" transform="rotate(-90 '+CX+' '+CY+')"/>';
       off+=len;
     });
@@ -3295,7 +3341,7 @@ function renderAlloc(){
     '<div class="s">'+arr.length+(arr.length===1?' voce':' voci')+'</div></div>'; };
   def();
   legend.innerHTML=arr.length?arr.map((g,i)=>
-    '<div class="leg" data-i="'+i+'"><span class="dot" style="background:'+PAL[i%PAL.length]+'"></span>'+
+    '<div class="leg" data-i="'+i+'"><span class="dot" style="background:'+(g.c||PAL[i%PAL.length])+'"></span>'+
     '<span class="nm">'+esc(g.name)+'</span><span class="am mask">'+money0(g.value)+'</span>'+
     '<span class="pc">'+nf(total>0?g.value/total*100:0,1)+'%</span></div>').join('')
     :'<div class="note" style="margin:0">'+(activeCount()?'Nessun titolo corrisponde ai filtri.'
@@ -3450,6 +3496,8 @@ function initPosForm(){
   $('#fCls').innerHTML=CLASSES.map(c=>'<option>'+esc(c)+'</option>').join('');
   $('#fCur').innerHTML=CURRENCIES.map(c=>'<option>'+esc(c)+'</option>').join('');
   $('#fFactor').innerHTML=FACTORS.map(f=>'<option>'+esc(f)+'</option>').join('');
+  $('#fPlatform').innerHTML='<option value="">—</option>'+
+    PLATFORMS.map(pf=>'<option value="'+esc(pf.k)+'">'+pf.s+' '+esc(pf.k)+'</option>').join('');
   buildCountryList(); buildSectorList();
 }
 /* etichette canoniche già presenti nei dati, così i valori in uso restano suggeriti */
@@ -3511,6 +3559,7 @@ function openPos(id){
   $('#fYield').value=fnum(p&&p.yield!=null?p.yield:'');
   $('#fFactor').value=p?normFactor(p.factor):'Nessuno';
   $('#fEmergency').value=p&&p.emergency?'1':'';
+  $('#fPlatform').value=p?normPlatform(p.platform):'';
   $('#fCompSector').value=p?(p.compSector||''):'';
   $('#fCompCountry').value=p?(p.compCountry||''):'';
   $('#fDivMonths').value=p?(p.divMonths||''):'';
@@ -3585,6 +3634,7 @@ function savePos(){
   p.risk=$('#fRisk').value===''?null:Math.max(3,Math.min(9,Math.round(num($('#fRisk').value))));
   p.yield=$('#fYield').value===''?null:num($('#fYield').value);
   p.factor=$('#fFactor').value; p.emergency=$('#fEmergency').value?1:0;
+  p.platform=normPlatform($('#fPlatform').value);
   p.compSector=normComposition($('#fCompSector').value.trim(),normSector);
   p.compCountry=normComposition($('#fCompCountry').value.trim(),normCountry);
   p.divMonths=$('#fDivMonths').value.trim();
@@ -3736,6 +3786,7 @@ function openDrawer(id){
     d.usesTx?['Dividendi incassati',money(p._div),1]:null,
     ['Yield dividendo',p.yield!=null&&p.yield!==''?nf(num(p.yield),2)+'%':'—',0],
     ['Rendita annua stimata',p.yield?money(p._value*num(p.yield)/100):'—',1],
+    ['Piattaforma',esc(platformLabel(p.platform)||'—'),0],
     ['Categoria',esc(p.cls||'—'),0],
     ['Settore',esc(p.sector||'—'),0],
     ['Paese / Area',esc(p.country||'—'),0],
@@ -6459,7 +6510,7 @@ function parseCSV(text){
 }
 const CSV_FIELDS=[
   ['ticker','Ticker / Simbolo *'],['name','Nome'],['cls','Categoria'],['sector','Settore'],
-  ['country','Paese / Area'],['currency','Valuta'],['qty','Quantità *'],['avg','Prezzo di carico / operazione *'],
+  ['country','Paese / Area'],['currency','Valuta'],['platform','Piattaforma'],['qty','Quantità *'],['avg','Prezzo di carico / operazione *'],
   ['price','Prezzo attuale'],['yield','Yield dividendo %'],['risk','Rischio 3–9'],['factor','Fattore'],
   ['targetWeight','Peso previsto %'],['dateAdded','Data / In portafoglio dal'],
   ['txType','Operazione (acquisto/vendita)'],['fee','Commissione'],
@@ -6477,6 +6528,7 @@ const CSV_HINTS={
   price:['attuale','corrente','current','last','ultimo','chiusura','close','prezzo','mercato',
          'market','quotazione','valore unit'],
   currency:['valuta','currency','divisa','ccy'],
+  platform:['piattaforma','platform','broker','intermediario'],
   risk:['rischio','risk'],
   yield:['yield','dividend','rendiment','cedola','div%'],
   factor:['fattore','factor','stile','style'],
@@ -6588,6 +6640,7 @@ function csvPosFields(){
     ['sector','Settore',v=>normSector(v)],
     ['country','Paese / Area',v=>rememberCountry(v)],
     ['currency','Valuta',v=>{ const c=v.toUpperCase(); return CURRENCIES.indexOf(c)>-1?c:''; }],
+    ['platform','Piattaforma',v=>normPlatform(v)],
     ['price','Prezzo attuale',v=>num(v)],
     ['yield','Yield dividendo %',v=>num(v)],
     ['risk','Rischio',v=>Math.max(3,Math.min(9,Math.round(num(v))))],
@@ -6618,7 +6671,7 @@ function csvDoImport(){
     if(!p){
       p=byTicker[key]={
         id:uid(), ticker:key, name:'', cls:'Other', sector:'', country:'',
-        currency:'EUR', qty:0, avg:0, price:0, yield:null, risk:6,
+        currency:'EUR', platform:'', qty:0, avg:0, price:0, yield:null, risk:6,
         factor:'Nessuno', targetWeight:null, emergency:0, tx:[]
       };
       visti[key]={};
@@ -6709,12 +6762,12 @@ function download(name,content,type){
 const stamp=()=>new Date().toISOString().slice(0,10);
 function exportPositions(){
   if(!S.positions.length){ toast('Nessuna posizione da esportare','err'); return; }
-  const head=['Ticker','Nome','Categoria','Settore','Paese','Valuta','Quantità','Prezzo carico',
+  const head=['Ticker','Nome','Categoria','Settore','Paese','Valuta','Piattaforma','Quantità','Prezzo carico',
     'Prezzo attuale','Yield %','Rischio','Fattore','Peso previsto %','In portafoglio dal','Mesi stacco',
     'Chiusa il','Valore EUR','G/P EUR','G/P %','Realizzato EUR'];
   const lines=[head.join(',')];
   S.positions.forEach(p=>lines.push([
-    p.ticker,p.name||'',p.cls||'',p.sector||'',p.country||'',p.currency||'EUR',
+    p.ticker,p.name||'',p.cls||'',p.sector||'',p.country||'',p.currency||'EUR',normPlatform(p.platform),
     p._q,p._avg,num(p.price),p.yield==null?'':num(p.yield),Math.round(num(p.risk))||6,
     normFactor(p.factor),p.targetWeight==null?'':num(p.targetWeight),p.dateAdded||'',p.divMonths||'',
     p.closedDate||'',p._value.toFixed(2),p._pnl.toFixed(2),p._pnlPct.toFixed(2),num(p._realized).toFixed(2)
@@ -7009,11 +7062,12 @@ function wire(){
   $('#fltSearch').addEventListener('input',e=>{
     UI.filters.search=e.target.value; $('#globalSearch').value=e.target.value; renderTable();
   });
-  [['#fltCls','cls'],['#fltSector','sector'],['#fltCountry','country'],['#fltAction','action']].forEach(([sel,f])=>{
+  [['#fltPlatform','platform'],['#fltCls','cls'],['#fltSector','sector'],['#fltCountry','country'],
+   ['#fltAction','action']].forEach(([sel,f])=>{
     $(sel).addEventListener('change',e=>{ UI.filters[f]=e.target.value; renderTable(); });
   });
   $('#fltClear').addEventListener('click',()=>{
-    UI.filters={search:'',cls:'',sector:'',country:'',action:''};
+    UI.filters={search:'',platform:'',cls:'',sector:'',country:'',action:''};
     $('#globalSearch').value=''; populateFilters(); renderTable();
   });
 
