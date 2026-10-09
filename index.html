@@ -233,6 +233,11 @@ html[data-theme="light"] .seg button.on{background:#fff}
 .grid{display:grid;gap:18px}
 .g2{grid-template-columns:1fr 1fr}
 .g2-wide{grid-template-columns:1.35fr .65fr}
+/* dashboard: Allocazione + Contributo, col Contributo un po' più largo
+   (filtri, ordinamento e totale). Con 1.25/.75 le 6 schede dell'Allocazione
+   restano su una riga da 1280px in su e la legenda resta accanto alla
+   ciambella fino a 1120px, dove la griglia va comunque su una colonna. */
+.g2-dash{grid-template-columns:1.25fr .75fr}
 .g3{grid-template-columns:repeat(3,1fr)}
 
 /* ==========================================================================
@@ -471,6 +476,15 @@ html[data-theme="light"] .filters select,html[data-theme="light"] .filters input
 
 /* --- contributo al risultato --- */
 .contrib{display:flex;flex-direction:column;gap:12px;max-height:320px;overflow-y:auto;padding-right:4px}
+/* totale della scheda aperta: fuori dall'elenco, così non scorre via */
+/* etichetta su una riga sua, importo e percentuale sotto, come nei KPI:
+   "Guadagno / Perdita · 🟢 Scalable Capital" non sta accanto all'importo */
+.ctot{display:flex;align-items:baseline;column-gap:10px;row-gap:3px;flex-wrap:wrap;padding-bottom:12px;
+  margin-bottom:14px;border-bottom:1px solid var(--line-soft)}
+.ctot:empty{display:none}
+.ctot .l{flex:1 0 100%;font-size:12px;font-weight:650;color:var(--muted)}
+.ctot .v{font-size:18px;font-weight:750;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+.ctot .p{font-size:12.5px;font-weight:650;font-variant-numeric:tabular-nums}
 .cr .top{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;margin-bottom:5px}
 .cr .top .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .cr .top .a{font-weight:700;flex:none;font-variant-numeric:tabular-nums}
@@ -844,7 +858,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
    14. RESPONSIVE
    ========================================================================== */
 @media(max-width:1120px){
-  .g2-wide{grid-template-columns:1fr}
+  .g2-wide,.g2-dash{grid-template-columns:1fr}
   .kpis{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:980px){
@@ -1061,7 +1075,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
 
         <div class="kpis mt18" id="kpis"></div>
 
-        <div class="grid g2-wide mt18">
+        <div class="grid g2-dash mt18">
           <div class="card">
             <div class="card-hd">
               <h2><span class="chip a" id="chipAlloc"></span> Allocazione</h2>
@@ -1107,7 +1121,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
                 </span></span>
               <span class="fcount" id="contribSub"></span>
             </div>
-            <div class="card-bd"><div class="contrib" id="contrib"></div></div>
+            <div class="card-bd"><div class="ctot" id="contribTot"></div><div class="contrib" id="contrib"></div></div>
           </div>
         </div>
 
@@ -3489,8 +3503,17 @@ function renderContrib(){
       ?'Aggiungi posizioni con un prezzo di carico per vedere chi contribuisce al risultato.'
       :act.length?'Aggiorna i prezzi per vedere la variazione di oggi dei singoli titoli.'
       :'Aggiungi posizioni per vedere la variazione di oggi dei singoli titoli.')+'</div>';
-    $('#contribSub').textContent=''; return;
+    $('#contribSub').textContent=''; $('#contribTot').innerHTML=''; return;
   }
+  /* totale dei titoli mostrati, con la percentuale calcolata come nei KPI:
+     G/P sul capitale investito, variazione di oggi sul valore di ieri */
+  const sum=f=>arr.reduce((a,p)=>a+num(p[f]),0), shown=sum(k);
+  const base=day?sum('_value')-shown:sum('_cost'), shownPct=base>0?shown/base*100:0;
+  const pfLbl=UI.contribPlatform===PF_NONE?'⚪ Senza piattaforma':platformLabel(UI.contribPlatform);
+  $('#contribTot').innerHTML='<span class="l">'+(day?'Variazione di oggi':'Guadagno / Perdita')+
+    ' · '+esc(pfLbl||'tutte le piattaforme')+'</span>'+
+    '<span class="v mask '+(shown>=0?'up':'down')+'">'+(shown>=0?'+':'−')+money0(Math.abs(shown))+'</span>'+
+    '<span class="p '+(shown>=0?'up':'down')+'">'+pctv(shownPct)+'</span>';
   const win=arr.filter(p=>p[k]>0).length, lose=arr.filter(p=>p[k]<0).length, flat=arr.length-win-lose;
   $('#contribSub').textContent=day
     ?win+' in rialzo · '+lose+' in ribasso'+(flat?' · '+flat+(flat===1?' invariato':' invariati'):'')
