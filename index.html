@@ -243,7 +243,7 @@ html[data-theme="light"] .seg button.on{background:#fff}
 /* ==========================================================================
    7. KPI
    ========================================================================== */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;min-width:0}
 .kpi .l{font-size:11.5px;font-weight:650;letter-spacing:.3px;color:var(--muted);
   display:flex;align-items:center;gap:6px;text-transform:uppercase}
@@ -429,11 +429,11 @@ html[data-theme="light"] .field textarea,html[data-theme="light"] .inp{backgroun
 /* --- barra filtri --- */
 .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 20px;
   border-bottom:1px solid var(--line-soft)}
-.filters select,.filters input{padding:7px 11px;border-radius:9px;border:1px solid var(--line);
+.filters select,.filters input,.hsel{padding:7px 11px;border-radius:9px;border:1px solid var(--line);
   background:var(--surface-2);font-size:12.5px;color:var(--ink);outline:none;max-width:100%;
   transition:border-color .15s}
-html[data-theme="light"] .filters select,html[data-theme="light"] .filters input{background:#fff}
-.filters select:focus,.filters input:focus{border-color:var(--accent)}
+html[data-theme="light"] .filters select,html[data-theme="light"] .filters input,html[data-theme="light"] .hsel{background:#fff}
+.filters select:focus,.filters input:focus,.hsel:focus{border-color:var(--accent)}
 .filters .fs{flex:1;min-width:170px;max-width:250px}
 .fcount{font-size:12px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
 .flbl{font-size:12px;color:var(--muted);font-weight:600}
@@ -860,6 +860,8 @@ html[data-theme="light"] .maptbl select{background:#fff}
 @media(max-width:1120px){
   .g2-wide,.g2-dash{grid-template-columns:1fr}
   .kpis{grid-template-columns:repeat(2,1fr)}
+  /* su due colonne la quinta card resterebbe sola a metà riga: prende la riga intera */
+  .kpis>.kpi:nth-child(5){grid-column:1/-1}
 }
 @media(max-width:980px){
   .app{grid-template-columns:1fr}
@@ -893,6 +895,8 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .dw-hd,.dw-bd{padding-left:16px;padding-right:16px}
   .gauges{grid-template-columns:1fr}
   .qgrid{grid-template-columns:1fr 1fr}
+  /* con un numero dispari di box l'ultimo prende la riga intera */
+  .qgrid>.kpi:last-child:nth-child(odd){grid-column:1/-1}
   .tmap{height:300px}
   .barbell{height:150px}
   /* su schermi stretti la riga diventa: nome + target sopra, valore + azione sotto */
@@ -929,6 +933,10 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .card-hd .right.wide-sm{margin-left:0;width:100%}
   #allocSeg{display:grid;grid-template-columns:repeat(3,1fr);width:100%}
   #allocSeg button{padding:6px 4px}
+  /* tabellina per anno dello Storico: quattro colonne devono stare nello schermo */
+  .ytbl th,.ytbl td{padding-left:7px;padding-right:7px}
+  .ytbl th{letter-spacing:.1px}
+  .ytbl td:first-child .cellsub{display:block}
 }
 /* ==========================================================================
    HEAT MAP — performance mensile
@@ -1494,12 +1502,14 @@ html[data-theme="light"] .maptbl select{background:#fff}
 
         <div class="card mt18">
           <div class="card-hd"><h2><span class="chip a" id="chipBench"></span> Rendimento a confronto</h2>
-            <div class="right"><button class="btn btn-ghost btn-sm" id="btnBench"><span class="ic"></span> Scarica indici</button></div></div>
+            <div class="right"><select class="hsel" id="benchPick" aria-label="Indice per le metriche"></select>
+              <button class="btn btn-ghost btn-sm" id="btnBench"><span class="ic"></span> Scarica indici</button></div></div>
           <div class="card-bd">
             <div class="bleg-wrap" id="benchLegend"></div>
             <div class="chart-host" id="benchChart"></div>
             <div class="statusline" id="benchStatus"></div>
-            <div class="note mt18">Confronta il rendimento percentuale del tuo portafoglio con alcuni indici di riferimento, a partire dalla data del primo punto della serie. Il rendimento del portafoglio è <b>time-weighted</b>: misura quanto hanno reso i titoli, non quanto capitale hai versato, così il confronto con gli indici è alla pari (versamenti e prelievi non lo alterano). I rendimenti degli indici sono nella loro valuta originale (nessun effetto cambio) e includono i dividendi reinvestiti. Clicca un'etichetta per mostrarla o nasconderla.</div>
+            <div id="benchStats"></div>
+            <div class="note mt18">Confronta il rendimento percentuale del tuo portafoglio con alcuni indici di riferimento, a partire dalla data del primo punto della serie. Il rendimento del portafoglio è <b>time-weighted</b>: misura quanto hanno reso i titoli, non quanto capitale hai versato, così il confronto con gli indici è alla pari (versamenti e prelievi non lo alterano). I rendimenti degli indici sono nella loro valuta originale (nessun effetto cambio) e includono i dividendi reinvestiti. Clicca un'etichetta per mostrarla o nasconderla. Le metriche sotto il grafico confrontano i rendimenti time-weighted mese per mese con l'indice scelto in alto, entrambi senza effetto cambio: nascondere una serie dal grafico non le cambia.</div>
           </div>
         </div>
 
@@ -2131,7 +2141,7 @@ function blankState(){
     fx:{EUR:1}, lastUpdate:0, updatedAt:0,
     settings:{theme:'dark',privacy:false,collapsed:false,riskFree:2,proxy:'',
               rebalanceBands:[10,20,30],capGainTax:26,
-              scenBench:'6040',scenSel:'inflEU',scenSens:{}}
+              scenBench:'6040',scenSel:'inflEU',scenSens:{},benchKey:'URTH'}
   };
 }
 let S=blankState();
@@ -2209,6 +2219,10 @@ function normalizeState(){
     if(c!==k)dirty=true;
   });
   S.targets=tg;
+  /* indice delle metriche nello Storico: una chiave che non è più fra gli
+     indici disponibili torna al default invece di lasciare le metriche vuote */
+  if(S.settings&&S.settings.benchKey!=null&&typeof BENCH_LIST!=='undefined'&&
+     !BENCH_LIST.some(b=>b.key===S.settings.benchKey)){ S.settings.benchKey='URTH'; dirty=true; }
   return dirty;
 }
 let saveT=null,storageWarned=false;
@@ -2913,6 +2927,107 @@ function renderOrphanRow(){
     ') · <button class="btn btn-ghost btn-sm" id="btnDropOrph">Rimuovi</button>';
   const b=$('#btnDropOrph'); if(b)b.addEventListener('click',dropOrphanHist);
 }
+/* --------------------------------------------------------------------------
+   9b. RENDIMENTO PERSONALE (XIRR)
+   Il TWR dello Storico misura quanto hanno reso i titoli e ignora apposta i
+   versamenti. Qui la domanda è l'altra: quanto hai guadagnato TU, con il
+   capitale che hai messo e nei momenti in cui l'hai messo. Si risponde con il
+   tasso interno di rendimento sui flussi di cassa datati (convenzione Excel,
+   anno di 365 giorni).
+   -------------------------------------------------------------------------- */
+const ISO_DAY=/^\d{4}-\d{2}-\d{2}$/;
+/* giorno di calendario in ms (mezzogiorno UTC): differenze in giorni interi,
+   senza la mezz'ora fantasma dei cambi d'ora */
+function dayMs(iso){ const p=String(iso).split('-'); return Date.UTC(+p[0],p[1]-1,+p[2],12); }
+/* Tasso r tale che Σ v_i / (1+r)^((t_i − t_0)/base) = 0, con base 365 giorni
+   (XIRR annuo). Con base = durata del periodo dà il rendimento del periodo,
+   senza passare per un tasso annuo che su pochi mesi può esplodere.
+   Newton da 0,1; se non converge o esce dall'intervallo, bisezione. */
+function xirr(flows,base){
+  const f=(flows||[]).filter(x=>x&&isFinite(x.t)&&isFinite(x.v)&&x.v!==0).slice().sort((a,b)=>a.t-b.t);
+  if(f.length<2||!f.some(x=>x.v<0)||!f.some(x=>x.v>0))return null;
+  const t0=f[0].t, unit=(base||365)*864e5, yrs=f.map(x=>(x.t-t0)/unit);
+  if(!(yrs[yrs.length-1]>0))return null;
+  const npv=r=>{ let s=0; for(let i=0;i<f.length;i++)s+=f[i].v/Math.pow(1+r,yrs[i]); return s; };
+  const dnpv=r=>{ let s=0; for(let i=0;i<f.length;i++)s-=yrs[i]*f[i].v/Math.pow(1+r,yrs[i]+1); return s; };
+  const LO=-0.9999, HI=100, TOL=1e-7;
+  let r=0.1;
+  for(let i=0;i<50;i++){
+    const v=npv(r), d=dnpv(r);
+    if(!isFinite(v)||!isFinite(d)||d===0)break;
+    const nr=r-v/d;
+    if(!isFinite(nr)||nr<=LO||nr>=HI)break;
+    if(Math.abs(nr-r)<TOL)return nr;
+    r=nr;
+  }
+  let a=LO,b=HI,fa=npv(a);
+  const fb=npv(b);
+  if(isNaN(fa)||isNaN(fb)||Math.sign(fa)===Math.sign(fb))return null;
+  for(let i=0;i<200&&b-a>TOL;i++){
+    const m=(a+b)/2, fm=npv(m);
+    if(fm===0)return m;
+    if(Math.sign(fm)===Math.sign(fa)){ a=m; fa=fm; } else b=m;
+  }
+  return (a+b)/2;
+}
+/* Flussi di cassa in euro, chiuse incluse: con il registro ogni transazione è
+   un flusso (txAmount, già firmato e al netto delle commissioni); senza
+   registro vale un solo acquisto qty × prezzo medio alla data "In portafoglio
+   dal". Senza né l'uno né l'altra la posizione è esclusa — e con lei il suo
+   valore attuale, altrimenti risulterebbe un guadagno pari a tutto il valore.
+   Lo stesso vale se una transazione non ha data. Il cambio è quello di oggi,
+   come nel resto dell'app: uno storico dei cambi non c'è. */
+function personalFlows(){
+  const byDay={}, excluded=[];
+  let excludedValue=0;
+  const add=(iso,v)=>{ if(v&&isFinite(v))byDay[iso]=(byDay[iso]||0)+v; };
+  (S.positions||[]).forEach(p=>{
+    if(!p)return;
+    const rate=fxRate(p.currency), tx=(p.tx||[]).filter(t=>t&&t.type);
+    const dated=tx.length&&tx.every(t=>ISO_DAY.test(String(t.date||'').slice(0,10)));
+    if(dated){ tx.forEach(t=>add(String(t.date).slice(0,10),txAmount(t)*rate)); return; }
+    if(!tx.length&&ISO_DAY.test(String(p.dateAdded||''))){
+      add(p.dateAdded,-num(p.qty)*num(p.avg)*rate); return; }
+    if(!tx.length&&num(p.qty)<=EPS_QTY)return;   /* vuota: non c'è niente da escludere */
+    excluded.push(p); if(!isClosed(p))excludedValue+=num(p._value);
+  });
+  const now=new Date();
+  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  add(today,num(T.value)-excludedValue);
+  const days=Object.keys(byDay).sort();
+  return {flows:days.map(d=>({t:dayMs(d),v:byDay[d]})),excluded:excluded,firstDate:days[0]||null};
+}
+/* XIRR annuo (o rendimento del periodo sotto l'anno) affiancato al TWR della
+   serie storica, annualizzato con la stessa regola dei 365 giorni */
+function personalReturn(){
+  const pf=personalFlows(), f=pf.flows;
+  const out={annual:null,period:null,days:0,firstDate:pf.firstDate,excludedN:pf.excluded.length,
+             twr:null,twrAnnualized:false};
+  if(f.length>=2){
+    out.days=Math.round((f[f.length-1].t-f[0].t)/864e5);
+    if(out.days>0)out.period=xirr(f,out.days);
+    if(out.days>=365)out.annual=xirr(f);
+  }
+  const H=currentHistSeries().pts;
+  if(H.length>=2){
+    const last=H[H.length-1], d=(last.t-H[0].t)/864e5, g=1+num(last.twr)/100;
+    if(d>0&&g>0){ out.twrAnnualized=d>=365; out.twr=out.twrAnnualized?Math.pow(g,365/d)-1:g-1; }
+  }
+  return out;
+}
+function kpiPersonal(){
+  const R=personalReturn();
+  const use=R.annual!=null?R.annual:(R.days<365?R.period:null);
+  const tip=['Quanto hai guadagnato tu (XIRR), tenendo conto di quando e quanto hai versato o incassato.',
+    'Il TWR misura invece quanto hanno reso i titoli, senza contare i versamenti: è quello giusto per il confronto con gli indici nello Storico.',
+    'Se i due divergono molto, ha pesato il momento in cui hai versato.',
+    'Gli importi in valuta estera sono convertiti al cambio di oggi.'];
+  if(R.excludedN)tip.push(R.excludedN+(R.excludedN===1?' posizione senza data esclusa':' posizioni senza data escluse')+' dal calcolo.');
+  if(use==null)return {l:'Rendimento annuo',v:'–',s:'servono acquisti con data',tip:tip.join('\n'),mask:1};
+  const twr=R.twr!=null?' · TWR '+pctv(R.twr*100,1)+(R.twrAnnualized?'':' nel periodo'):'';
+  return {l:'Rendimento annuo',v:pctv(use*100),cls:use>=0?'up':'down',mask:1,tip:tip.join('\n'),
+    s:R.annual!=null?'tuo, con i versamenti'+twr:'da '+fmtDate(R.firstDate)+' · non annualizzato'};
+}
 function renderKpis(){
   const cards=[
     {l:'Valore totale',v:money0(T.value),s:T.n+(T.n===1?' posizione':' posizioni'),mask:1},
@@ -2920,10 +3035,12 @@ function renderKpis(){
     {l:'Guadagno / Perdita',v:(T.pnl>=0?'+':'−')+'€ '+Math.round(Math.abs(T.pnl)).toLocaleString('it-IT'),
       s:pctv(T.pnlPct)+(T.realized?' · '+money0(T.realized)+' realizzati':''),cls:T.pnl>=0?'up':'down',mask:1},
     {l:'Variazione di oggi',v:(T.day>=0?'+':'−')+'€ '+Math.round(Math.abs(T.day)).toLocaleString('it-IT'),
-      s:T.day||T.dayPct?pctv(T.dayPct):'aggiorna i prezzi per vederla',cls:T.day>=0?'up':'down',mask:1}
+      s:T.day||T.dayPct?pctv(T.dayPct):'aggiorna i prezzi per vederla',cls:T.day>=0?'up':'down',mask:1},
+    kpiPersonal()
   ];
   $('#kpis').innerHTML=cards.map(c=>
-    '<div class="kpi"><div class="l">'+esc(c.l)+'</div>'+
+    '<div class="kpi"><div class="l">'+esc(c.l)+
+    (c.tip?'<span class="qhelp" title="'+esc(c.tip)+'">?</span>':'')+'</div>'+
     '<div class="v num '+(c.cls||'')+(c.mask?' mask':'')+'">'+c.v+'</div>'+
     '<div class="s'+(c.mask?' mask':'')+'">'+c.s+'</div></div>').join('');
   $('#tbValue').textContent=money0(T.value);
@@ -4524,14 +4641,51 @@ function renderHistFailRow(){
   const b=$('#btnRetryHist');
   if(b)b.addEventListener('click',()=>downloadHistory(retry));
 }
+/* Drawdown su un indice sintetico costruito dai rendimenti mensili (parte da
+   1). Durate in mesi: la caduta va dal picco al minimo del Max DD, il recupero
+   dal minimo al ritorno al livello del picco; il drawdown più lungo va dal
+   picco al recupero, o fino all'ultimo mese se è ancora in corso. */
+function drawdownStats(rets){
+  const v=[1];
+  for(let i=0;i<rets.length;i++)v.push(v[i]*(1+rets[i]));
+  let peak=v[0],pk=0,mdd=0,mddPk=0,mddTr=0,longest=0;
+  for(let j=1;j<v.length;j++){
+    if(v[j]>=peak){
+      if(j-pk>1)longest=Math.max(longest,j-pk);   /* tornato al massimo dopo almeno un mese sotto */
+      peak=v[j]; pk=j;
+    }else{
+      const dd=v[j]/peak-1;
+      if(dd<mdd){ mdd=dd; mddPk=pk; mddTr=j; }
+    }
+  }
+  const last=v.length-1;
+  if(pk<last)longest=Math.max(longest,last-pk);
+  let mddRecovery=null;
+  if(mdd<0)for(let k=mddTr+1;k<v.length;k++) if(v[k]>=v[mddPk]){ mddRecovery=k-mddTr; break; }
+  return {mdd:mdd,mddMonths:mddTr-mddPk,mddRecovery:mddRecovery,longest:longest,
+          current:v[last]/peak-1,currentMonths:last-pk};
+}
+/* Sortino: come lo Sharpe, ma il rischio è solo lo scarto sotto il tasso privo
+   di rischio, calcolato su tutti i mesi (quelli sopra la soglia contano zero) */
+function sortinoRatio(rets,rfAnnual){
+  if(!rets.length)return {ratio:null,downDev:0};
+  const rfm=Math.pow(1+rfAnnual,1/12)-1;
+  let s=0;
+  rets.forEach(r=>{ const d=Math.min(0,r-rfm); s+=d*d; });
+  const downDev=Math.sqrt(s/rets.length)*Math.sqrt(12);
+  return {ratio:downDev>0?(meanArr(rets)*12-rfAnnual)/downDev:null,downDev:downDev};
+}
+/* box di una metrica con il "?" esplicativo: lo usano Salute e Storico */
+function qbox(l,v,s,cls,tip){
+  return '<div class="kpi"><div class="l">'+esc(l)+'<span class="qhelp" title="'+esc(tip)+'">?</span></div>'+
+    '<div class="v num'+(cls?' '+cls:'')+'">'+v+'</div><div class="s">'+s+'</div></div>';
+}
 function renderQuant(){
   const wrap=$('#quantBody'); if(!wrap)return;
   renderOrphanRow(); renderHistFailRow();
   const rf=$('#fRiskFree');
   if(rf&&document.activeElement!==rf)rf.value=S.settings.riskFree!=null?S.settings.riskFree:2;
-  const info=t=>'<span class="qhelp" title="'+esc(t)+'">?</span>';
-  const box=(l,v,s,cls,tip)=>'<div class="kpi"><div class="l">'+esc(l)+info(tip)+'</div>'+
-    '<div class="v num'+(cls?' '+cls:'')+'">'+v+'</div><div class="s">'+s+'</div></div>';
+  const box=qbox;
   if(!activeCount()||T.value<=0){
     wrap.innerHTML='<div class="empty" style="padding:20px"><div class="sm">Aggiungi posizioni per calcolare le metriche.</div></div>';return;
   }
@@ -4547,29 +4701,38 @@ function renderQuant(){
   const retAnn=meanArr(rets)*12, volAnn=stdevArr(rets)*Math.sqrt(12);
   let rfv=num(S.settings.riskFree)/100; if(!isFinite(rfv))rfv=.02;
   const sharpe=volAnn>0?(retAnn-rfv)/volAnn:null;
-  const vArr=[1];
-  for(let i=0;i<rets.length;i++)vArr.push(vArr[i]*(1+rets[i]));
-  let mdd=0,peak=vArr[0];
-  for(let j=0;j<vArr.length;j++){ if(vArr[j]>peak)peak=vArr[j];
-    const dd=vArr[j]/peak-1; if(dd<mdd)mdd=dd; }
+  const sortino=sortinoRatio(rets,rfv).ratio;
+  const D=drawdownStats(rets), mdd=D.mdd;
+  const mesi=n=>n+(n===1?' mese':' mesi');
   const sorted=rets.slice().sort((a,b)=>a-b);
   const var95=rets.length>=12?percentileArr(sorted,.05):null;
   const var99=rets.length>=24?percentileArr(sorted,.01):null;
+  /* tre righe: rendimento e rendimento per rischio · dispersione e code ·
+     drawdown. Sortino sta sotto lo Sharpe, i drawdown insieme. */
   wrap.innerHTML='<div class="qgrid">'+
     box('Rendimento ann.',pctv(retAnn*100),'annualizzato',retAnn>=0?'up':'down',
-      'Media dei rendimenti mensili del portafoglio (pesi attuali) moltiplicata per 12.')+
+      'Media dei rendimenti mensili moltiplicata per 12, con i pesi attuali applicati allo storico: non è il tuo rendimento reale, che trovi in Dashboard.')+
     box('Volatilità ann.',nf(volAnn*100,1)+'%','deviazione standard','',
       'Deviazione standard dei rendimenti mensili moltiplicata per la radice di 12.')+
     box('Sharpe',sharpe!=null?nf(sharpe,2):'n/d','vs '+nf(rfv*100,1)+'% risk-free','',
       '(Rendimento annuo meno tasso privo di rischio) diviso volatilità annua.')+
-    box('Max Drawdown',nf(mdd*100,1)+'%','dal picco storico','down',
-      'Calo massimo dal picco precedente di un indice sintetico costruito sui rendimenti mensili.')+
     box('VaR 95% mensile',var95!=null?nf(var95*100,1)+'%':'n/d',
       var95!=null?'1 mese su 20 è andato peggio':'servono almeno 12 mesi','down',
       '5° percentile empirico dei rendimenti mensili storici (non parametrico).')+
     box('VaR 99% mensile',var99!=null?nf(var99*100,1)+'%':'n/d',
       var99!=null?'1 mese su 100 è andato peggio':'servono almeno 24 mesi','down',
       '1° percentile empirico dei rendimenti mensili storici (non parametrico).')+
+    box('Sortino',sortino!=null?nf(sortino,2):'n/d',
+      sortino!=null?'solo la volatilità al ribasso':'nessun mese sotto la soglia','',
+      'Come lo Sharpe, ma come rischio conta solo i mesi andati sotto il tasso privo di rischio.')+
+    box('Max Drawdown',nf(mdd*100,1)+'%','dal picco storico','down',
+      'Calo massimo dal picco precedente di un indice sintetico costruito sui rendimenti mensili.')+
+    box('Drawdown attuale',nf(D.current*100,1)+'%',
+      D.current<0?'da '+mesi(D.currentMonths):'<span class="up">sui massimi</span>',D.current<0?'down':'',
+      'Quanto sei sotto il massimo più alto raggiunto finora dallo stesso indice sintetico.')+
+    box('Recupero dal Max DD',mdd<0?(D.mddRecovery!=null?mesi(D.mddRecovery):'non ancora'):'n/d',
+      mdd<0?'caduta in '+mesi(D.mddMonths)+' · più lungo: '+mesi(D.longest):'nessun calo nel periodo','',
+      'Mesi serviti per tornare al picco dopo il calo massimo. Il drawdown più lungo va dal picco al recupero, o fino a oggi se è ancora in corso.')+
   '</div>'+
   '<div class="statusline">Calcolato su '+res.monthly.length+' mesi di storico'+
     (res.coveragePct<99.5?' · copertura '+nf(res.coveragePct,0)+'% del capitale ('+res.nUsed+'/'+res.nTotal+' posizioni)':'')+'.</div>';
@@ -6446,6 +6609,103 @@ function valueAt(pts,t){
   for(let i=0;i<pts.length;i++){ if(pts[i].t<=t)best=pts[i]; else break; }
   return (best||pts[0]).v;
 }
+/* --------------------------------------------------------------------------
+   Metriche del portafoglio contro un indice, sui rendimenti mensili.
+   Il portafoglio è la serie TWR del grafico (pts: {t,twr,gap?}), l'indice il
+   suo storico mensile (bd: {t,v}). L'allineamento è per mese di calendario,
+   non con valueAt(): le barre mensili di Yahoo hanno il timestamp alla
+   mezzanotte della borsa, quindi una barra europea cade alle 23 UTC del giorno
+   prima e valueAt() le assocerebbe la barra del mese PRECEDENTE di un indice
+   americano; e prima dell'inizio dell'indice valueAt() ripete il primo prezzo,
+   con rendimenti finti a zero che schiacciano beta e correlazione. Così un
+   mese senza barra dell'indice è semplicemente fuori dal confronto.
+   Una coppia di punti si scarta se segue un buco della serie o se non sono
+   due mesi consecutivi a 20–40 giorni di distanza (snapshot irregolari).
+   -------------------------------------------------------------------------- */
+function benchStats(pts,bd,rfAnnual){
+  const out={n:0,dropped:0,outside:0,portAnn:null,benchAnn:null,excessAnn:null,
+             beta:null,alphaAnn:null,te:null,ir:null,corr:null,years:[]};
+  if(!pts||pts.length<2||!bd||!bd.length)return out;
+  const bm={};
+  bd.forEach(q=>{ if(q&&q.v>0)bm[monthIdx(q.t)]=q.v; });
+  const rp=[],rb=[],ms=[];
+  for(let i=1;i<pts.length;i++){
+    const a=pts[i-1], b=pts[i], days=(b.t-a.t)/864e5, ma=monthIdx(a.t), mb=monthIdx(b.t);
+    const ga=1+num(a.twr)/100, gb=1+num(b.twr)/100;
+    if(b.gap||days<20||days>40||mb-ma!==1||!(ga>0)){ out.dropped++; continue; }
+    if(bm[ma]==null||bm[mb]==null){ out.outside++; continue; }
+    rp.push(gb/ga-1); rb.push(bm[mb]/bm[ma]-1); ms.push(mb);
+  }
+  const n=out.n=rp.length;
+  if(n<3)return out;
+  const grow=a=>a.reduce((g,r)=>g*(1+r),1);
+  out.portAnn=Math.pow(grow(rp),12/n)-1;
+  out.benchAnn=Math.pow(grow(rb),12/n)-1;
+  out.excessAnn=out.portAnn-out.benchAnn;
+  /* per anno solare: il rendimento di un mese va all'anno in cui il mese finisce */
+  const by={}, cy=new Date().getFullYear();
+  ms.forEach((m,i)=>{ const y=Math.floor(m/12); (by[y]=by[y]||{p:[],b:[]}); by[y].p.push(rp[i]); by[y].b.push(rb[i]); });
+  out.years=Object.keys(by).map(Number).sort((a,b)=>a-b).map(y=>{
+    const p=grow(by[y].p)-1, q=grow(by[y].b)-1, k=by[y].p.length;
+    return {y:y,port:p,bench:q,diff:p-q,months:k,partial:k<12,current:y===cy};
+  });
+  if(n<12)return out;
+  const rfm=Math.pow(1+(rfAnnual||0),1/12)-1, mp=meanArr(rp), mbm=meanArr(rb);
+  let cov=0,vb=0;
+  for(let i=0;i<n;i++){ cov+=(rp[i]-mp)*(rb[i]-mbm); vb+=(rb[i]-mbm)*(rb[i]-mbm); }
+  if(vb>0){
+    out.beta=cov/vb;   /* le due n−1 si semplificano */
+    out.alphaAnn=((mp-rfm)-out.beta*(mbm-rfm))*12;
+  }
+  out.te=stdevArr(rp.map((r,i)=>r-rb[i]))*Math.sqrt(12);
+  out.ir=out.te>1e-6?out.excessAnn/out.te:null;
+  out.corr=pearson(rp,rb);
+  return out;
+}
+function renderBenchStats(pts){
+  const host=$('#benchStats'), pick=$('#benchPick'); if(!host)return;
+  const avail=BENCH_LIST.filter(b=>BHIST.data[b.key]&&BHIST.data[b.key].length);
+  if(pick){
+    pick.style.display=avail.length?'':'none';
+    pick.innerHTML=avail.map(b=>'<option value="'+esc(b.key)+'">'+esc(b.label)+'</option>').join('');
+  }
+  /* senza indici o senza serie il messaggio c'è già (stato o grafico): niente box vuoti */
+  if(!avail.length||!pts||pts.length<2){ host.innerHTML=''; return; }
+  const want=S.settings.benchKey||'URTH';
+  const B=avail.filter(b=>b.key===want)[0]||avail.filter(b=>b.key==='URTH')[0]||avail[0];
+  if(pick)pick.value=B.key;
+  let rfv=num(S.settings.riskFree)/100; if(!isFinite(rfv))rfv=.02;
+  const R=benchStats(pts,BHIST.data[B.key],rfv);
+  const why=R.dropped?' · '+R.dropped+(R.dropped===1?' mese escluso':' mesi esclusi')+' per buchi o snapshot irregolari':'';
+  if(R.n<3){
+    host.innerHTML='<div class="statusline">Per le metriche servono almeno 3 mesi in comune con '+esc(B.label)+
+      ' (ora '+R.n+')'+why+'.</div>';
+    return;
+  }
+  const nd='servono 12 mesi', full=R.beta!=null;
+  const box=qbox;
+  const yrs=R.years.map(y=>'<tr><td>'+y.y+(y.current?' <span class="cellsub">(in corso)</span>':
+      y.partial?' <span class="cellsub">('+y.months+(y.months===1?' mese':' mesi')+')</span>':'')+'</td>'+
+    '<td class="num">'+pctv(y.port*100,1)+'</td><td class="num">'+pctv(y.bench*100,1)+'</td>'+
+    '<td class="num '+(y.diff>=0?'up':'down')+'">'+pctv(y.diff*100,1)+'</td></tr>').join('');
+  host.innerHTML='<div class="qgrid mt18">'+
+    box('Extra-rendimento',pctv(R.excessAnn*100),'annuo · tu '+pctv(R.portAnn*100,1)+', indice '+pctv(R.benchAnn*100,1),
+      R.excessAnn>=0?'up':'down','Rendimento composto annuo del portafoglio meno quello dell\'indice, sugli stessi mesi.')+
+    box('Alfa',full?pctv(R.alphaAnn*100):'n/d',full?'annuo, al netto del beta':nd,full?(R.alphaAnn>=0?'up':'down'):'',
+      'Quanto hai reso in più (o in meno) di quanto ci si aspettava dal tuo beta, oltre il tasso privo di rischio (alfa di Jensen).')+
+    box('Beta',full?nf(R.beta,2):'n/d',full?'sensibilità all\'indice':nd,'',
+      '1,2 = in media ti muovi il 20% più dell\'indice; 0,8 = il 20% meno.')+
+    box('Tracking error',R.te!=null?nf(R.te*100,1)+'%':'n/d',R.te!=null?'annuo':nd,'',
+      'Quanto il tuo rendimento mensile si allontana da quello dell\'indice, su base annua: 0 = lo replichi.')+
+    box('Information ratio',R.ir!=null?nf(R.ir,2):'n/d',R.ir!=null?'extra-rendimento per unità di TE':(R.te!=null?'tracking error nullo':nd),'',
+      'Extra-rendimento annuo diviso tracking error: più è alto, più il vantaggio sull\'indice è stato costante.')+
+    box('Correlazione',R.corr!=null?nf(R.corr,2):'n/d',R.corr!=null?'con l\'indice':nd,'',
+      '1 = ti muovi esattamente come l\'indice, 0 = nessun legame, −1 = all\'opposto.')+
+  '</div>'+
+  '<div class="tbl-scroll mt18"><table class="ytbl"><thead><tr><th>Anno</th><th>Portafoglio</th><th>Indice</th><th>Differenza</th></tr></thead>'+
+    '<tbody>'+yrs+'</tbody></table></div>'+
+  '<div class="statusline">Calcolato su '+R.n+' mesi in comune con '+esc(B.label)+why+'.</div>';
+}
 function downloadBenchmarks(){
   if(benchLoading)return;
   benchLoading=true; $('#btnBench').classList.add('spin');
@@ -6464,6 +6724,7 @@ function downloadBenchmarks(){
 function renderBenchmark(){
   const host=$('#benchChart'), leg=$('#benchLegend'); if(!host)return;
   const S1=currentHistSeries(), pts=S1.pts;
+  renderBenchStats(pts);
   if(pts.length<2){
     host.innerHTML='<div class="empty" style="padding:70px 20px"><div class="sm">Serve una serie storica del portafoglio per fare il confronto.</div></div>';
     leg.innerHTML=''; return;
@@ -7358,6 +7619,9 @@ function wire(){
     if(b)openSnap(b.getAttribute('data-snap'));
   });
   $('#btnBench').addEventListener('click',downloadBenchmarks);
+  $('#benchPick').addEventListener('change',e=>{
+    S.settings.benchKey=e.target.value; save(); renderBenchmark();
+  });
 
   /* --- obiettivi --- */
   $('#btnAddGoal').addEventListener('click',()=>openGoal(null));
