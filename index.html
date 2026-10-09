@@ -432,6 +432,8 @@ html[data-theme="light"] .filters select,html[data-theme="light"] .filters input
 .filters .fs{flex:1;min-width:170px;max-width:250px}
 .fcount{font-size:12px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
 .flbl{font-size:12px;color:var(--muted);font-weight:600}
+/* etichetta e controllo vanno a capo insieme, mai separati */
+.fgrp{display:inline-flex;align-items:center;gap:8px}
 #contribSort button{padding:5px 11px;font-size:12px}
 #contribSort .ar{margin-left:4px;font-size:10px;color:var(--accent-ink)}
 .fclear{font-size:12px;color:var(--accent-ink);font-weight:650;padding:6px 10px;border-radius:8px}
@@ -1098,10 +1100,11 @@ html[data-theme="light"] .maptbl select{background:#fff}
                 <button class="btn btn-ghost btn-ic btn-sm" id="contribRefresh"
                   title="Aggiorna i prezzi dei titoli in portafoglio"></button></div></div>
             <div class="filters">
-              <span class="flbl">Ordina</span>
-              <span class="seg" id="contribSort">
-                <button data-k="perf" class="on">Performance</button><button data-k="name">Titolo</button>
-              </span>
+              <select id="contribPlatform" aria-label="Piattaforma"></select>
+              <span class="fgrp"><span class="flbl">Ordina</span>
+                <span class="seg" id="contribSort">
+                  <button data-k="perf" class="on">Performance</button><button data-k="name">Titolo</button>
+                </span></span>
               <span class="fcount" id="contribSub"></span>
             </div>
             <div class="card-bd"><div class="contrib" id="contrib"></div></div>
@@ -2120,7 +2123,7 @@ function blankState(){
 let S=blankState();
 const UI={
   page:'dashboard', heroRange:'1A', heroMode:'value',
-  allocView:'pos', allocGroup:'', contribView:'total', contribSort:{k:'perf',dir:-1}, allocFilters:{cls:'',sector:'',country:''},
+  allocView:'pos', allocGroup:'', contribView:'total', contribSort:{k:'perf',dir:-1}, contribPlatform:'', allocFilters:{cls:'',sector:'',country:''},
   filters:{search:'',platform:'',cls:'',sector:'',country:'',action:''},
   sortK:'_value', sortDir:-1,
   editId:null, editTx:[], drawerId:null,
@@ -3285,6 +3288,20 @@ function normPlatform(v){
 }
 const platformOf=v=>PLATFORMS.filter(x=>x.k===normPlatform(v))[0]||null;
 const platformLabel=v=>{ const pf=platformOf(v); return pf?pf.s+' '+pf.k:''; };
+/* Menu piattaforma, uguale sopra la tabella e nel riquadro Contributo: elenco
+   fisso col numero di titoli di ognuna; "Senza piattaforma" compare solo
+   finché c'è qualcosa da assegnare. Ritorna la scelta da tenere: "senza"
+   torna su "tutte" quando non resta più nulla da assegnare. */
+function fillPlatformSelect(sel,cur){
+  const nPf={};
+  activePositions().forEach(p=>{ const k=normPlatform(p.platform)||PF_NONE; nPf[k]=(nPf[k]||0)+1; });
+  if(cur===PF_NONE&&!nPf[PF_NONE])cur='';
+  if(sel)sel.innerHTML='<option value="">Piattaforma: tutte</option>'+
+    PLATFORMS.concat(nPf[PF_NONE]?[{k:PF_NONE,s:'⚪',l:'Senza piattaforma'}]:[]).map(pf=>
+      '<option value="'+esc(pf.k)+'"'+(cur===pf.k?' selected':'')+'>'+
+      pf.s+' '+esc(pf.l||pf.k)+' ('+(nPf[pf.k]||0)+')</option>').join('');
+  return cur||'';
+}
 
 /* ---------- filtri ---------- */
 function matchFilters(p,f){
@@ -3321,15 +3338,7 @@ function populateFilters(){
   fillSelect('#aFltCls','cls','Categoria: tutte',UI.allocFilters);
   fillSelect('#aFltSector','sector','Settore: tutti',UI.allocFilters);
   fillSelect('#aFltCountry','country','Paese: tutti',UI.allocFilters);
-  /* piattaforme: elenco fisso con il numero di titoli di ognuna; "Senza
-     piattaforma" compare solo finché c'è qualcosa da assegnare */
-  const fp=$('#fltPlatform'), nPf={};
-  activePositions().forEach(p=>{ const k=normPlatform(p.platform)||PF_NONE; nPf[k]=(nPf[k]||0)+1; });
-  if(UI.filters.platform===PF_NONE&&!nPf[PF_NONE])UI.filters.platform='';
-  fp.innerHTML='<option value="">Piattaforma: tutte</option>'+
-    PLATFORMS.concat(nPf[PF_NONE]?[{k:PF_NONE,s:'⚪',l:'Senza piattaforma'}]:[]).map(pf=>
-      '<option value="'+esc(pf.k)+'"'+(UI.filters.platform===pf.k?' selected':'')+'>'+
-      pf.s+' '+esc(pf.l||pf.k)+' ('+(nPf[pf.k]||0)+')</option>').join('');
+  UI.filters.platform=fillPlatformSelect($('#fltPlatform'),UI.filters.platform||'');
   const fa=$('#fltAction');
   fa.innerHTML='<option value="">Azione: tutte</option>'+
     Object.keys(ACT).map(a=>'<option'+(UI.filters.action===a?' selected':'')+'>'+esc(a)+'</option>').join('');
@@ -3465,13 +3474,18 @@ function renderContrib(){
     b.querySelectorAll('.ar').forEach(e=>e.remove());
     if(on){ const a=document.createElement('span'); a.className='ar'; a.textContent=cs.dir<0?'▼':'▲'; b.appendChild(a); }
   });
-  const act=activePositions();
+  /* piattaforma: restringe i titoli prima di tutto il resto, così barre,
+     riepilogo e nota sui mancanti parlano solo di quella piattaforma */
+  UI.contribPlatform=fillPlatformSelect($('#contribPlatform'),UI.contribPlatform);
+  const act=activePositions().filter(p=>matchFilters(p,{platform:UI.contribPlatform}));
   const arr=act.filter(p=>day?num(p.prevClose)>0:p._cost>0).slice().sort(cs.k==='name'
     ?(a,b)=>nm(a).localeCompare(nm(b),'it',{sensitivity:'base'})*cs.dir
     :(a,b)=>(a[k]-b[k])*cs.dir);
   const host=$('#contrib');
   if(!arr.length){
-    host.innerHTML='<div class="note" style="margin:0">'+(!day
+    host.innerHTML='<div class="note" style="margin:0">'+(UI.contribPlatform&&!act.length
+      ?'Nessun titolo in portafoglio su questa piattaforma.'
+      :!day
       ?'Aggiungi posizioni con un prezzo di carico per vedere chi contribuisce al risultato.'
       :act.length?'Aggiorna i prezzi per vedere la variazione di oggi dei singoli titoli.'
       :'Aggiungi posizioni per vedere la variazione di oggi dei singoli titoli.')+'</div>';
@@ -7163,6 +7177,7 @@ function wire(){
     renderContrib();
   }));
   $('#contribRefresh').addEventListener('click',()=>refreshPrices(false,true));
+  $('#contribPlatform').addEventListener('change',e=>{ UI.contribPlatform=e.target.value; renderContrib(); });
 
   /* --- allocazione --- */
   $$('#allocSeg button').forEach(b=>b.addEventListener('click',()=>{
