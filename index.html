@@ -806,6 +806,20 @@ tbody tr.sc-row.on td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 .legend-line .sw{display:inline-block;width:15px;height:3px;border-radius:2px;vertical-align:middle;
   margin-right:6px}
 .legend-line .sw.dash{height:0;border-top:2px dashed var(--muted);border-radius:0}
+.legend-line .sw.band{height:10px}
+/* Simulatore, Scenari possibili: tabellina pessimistico / mediano / ottimistico
+   e, accanto se c'è posto, le due probabilità */
+.mc-out{display:flex;flex-wrap:wrap;gap:14px 32px;align-items:flex-start}
+#pg-simulatore .kv .v{white-space:nowrap}
+.mc-tblw{flex:1 1 440px;min-width:0}
+.mc-prob{flex:1 1 260px;min-width:0}
+.mc-tbl th,.mc-tbl td{padding:9px 8px}
+.mc-tbl thead th{position:static;white-space:normal;vertical-align:bottom}
+.mc-tbl th:first-child,.mc-tbl td:first-child{padding-left:0;text-align:left;color:var(--ink-soft);white-space:normal}
+.mc-tbl th:last-child,.mc-tbl td:last-child{padding-right:0}
+.mc-tbl tbody tr:last-child td{border-bottom:0}
+.mc-tip>div{display:flex;justify-content:space-between;gap:14px}
+.mc-tip>div>span{color:var(--muted);font-weight:600;font-size:11.5px}
 .slider-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .slider-ends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
 
@@ -839,6 +853,13 @@ tbody tr.sc-row.on td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 .goal-foot{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;padding-top:14px;
   border-top:1px solid var(--line-soft);font-size:12.5px;color:var(--ink-soft)}
 .goal-foot b{color:var(--ink);font-variant-numeric:tabular-nums}
+/* probabilità dell'obiettivo (solo totale portafoglio) */
+.goal-prob{margin-top:12px;font-size:12.5px;color:var(--ink-soft);display:grid;gap:5px}
+.goal-prob b{color:var(--ink);font-variant-numeric:tabular-nums}
+.goal-prob .pr{font-weight:780;font-size:13.5px}
+.goal-prob .sub{color:var(--muted)}
+.field .chk{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;margin:0}
+.field .chk input{width:16px;height:16px;padding:0;margin:0;flex:none;accent-color:var(--accent)}
 .goal-acts{display:flex;gap:5px}
 .snap-tbl td:first-child,.snap-tbl th:first-child{padding-left:20px}
 
@@ -954,6 +975,8 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .ytbl th,.ytbl td{padding-left:7px;padding-right:7px}
   .ytbl th{letter-spacing:.1px}
   .ytbl td:first-child .cellsub{display:block}
+  .mc-tbl th,.mc-tbl td{padding-left:5px;padding-right:5px;font-size:12.5px}
+  .mc-tbl thead th{font-size:10.5px;letter-spacing:.1px}
 }
 /* ==========================================================================
    HEAT MAP — performance mensile
@@ -1453,17 +1476,29 @@ html[data-theme="light"] .maptbl select{background:#fff}
               <div class="field"><label>Capitale iniziale</label><input id="sInit" type="text" inputmode="decimal" value="10000"></div>
               <div class="frow">
                 <div class="field"><label>Versamento mensile</label><input id="sPac" type="text" inputmode="decimal" value="300"></div>
-                <div class="field"><label>Durata (anni)</label><input id="sYears" type="number" step="1" value="20"></div>
+                <div class="field"><label>Durata (anni)</label><input id="sYears" type="number" step="1" min="0" max="100" value="20"></div>
               </div>
               <div class="field">
                 <div class="slider-head"><label style="margin:0">Rendimento annuo atteso</label><b id="sRateLbl">7%</b></div>
                 <input id="sRate" class="range" type="range" min="0" max="15" step="0.5" value="7">
               </div>
               <div class="field">
+                <div class="slider-head"><label style="margin:0">Volatilità annua</label><b id="sVolLbl">15%</b></div>
+                <input id="sVol" class="range" type="range" min="0" max="35" step="0.5" value="15">
+                <div class="hint" id="sVolSrc"></div>
+                <button class="btn btn-ghost btn-sm" id="sUseVol" style="margin-top:8px">Usa la volatilità del portafoglio</button>
+              </div>
+              <div class="field">
                 <div class="slider-head"><label style="margin:0">Inflazione annua attesa</label><b id="sInflLbl">2%</b></div>
                 <input id="sInfl" class="range" type="range" min="0" max="10" step="0.5" value="2">
                 <div class="hint" id="sRealLbl"></div>
               </div>
+              <div class="field"><label>Costi annui (TER) %</label><input id="sTer" type="text" inputmode="decimal" value="0">
+                <div class="hint">Da 0 a 3%: si tolgono dal capitale ogni mese.</div>
+                <button class="btn btn-ghost btn-sm" id="sUseTer" style="margin-top:8px;white-space:normal;text-align:left;max-width:100%">Usa il TER del portafoglio</button>
+              </div>
+              <div class="field"><label>Base fiscale del capitale iniziale</label><input id="sTaxBase" type="text" inputmode="decimal" placeholder="uguale al capitale iniziale">
+                <div class="hint">Quanto l'hai pagato: le plusvalenze già maturate si tassano alla vendita.</div></div>
               <div class="field">
                 <div class="slider-head"><label style="margin:0">Distribuzione dei rendimenti</label><b id="sRetSkewLbl">costante</b></div>
                 <input id="sRetSkew" class="range" type="range" min="-100" max="100" step="10" value="0">
@@ -1492,8 +1527,35 @@ html[data-theme="light"] .maptbl select{background:#fff}
               <div class="kv" style="margin-top:14px"><span class="k">Capitale versato</span><span class="v num mask" id="sInvested">€ 0</span></div>
               <div class="kv"><span class="k">Interessi maturati</span><span class="v num up mask" id="sGain">€ 0</span></div>
               <div class="kv"><span class="k">Moltiplicatore</span><span class="v num" id="sMult">–</span></div>
+              <div class="kv"><span class="k">Costi pagati nel periodo (TER) <span class="qhelp" title="Differenza fra la proiezione senza costi e quella con il TER impostato: comprende il rendimento che i costi pagati non hanno potuto fare.">?</span></span><span class="v num mask" id="sCosts">€ 0</span></div>
+              <div class="kv"><span class="k">Imposte stimate alla vendita (<span id="sTaxPct">26%</span>) <span class="qhelp" title="Stima con un'aliquota unica sulla plusvalenza finale, come se vendessi tutto alla scadenza. Non considera la compensazione delle minusvalenze, regimi diversi (12,5% sui titoli di Stato) né la tassazione dei dividendi nel periodo.">?</span>
+                <button type="button" class="linkbtn" data-nav="ribilanciamento" style="padding:0;margin-left:4px">modifica in Ribilanciamento</button></span><span class="v num mask" id="sTax">€ 0</span></div>
+              <div class="kv"><span class="k">Valore netto</span><span class="v num mask" id="sNet">€ 0</span></div>
               <div class="kv"><span class="k">Valore reale (potere d'acquisto di oggi)</span><span class="v num mask" id="sRealFinal">€ 0</span></div>
+              <div class="kv"><span class="k">Netto reale</span><span class="v num mask" id="sRealNet">€ 0</span></div>
             </div>
+          </div>
+        </div>
+        <div class="card mt18">
+          <div class="card-hd"><h2><span class="chip g" id="chipSimMc"></span> Scenari possibili</h2>
+            <div class="right"><span class="sub" id="sMcSub"></span>
+              <button class="btn btn-ghost btn-sm" id="sReseed">Nuova estrazione</button></div></div>
+          <div class="card-bd">
+            <div class="chart-host" id="sFan"></div>
+            <div class="legend-line">
+              <span><span class="sw band" style="background:var(--accent);opacity:.18"></span>10–90% degli scenari</span>
+              <span><span class="sw band" style="background:var(--accent);opacity:.4"></span>25–75%</span>
+              <span><span class="sw" style="background:var(--accent)"></span>mediana</span>
+              <span><span class="sw dash"></span>solo capitale versato</span>
+            </div>
+            <div class="mc-out mt18">
+              <div class="tbl-scroll mc-tblw"><table class="mc-tbl" id="sMcTbl"></table></div>
+              <div class="mc-prob">
+                <div class="kv"><span class="k">Probabilità di finire sotto quanto hai versato</span><span class="v num" id="sPBelow">–</span></div>
+                <div class="kv"><span class="k">La stessa in potere d'acquisto (al netto dell'inflazione)</span><span class="v num" id="sPReal">–</span></div>
+              </div>
+            </div>
+            <div class="note mt18" id="sMcNote"></div>
           </div>
         </div>
       </section>
@@ -1580,6 +1642,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
         </div>
         <div class="goals" id="goalsGrid"></div>
         <div id="goalsEmpty"></div>
+        <div id="goalsFoot"></div>
       </section>
 
       <!-- ============ IMPOSTAZIONI (base, si completa nel pezzo 7) ============ -->
@@ -1759,14 +1822,18 @@ html[data-theme="light"] .maptbl select{background:#fff}
       <div class="field"><label>Importo target</label><input id="gTarget" type="text" inputmode="decimal" placeholder="es. 50000"></div>
       <div class="field"><label>Data target</label><input id="gTargetDate" type="date"></div>
     </div>
+    <div class="field"><label class="chk"><input type="checkbox" id="gReal"> Importo in euro di oggi</label>
+      <div class="hint" id="gRealHint">Il target cresce con l'inflazione del Simulatore fino alla scadenza.</div></div>
     <div class="field"><label>Data inizio</label><input id="gStartDate" type="date">
       <div class="hint">Serve a capire se sei in linea: il ritmo atteso è lineare tra inizio e data target.</div></div>
     <div class="field"><label>Valore attuale</label><select id="gMode">
       <option value="portfolio">Usa il totale del portafoglio</option>
       <option value="emergency">Usa le posizioni segnate come fondo emergenza</option>
       <option value="manual">Inserisci importo manuale</option></select></div>
-    <div class="field" id="gManualWrap" style="display:none;margin-bottom:0">
+    <div class="field" id="gManualWrap" style="display:none">
       <label>Importo attuale</label><input id="gManual" type="text" inputmode="decimal" placeholder="0"></div>
+    <div class="field" style="margin-bottom:0"><label>Versamento mensile</label><input id="gPac" type="text" inputmode="decimal" placeholder="0">
+      <div class="hint">Quanto ci metti ogni mese per questo obiettivo. Finché non lo cambi, sul totale del portafoglio segue il versamento del Simulatore.</div></div>
     <input type="hidden" id="gId">
   </div>
   <div class="mf">
@@ -1861,13 +1928,15 @@ html[data-theme="light"] .maptbl select{background:#fff}
       </div>
       <div class="frow">
         <div class="field"><label>Yield dividendo %</label><input id="fYield" type="text" inputmode="decimal"></div>
-        <div class="field"><label>Fattore</label><select id="fFactor"></select></div>
+        <div class="field"><label>TER / costi annui %</label><input id="fTer" type="text" inputmode="decimal" placeholder="es. 0,20">
+          <div class="hint">Per ETF e fondi; lascia vuoto per le azioni.</div></div>
       </div>
       <div class="frow">
+        <div class="field"><label>Fattore</label><select id="fFactor"></select></div>
         <div class="field"><label>Fondo emergenza</label><select id="fEmergency">
           <option value="">—</option><option value="1">Sì</option></select></div>
-        <div class="field"><label>Piattaforma</label><select id="fPlatform"></select></div>
       </div>
+      <div class="field"><label>Piattaforma</label><select id="fPlatform"></select></div>
       <div class="field"><label>Mesi di stacco dividendi</label>
         <input id="fDivMonths" placeholder="es. 3, 6, 9, 12">
         <div class="hint">Facoltativo: serve al calendario dividendi. Se registri i dividendi come transazioni non serve, i mesi vengono dedotti da lì.</div>
@@ -2176,13 +2245,22 @@ function isinValid(s){
   return sum%10===0;
 }
 
+/* Ipotesi del Simulatore, in percentuale come negli slider. Sono anche le
+   ipotesi degli Obiettivi: un'unica fonte. vol null = automatica, cioè quella
+   del portafoglio se lo storico basta, altrimenti il 15% tipico. taxBase null
+   = uguale al capitale iniziale (nessuna plusvalenza latente). */
+function simDefaults(){
+  return {init:10000,pac:300,years:20,rate:7,infl:2,retSkew:0,pacSkew:0,vol:null,seed:42,
+    ter:0,taxBase:null};
+}
 function blankState(){
   return {
     v:3, positions:[], watchlist:[], goals:[], targets:{}, history:[], countries:[],
     fx:{EUR:1}, lastUpdate:0, updatedAt:0,
     settings:{theme:'dark',privacy:false,collapsed:false,riskFree:2,proxy:'',
               rebalanceBands:[10,20,30],capGainTax:26,
-              scenBench:'6040',scenSel:'inflEU',scenSens:{},benchKey:'URTH'}
+              scenBench:'6040',scenSel:'inflEU',scenSens:{},benchKey:'URTH',
+              sim:simDefaults()}
   };
 }
 let S=blankState();
@@ -2270,6 +2348,22 @@ function normalizeState(){
      indici disponibili torna al default invece di lasciare le metriche vuote */
   if(S.settings&&S.settings.benchKey!=null&&typeof BENCH_LIST!=='undefined'&&
      !BENCH_LIST.some(b=>b.key===S.settings.benchKey)){ S.settings.benchKey='URTH'; dirty=true; }
+  /* ipotesi del Simulatore: chiavi mancanti dai default, numeri nei limiti
+     dei campi. vol e taxBase null restano null (automatici). Uno stato senza settings,
+     come quelli dei test, non viene toccato */
+  if(S.settings&&S.settings.sim!==undefined){
+    const d=simDefaults(), o=S.settings.sim&&typeof S.settings.sim==='object'?S.settings.sim:{}, v={};
+    const LIM={years:[0,100],rate:[0,15],infl:[0,10],retSkew:[-100,100],pacSkew:[-100,100],vol:[0,35],
+      ter:[0,3],taxBase:[0,Infinity]};
+    Object.keys(d).forEach(k=>{
+      if(o[k]==null||o[k]===''){ v[k]=d[k]; return; }
+      let x=num(o[k]);
+      if(k==='years')x=Math.round(x);
+      if(LIM[k])x=Math.max(LIM[k][0],Math.min(LIM[k][1],x));
+      v[k]=x;
+    });
+    if(JSON.stringify(v)!==JSON.stringify(S.settings.sim)){ S.settings.sim=v; dirty=true; }
+  }
   return dirty;
 }
 let saveT=null,storageWarned=false;
@@ -2605,9 +2699,10 @@ Chart.area=function(host,pts,opt){
   const iw=W-padL-padR, ih=H-padT-padB;
   const xs=pts.map(p=>p.t), ys=pts.map(p=>p.v);
   /* le serie secondarie entrano nel calcolo della scala, altrimenti uscirebbero dal grafico */
-  const extras=opt.extra||[];
+  const extras=opt.extra||[], bands=opt.bands||[];
   let allY=ys.slice();
   extras.forEach(e=>{ e.pts.forEach(q=>allY.push(q.v)); });
+  bands.forEach(b=>{ b.lo.forEach(q=>allY.push(q.v)); b.hi.forEach(q=>allY.push(q.v)); });
   let mn=Math.min.apply(null,allY), mx=Math.max.apply(null,allY);
   if(opt.zeroLine){ mn=Math.min(mn,0); mx=Math.max(mx,0); }
   if(mx===mn){ mx+=Math.abs(mx||1)*.05; mn-=Math.abs(mn||1)*.05; }
@@ -2639,9 +2734,16 @@ Chart.area=function(host,pts,opt){
   /* un punto isolato fra due buchi sparirebbe: senza segmento non si vede */
   runs.forEach(r=>{ if(r.length===1)dots+='<circle cx="'+r[0].x.toFixed(1)+'" cy="'+r[0].y.toFixed(1)+'" r="2.6" fill="'+col+'"/>'; });
   const baseY=opt.zeroLine?Y(0):(padT+ih);
-  const area=runs.filter(r=>r.length>1).map(r=>
+  const area=opt.noArea?'':runs.filter(r=>r.length>1).map(r=>
     smoothPath(r)+'L'+r[r.length-1].x.toFixed(1)+','+baseY.toFixed(1)+
     'L'+r[0].x.toFixed(1)+','+baseY.toFixed(1)+'Z').join('');
+  /* bande riempite fra due serie (il ventaglio del Simulatore): bordo alto in
+     avanti, bordo basso all'indietro, con la stessa curva della linea */
+  const bandSvg=bands.map(b=>{
+    const hi=b.hi.map(q=>({x:X(q.t),y:Y(q.v)})), lo=b.lo.map(q=>({x:X(q.t),y:Y(q.v)})).reverse();
+    return '<path d="'+smoothPath(hi)+'L'+smoothPath(lo).slice(1)+'Z" fill="'+(b.color||col)+
+      '" fill-opacity="'+(b.opacity==null?.2:b.opacity)+'"/>';
+  }).join('');
 
   /* griglia orizzontale */
   let grid='';
@@ -2662,8 +2764,8 @@ Chart.area=function(host,pts,opt){
       '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1">'+
         '<stop offset="0%" stop-color="'+col+'" stop-opacity=".30"/>'+
         '<stop offset="100%" stop-color="'+col+'" stop-opacity="0"/></linearGradient></defs>'+
-      grid+xl+
-      '<path d="'+area+'" fill="url(#'+gid+')"/>'+
+      grid+xl+bandSvg+
+      (area?'<path d="'+area+'" fill="url(#'+gid+')"/>':'')+
       extras.map(e=>'<path d="'+e.pts.map((q,i)=>((i&&!q.gap)?'L':'M')+X(q.t).toFixed(1)+','+Y(q.v).toFixed(1)).join('')+
         '" fill="none" stroke="'+(e.color||'var(--muted)')+'" stroke-width="'+(e.width||1.6)+'" '+
         (e.dash?'stroke-dasharray="'+e.dash+'" ':'')+'stroke-linejoin="round"/>').join('')+
@@ -2699,6 +2801,15 @@ Chart.area=function(host,pts,opt){
   svg.addEventListener('pointermove',move);
   svg.addEventListener('pointerleave',out);
   svg.addEventListener('touchmove',e=>{move(e);},{passive:true});
+};
+/* Ventaglio del Monte Carlo: `bands` è [{t,p10,p25,p50,p75,p90}]. Banda 10-90
+   chiara, 25-75 più intensa, mediana come linea principale; il resto (linea
+   tratteggiata del versato, tooltip, stato vuoto) è quello di Chart.area. */
+Chart.fan=function(host,bands,opt){
+  const P=k=>(bands||[]).map(b=>({t:b.t,v:b[k]}));
+  Chart.area(host,P('p50'),Object.assign({},opt,{noArea:true,bands:[
+    {lo:P('p10'),hi:P('p90'),opacity:.16},
+    {lo:P('p25'),hi:P('p75'),opacity:.28}]}));
 };
 
 /* Curva di shock e recupero per UN solo scenario alla volta.
@@ -3925,6 +4036,7 @@ function openPos(id){
   $('#fTarget').value=fnum(p&&p.targetWeight!=null?p.targetWeight:'');
   $('#fRisk').value=p&&p.risk!=null?p.risk:'';
   $('#fYield').value=fnum(p&&p.yield!=null?p.yield:'');
+  $('#fTer').value=fnum(p&&p.ter!=null?p.ter:'');
   $('#fFactor').value=p?normFactor(p.factor):'Nessuno';
   $('#fEmergency').value=p&&p.emergency?'1':'';
   $('#fPlatform').value=p?normPlatform(p.platform):'';
@@ -4006,6 +4118,7 @@ function savePos(){
   p.targetWeight=$('#fTarget').value===''?null:num($('#fTarget').value);
   p.risk=$('#fRisk').value===''?null:Math.max(3,Math.min(9,Math.round(num($('#fRisk').value))));
   p.yield=$('#fYield').value===''?null:num($('#fYield').value);
+  p.ter=$('#fTer').value.trim()===''?null:num($('#fTer').value);
   p.factor=$('#fFactor').value; p.emergency=$('#fEmergency').value?1:0;
   p.platform=normPlatform($('#fPlatform').value);
   p.compSector=normComposition($('#fCompSector').value.trim(),normSector);
@@ -4159,6 +4272,7 @@ function openDrawer(id){
     d.usesTx?['Dividendi incassati',money(p._div),1]:null,
     ['Yield dividendo',p.yield!=null&&p.yield!==''?nf(num(p.yield),2)+'%':'—',0],
     ['Rendita annua stimata',p.yield?money(p._value*num(p.yield)/100):'—',1],
+    ['TER / costi annui',p.ter!=null&&p.ter!==''?nf(num(p.ter),2)+'%':'—',0],
     ['Piattaforma',esc(platformLabel(p.platform)||'—'),0],
     ['Categoria',esc(p.cls||'—'),0],
     ['Settore',esc(p.sector||'—'),0],
@@ -4637,6 +4751,16 @@ function portfolioSeries(){
   return {monthly:monthly,coveragePct:T.value>0?totW/T.value*100:0,
     nUsed:rows.length,nTotal:activePositions().filter(p=>p.ticker).length};
 }
+/* Volatilità annua del portafoglio: deviazione standard dei rendimenti mensili
+   di portfolioSeries() per √12 (pesi attuali applicati allo storico, prezzi
+   senza effetto cambio). È il numero della Salute e la volatilità di default
+   del Simulatore. null con meno di 3 mesi, come in renderQuant(). `res` evita
+   di ricalcolare la serie a chi ce l'ha già. */
+function portfolioVolAnn(res){
+  if(res===undefined)res=portfolioSeries();
+  if(!res||res.monthly.length<3)return null;
+  return {vol:stdevArr(res.monthly.map(m=>m.ret))*Math.sqrt(12),months:res.monthly.length};
+}
 let downloading=false;
 /* Da quando serve davvero lo storico: la data d'ingresso più remota fra tutte
    le posizioni. Se una posizione non ha né dateAdded né transazioni non
@@ -4814,7 +4938,7 @@ function renderQuant(){
       (res?' · copertura attuale: '+nf(res.coveragePct,0)+'% del capitale':'')+'.</div></div>';return;
   }
   const rets=res.monthly.map(m=>m.ret);
-  const retAnn=meanArr(rets)*12, volAnn=stdevArr(rets)*Math.sqrt(12);
+  const retAnn=meanArr(rets)*12, volAnn=portfolioVolAnn(res).vol;
   let rfv=num(S.settings.riskFree)/100; if(!isFinite(rfv))rfv=.02;
   const sharpe=volAnn>0?(retAnn-rfv)/volAnn:null;
   const sortino=sortinoRatio(rets,rfv).ratio;
@@ -5975,52 +6099,272 @@ function renderDivCalendar(){
 function skewLabel(v,negWord,posWord){
   return v===0?'costante':((v>0?'+':'')+v+'% · '+(v>0?posWord:negWord));
 }
-function simulate(){
-  const init=num($('#sInit').value), pac=num($('#sPac').value);
-  const years=Math.max(0,Math.round(num($('#sYears').value)));
-  const rate=num($('#sRate').value)/100, infl=num($('#sInfl').value)/100;
-  const retSkew=num($('#sRetSkew').value)/100, pacSkew=num($('#sPacSkew').value)/100;
-  let bal=init;
-  const pts=[{t:0,v:init}], pacs=[];
-  for(let y=1;y<=years;y++){
+/* Calendario di tassi e versamenti, anno per anno. L'orizzonte è in anni
+   interi (`years`, il Simulatore) oppure in mesi anche con la frazione
+   (`months`, gli Obiettivi fino alla data target): l'ultimo anno può avere
+   meno di 12 mesi e l'ultimo mese può essere incompleto. Il mese incompleto
+   cresce per la sua frazione e riceve la stessa frazione del versamento: a
+   rendimento zero servono così esattamente mancante/mesi al mese. */
+function simYears(p){
+  const M=p.months!=null?Math.max(0,+p.months||0):12*Math.max(0,Math.round(+p.years||0));
+  const nY=Math.ceil(M/12-1e-9), rate=+p.rate||0, pac=+p.pac||0;
+  const retSkew=+p.retSkew||0, pacSkew=+p.pacSkew||0, out=[];
+  for(let y=1;y<=nY;y++){
     /* t va da -1 a +1 lungo l'orizzonte: sposta rendimenti e versamenti
        verso l'inizio o verso la fine senza cambiarne la media */
-    const t=years<=1?0:(2*(y-1)/(years-1)-1);
-    const yRate=rate*(1+retSkew*t), yPac=pac*(1+pacSkew*t);
-    const mr=Math.pow(1+yRate,1/12)-1;
-    for(let m=0;m<12;m++)bal=bal*(1+mr)+yPac;
-    pts.push({t:y,v:bal}); pacs.push(yPac);
+    const t=nY<=1?0:(2*(y-1)/(nY-1)-1);
+    const n=Math.min(12,M-(y-1)*12), full=Math.floor(n+1e-9);
+    out.push({rate:rate*(1+retSkew*t),pac:pac*(1+pacSkew*t),n:n,full:full,
+      frac:n-full>1e-9?n-full:0,t:y-1+n/12});
   }
-  const invested=init+pacs.reduce((a,v)=>a+v*12,0), gain=bal-invested;
-  const realRate=((1+rate)/(1+infl)-1)*100;
-  const realFinal=years?bal/Math.pow(1+infl,years):bal;
-  $('#sRateLbl').textContent=nf(num($('#sRate').value),1)+'%';
-  $('#sInflLbl').textContent=nf(num($('#sInfl').value),1)+'%';
+  return {M:M,years:out};
+}
+/* Proiezione deterministica, funzione pura; tassi in frazioni (0.07 = 7%).
+   Ogni mese: crescita composta (1+r)^(1/12), costi come fattore
+   (1−ter)^(1/12), poi il versamento a fine mese. Le imposte sono una stima:
+   aliquota unica sulla plusvalenza finale, come se si vendesse tutto alla
+   scadenza; `taxBase` è il prezzo di carico del capitale iniziale. */
+function simCore(p){
+  const init=+p.init||0, infl=+p.infl||0, taxRate=+p.taxRate||0;
+  const taxBase=p.taxBase!=null&&p.taxBase!==''&&isFinite(+p.taxBase)?+p.taxBase:init;
+  const H=simYears(p), tf=Math.pow(1-(+p.ter||0),1/12);
+  let bal=init, cum=init;
+  const pts=[{t:0,v:init}], base=[{t:0,v:init}], put=[];
+  H.years.forEach(y=>{
+    const mr=Math.pow(1+y.rate,1/12)-1;
+    for(let m=0;m<y.full;m++)bal=bal*(1+mr)*tf+y.pac;
+    if(y.frac)bal=bal*Math.pow((1+mr)*tf,y.frac)+y.pac*y.frac;
+    const v=y.pac*y.n; put.push(v); cum+=v;
+    pts.push({t:y.t,v:bal}); base.push({t:y.t,v:cum});
+  });
+  const invested=init+put.reduce((a,v)=>a+v,0);
+  const tax=Math.max(0,bal-taxBase-(invested-init))*taxRate, net=bal-tax;
+  const disc=H.M?Math.pow(1+infl,H.M/12):1;
+  return {pts:pts,base:base,invested:invested,final:bal,gain:bal-invested,tax:tax,net:net,
+    realFinal:bal/disc,realNet:net/disc};
+}
+/* Generatore con seme (mulberry32): stessi parametri, stessi scenari, così la
+   pagina non "balla" a ogni tasto. "Nuova estrazione" cambia il seme. */
+function rng(seed){
+  let a=seed>>>0;
+  return function(){
+    a=(a+0x6D2B79F5)|0;
+    let t=Math.imul(a^(a>>>15),1|a);
+    t=(t+Math.imul(t^(t>>>7),61|t))^t;
+    return ((t^(t>>>14))>>>0)/4294967296;
+  };
+}
+/* Normale standard con Box-Muller: ogni coppia di uniformi dà due valori, il
+   secondo resta sul generatore per la chiamata successiva. */
+function normal(r){
+  if(r.spare!=null){ const z=r.spare; r.spare=null; return z; }
+  const u=1-r(), a=2*Math.PI*r(), R=Math.sqrt(-2*Math.log(u));
+  r.spare=R*Math.sin(a);
+  return R*Math.cos(a);
+}
+/* Monte Carlo, funzione pura. Rendimenti mensili log-normali: con s = vol/√12
+   e m = ln(1+r)/12 − s²/2 vale E[1+r_mese] = (1+r)^(1/12), quindi la MEDIA
+   dei percorsi coincide con simCore e la mediana sta un po' sotto: è l'effetto
+   della volatilità sulla crescita composta. Costi, versamenti e skew come in
+   simCore. Restituisce le bande per anno, i valori finali ordinati (lordi e
+   netti) e le quote di percorsi che finiscono sotto il versato, nominale e
+   reale (versamenti in euro di oggi). */
+function mcSimulate(p){
+  const init=+p.init||0, infl=+p.infl||0, taxRate=+p.taxRate||0;
+  const taxBase=p.taxBase!=null&&p.taxBase!==''&&isFinite(+p.taxBase)?+p.taxBase:init;
+  const n=Math.max(1,Math.round(+p.n||2000)), s=Math.max(0,+p.vol||0)/Math.sqrt(12);
+  const H=simYears(p), tf=Math.pow(1-(+p.ter||0),1/12), ri=Math.log(1+infl)/12;
+  /* un passo per mese: deriva logaritmica, deviazione, costi, versamento;
+     yEnd segna l'ultimo mese di ogni anno */
+  const mu=[],sd=[],cf=[],add=[],yEnd=[],put=[];
+  let investedReal=init, mo=0;
+  H.years.forEach((y,i)=>{
+    const lg=Math.log(Math.max(1e-12,1+y.rate))/12-s*s/2;
+    for(let m=0;m<y.full;m++){
+      mu.push(lg); sd.push(s); cf.push(tf); add.push(y.pac); yEnd.push(0);
+      mo++; investedReal+=y.pac*Math.exp(-ri*mo);
+    }
+    if(y.frac){
+      mu.push(lg*y.frac); sd.push(s*Math.sqrt(y.frac)); cf.push(Math.pow(tf,y.frac)); add.push(y.pac*y.frac); yEnd.push(0);
+      mo+=y.frac; investedReal+=y.pac*y.frac*Math.exp(-ri*mo);
+    }
+    yEnd[yEnd.length-1]=i+1;
+    put.push(y.pac*y.n);
+  });
+  const invested=init+put.reduce((a,v)=>a+v,0), contrib=invested-init;
+  /* bands:false (gli Obiettivi) salta le bande per anno: servono solo i finali */
+  const K=mu.length, r=rng(p.seed==null?42:+p.seed), nB=p.bands===false?0:H.years.length+1;
+  const at=[]; for(let y=0;y<nB;y++)at.push(new Float64Array(n));
+  const fin=new Float64Array(n);
+  let sum=0;
+  for(let i=0;i<n;i++){
+    let b=init;
+    for(let k=0;k<K;k++){
+      b=b*Math.exp(mu[k]+sd[k]*normal(r))*cf[k]+add[k];
+      if(nB&&yEnd[k])at[yEnd[k]][i]=b;
+    }
+    if(nB)at[0][i]=init;
+    fin[i]=b; sum+=b;
+  }
+  const bands=at.map((a,y)=>{
+    a.sort();
+    return {t:y?H.years[y-1].t:0,p10:percentileArr(a,.1),p25:percentileArr(a,.25),
+      p50:percentileArr(a,.5),p75:percentileArr(a,.75),p90:percentileArr(a,.9)};
+  });
+  /* keepPaths: i finali anche nell'ordine dei percorsi, prima dell'ordinamento */
+  const paths=p.keepPaths?Array.from(fin):undefined;
+  fin.sort();
+  const finals=Array.from(fin), disc=H.M?Math.pow(1+infl,H.M/12):1;
+  const netFinals=finals.map(f=>f-Math.max(0,f-taxBase-contrib)*taxRate).sort((a,b)=>a-b);
+  let below=0, realLoss=0;
+  finals.forEach(f=>{ if(f<invested)below++; if(f/disc<investedReal)realLoss++; });
+  return {bands:bands,finals:finals,netFinals:netFinals,invested:invested,investedReal:investedReal,
+    mean:sum/n,n:n,disc:disc,pBelowInvested:below/n,pRealLoss:realLoss/n,paths:paths};
+}
+
+/* TER medio del portafoglio, pesato sul valore, sulle sole posizioni che lo
+   hanno. coveragePct dice su quanta parte del capitale è calcolato: un TER
+   medio sul 30% del capitale va dichiarato come tale. null se nessuna lo ha. */
+function portfolioTer(){
+  let tot=0,cov=0,w=0;
+  activePositions().forEach(p=>{
+    const v=p._value>0?p._value:0; tot+=v;
+    if(p.ter==null||p.ter===''||!v)return;
+    cov+=v; w+=v*num(p.ter);
+  });
+  return cov>0?{ter:w/cov,coveragePct:cov/tot*100}:null;
+}
+
+/* --- pagina ---------------------------------------------------------------- */
+/* Campi della pagina → chiavi di S.settings.sim (in percentuale come gli slider) */
+const SIM_FIELDS={sInit:'init',sPac:'pac',sYears:'years',sRate:'rate',sInfl:'infl',
+  sRetSkew:'retSkew',sPacSkew:'pacSkew',sVol:'vol',sTer:'ter',sTaxBase:'taxBase'};
+/* portfolioVolAnn() una volta per pagina: costa quanto la Salute */
+function simPf(){ if(UI.simPf===undefined)UI.simPf=portfolioVolAnn(); return UI.simPf; }
+/* Volatilità in %: quella impostata a mano, altrimenti quella del portafoglio
+   arrotondata a 0,5%, altrimenti il 15% tipico di un azionario globale. */
+function simVol(pf){
+  const s=S.settings.sim||simDefaults();
+  const pfv=pf?Math.min(35,Math.round(pf.vol*200)/2):null;
+  if(s.vol!=null)return {vol:num(s.vol),src:'manual',pf:pfv,months:pf?pf.months:0};
+  if(pfv!=null)return {vol:pfv,src:'portfolio',pf:pfv,months:pf.months};
+  return {vol:15,src:'typical',pf:null,months:0};
+}
+/* Le ipotesi del Simulatore in frazioni, pronte per simCore e mcSimulate */
+function simParams(){
+  const s=S.settings.sim||simDefaults();
+  return {init:num(s.init),pac:num(s.pac),years:Math.max(0,Math.min(100,Math.round(num(s.years)))),
+    rate:num(s.rate)/100,infl:num(s.infl)/100,retSkew:num(s.retSkew)/100,pacSkew:num(s.pacSkew)/100,
+    vol:simVol(simPf()).vol/100,ter:num(s.ter)/100,taxRate:rbTaxRate()/100,
+    taxBase:s.taxBase==null||s.taxBase===''?null:num(s.taxBase)};
+}
+/* settings → campi; quello in cui si sta scrivendo non si tocca */
+function simFill(){
+  const s=S.settings.sim, act=document.activeElement;
+  Object.keys(SIM_FIELDS).forEach(id=>{
+    const el=$('#'+id); if(!el||el===act)return;
+    const k=SIM_FIELDS[id], v=k==='vol'?simVol(simPf()).vol:s[k];
+    el.value=v==null?'':el.type==='text'?fnum(v):String(v);
+  });
+}
+/* campo → settings, a ogni modifica. Toccare lo slider della volatilità la
+   rende manuale; la base fiscale vuota torna uguale al capitale iniziale */
+function simStore(id){
+  const k=SIM_FIELDS[id], raw=$('#'+id).value; let v=num(raw);
+  if(k==='years')v=Math.max(0,Math.min(100,Math.round(v)));
+  if(k==='ter')v=Math.max(0,Math.min(3,v));
+  if(k==='taxBase')v=String(raw).trim()===''?null:Math.max(0,v);
+  S.settings.sim[k]=v; save();
+}
+const simFmtY=v=>Math.abs(v)>=1e6?nf(v/1e6,1)+'M':(Math.abs(v)>=1000?Math.round(v/1000)+'k':Math.round(v));
+/* quota di scenari in %: gli estremi non si arrotondano a 0 o 100 */
+const probTxt=x=>x<=0?'0%':x<.01?'< 1%':x>=1?'100%':x>.99?'> 99%':nf(x*100,0)+'%';
+const simTipX=t=>t===0?'Oggi':'Tra '+t+(t===1?' anno':' anni');
+function simulate(){
+  const s=S.settings.sim, p=simParams(), r=simCore(p), years=p.years, bal=r.final, V=simVol(simPf());
+  const realRate=((1+p.rate)/(1+p.infl)-1)*100;
+  $('#sRateLbl').textContent=nf(num(s.rate),1)+'%';
+  $('#sInflLbl').textContent=nf(num(s.infl),1)+'%';
+  $('#sVolLbl').textContent=nf(V.vol,1)+'%';
+  $('#sVolSrc').textContent=V.src==='portfolio'?'Dal tuo portafoglio ('+V.months+' mesi di storico)':
+    V.src==='typical'?'Valore tipico per un portafoglio azionario globale: con lo storico scaricato (in Salute) si usa quella del tuo portafoglio':
+    'Impostata a mano'+(V.pf!=null?' · il tuo portafoglio: '+nf(V.pf,1)+'% su '+V.months+' mesi':' · valore tipico: 15%');
+  $('#sUseVol').disabled=V.pf==null||V.src==='portfolio';
   $('#sRealLbl').textContent='Rendimento reale al netto dell\'inflazione: circa '+nf(realRate,1)+'% annuo';
-  $('#sRetSkewLbl').textContent=skewLabel(num($('#sRetSkew').value),'buoni all\'inizio','buoni alla fine');
-  $('#sPacSkewLbl').textContent=skewLabel(num($('#sPacSkew').value),'tanto presto','tanto tardi');
-  $('#sHorizon').textContent=years+' anni · '+nf(num($('#sRate').value),1)+'% annuo';
+  $('#sRetSkewLbl').textContent=skewLabel(num(s.retSkew),'buoni all\'inizio','buoni alla fine');
+  $('#sPacSkewLbl').textContent=skewLabel(num(s.pacSkew),'tanto presto','tanto tardi');
+  $('#sHorizon').textContent=years+' anni · '+nf(num(s.rate),1)+'% annuo';
   $('#sFinal').textContent=money0(bal);
   $('#sSub').textContent='valore stimato tra '+years+(years===1?' anno':' anni');
-  $('#sInvested').textContent=money0(invested);
-  $('#sGain').textContent=(gain>=0?'+':'−')+money0(Math.abs(gain));
-  $('#sMult').textContent=invested>0?nf(bal/invested,2)+'×':'–';
-  $('#sRealFinal').textContent=money0(realFinal);
+  $('#sInvested').textContent=money0(r.invested);
+  $('#sGain').textContent=(r.gain>=0?'+':'−')+money0(Math.abs(r.gain));
+  $('#sMult').textContent=r.invested>0?nf(bal/r.invested,2)+'×':'–';
+  $('#sRealFinal').textContent=money0(r.realFinal);
+  /* costi: la proiezione senza TER meno quella con il TER */
+  const costs=p.ter?simCore(Object.assign({},p,{ter:0})).final-bal:0, tax=rbTaxRate();
+  $('#sCosts').textContent=costs>=.5?'−'+money0(costs):money0(0);
+  $('#sTaxPct').textContent=nf(tax,tax%1?1:0)+'%';
+  $('#sTax').textContent=r.tax>=.5?'−'+money0(r.tax):money0(0);
+  $('#sNet').textContent=money0(r.net);
+  $('#sRealNet').textContent=money0(r.realNet);
+  const PT=portfolioTer();
+  $('#sUseTer').disabled=!PT;
+  $('#sUseTer').textContent='Usa il TER del portafoglio'+(PT?': '+nf(PT.ter,2)+'% · su '+nf(PT.coveragePct,0)+'% del capitale':'');
 
   /* linea tratteggiata: solo capitale versato, senza rendimento */
-  let cum=init;
-  const base=[{t:0,v:init}];
-  pacs.forEach((v,i)=>{ cum+=v*12; base.push({t:i+1,v:cum}); });
-  Chart.area($('#sChart'),pts,{
+  const base=r.base;
+  Chart.area($('#sChart'),r.pts,{
     height:210,padR:50,color:'var(--accent)',
     extra:[{pts:base,color:'var(--muted)',dash:'5 4'}],
-    fmtY:v=>Math.abs(v)>=1e6?nf(v/1e6,1)+'M':(Math.abs(v)>=1000?Math.round(v/1000)+'k':Math.round(v)),
-    fmtX:t=>t===0?'oggi':'+'+t+'a', fmtTipX:t=>t===0?'Oggi':'Tra '+t+(t===1?' anno':' anni'),
-    fmtTip:(q,i)=>money0(q.v)+'<div style="color:var(--muted);font-weight:600;font-size:11.5px;margin-top:2px">versato '+
-      money0(base[i]?base[i].v:0)+'</div>',
+    fmtY:simFmtY, fmtX:t=>t===0?'oggi':'+'+t+'a', fmtTipX:simTipX,
+    fmtTip:(q,i)=>'<span class="mask">'+money0(q.v)+'</span><div style="color:var(--muted);font-weight:600;font-size:11.5px;margin-top:2px">versato <span class="mask">'+
+      money0(base[i]?base[i].v:0)+'</span></div>',
     emptyTitle:'Imposta una durata',
     emptyText:'Servono almeno 2 anni di orizzonte per disegnare la proiezione.'
   });
+}
+/* Il Monte Carlo si ricalcola 150 ms dopo l'ultimo tasto (la proiezione
+   deterministica resta immediata) e solo se i parametri sono cambiati: un
+   ridimensionamento o il cambio di tema ridisegnano e basta. */
+let simMc={key:'',res:null}, simMcT=null;
+function simQueueMC(){ clearTimeout(simMcT); simMcT=setTimeout(simulateMC,150); }
+function simulateMC(){
+  clearTimeout(simMcT);
+  const host=$('#sFan'); if(!host)return;
+  const p=Object.assign(simParams(),{n:2000,seed:num(S.settings.sim.seed)});
+  const key=JSON.stringify(p);
+  if(simMc.key!==key)simMc={key:key,res:mcSimulate(p)};
+  const r=simMc.res, base=simCore(p).base;
+  const row=(l,v,cls)=>'<div><span>'+l+'</span><'+(cls||'b')+' class="mask">'+money0(v)+'</'+(cls||'b')+'></div>';
+  Chart.fan(host,r.bands,{
+    height:230,padR:50,color:'var(--accent)',
+    extra:[{pts:base,color:'var(--muted)',dash:'5 4'}],
+    fmtY:simFmtY, fmtX:t=>t===0?'oggi':'+'+t+'a', fmtTipX:simTipX,
+    fmtTip:(q,i)=>{ const b=r.bands[i];
+      return '<div class="mc-tip">'+row('pessimistico (10%)',b.p10)+row('mediano',b.p50)+
+        row('ottimistico (90%)',b.p90)+row('versato',base[i]?base[i].v:0,'span')+'</div>'; },
+    emptyTitle:'Imposta una durata',
+    emptyText:'Servono almeno 2 anni di orizzonte per disegnare la proiezione.'
+  });
+  const tax=rbTaxRate(), cols=[.1,.5,.9];
+  const rows=[['Lordo',r.finals],['Netto tasse ('+nf(tax,tax%1?1:0)+'%)',r.netFinals],
+    ['Netto reale',r.netFinals.map(v=>v/r.disc)]];
+  $('#sMcTbl').innerHTML='<thead><tr><th></th><th>Pessimistico 10%</th><th>Mediano</th><th>Ottimistico 90%</th></tr></thead><tbody>'+
+    rows.map(w=>'<tr><td>'+esc(w[0])+'</td>'+
+      cols.map(c=>'<td class="num mask">'+money0(percentileArr(w[1],c))+'</td>').join('')+'</tr>').join('')+'</tbody>';
+  $('#sPBelow').textContent=probTxt(r.pBelowInvested);
+  $('#sPReal').textContent=probTxt(r.pRealLoss);
+  $('#sMcSub').textContent=nf(r.n,0)+' scenari · volatilità '+nf(p.vol*100,1)+'%';
+  $('#sMcNote').innerHTML='<b>Come leggerlo.</b> Metà degli scenari finisce sopra la mediana e metà sotto; '+
+    'uno su dieci fa peggio del pessimistico e uno su dieci meglio dell\'ottimistico. '+
+    (p.vol>0?'La mediana sta sotto la proiezione qui sopra perché la volatilità erode la crescita composta: '+
+      'la proiezione è la media degli scenari, tirata su da quelli più fortunati. ':'')+
+    'Il modello assume rendimenti mensili indipendenti e "normali" nei logaritmi, quindi sottostima i crolli estremi. '+
+    'Non è una previsione.';
+}
+function renderSim(){
+  UI.simPf=undefined;
+  simFill(); simulate(); simulateMC();
 }
 
 /* ==========================================================================
@@ -6902,6 +7246,84 @@ function monthsLeft(g){
   const m=(end-Date.now())/(1000*60*60*24*30.44);
   return m>0?m:0;
 }
+/* --- probabilità di raggiungerlo -------------------------------------------
+   Solo per gli obiettivi sul totale del portafoglio: fondo emergenza e importo
+   manuale non sono esposti al mercato come il portafoglio. Le ipotesi sono
+   quelle del Simulatore (`sp` = simParams(), in frazioni): un'unica fonte. */
+const goalIsPf=g=>g.mode!=='manual'&&g.mode!=='emergency';
+/* versamento dedicato: quello dell'obiettivo; se manca, per il totale del
+   portafoglio quello del Simulatore, altrimenti 0 */
+function goalPac(g,sp){
+  if(g.pac!=null&&g.pac!=='')return Math.max(0,num(g.pac));
+  return goalIsPf(g)?Math.max(0,num(sp.pac)):0;
+}
+/* target alla scadenza: se è in euro di oggi cresce con l'inflazione */
+function goalTarget(g,sp,months){
+  const t=num(g.target);
+  return g.realTarget?t*Math.pow(1+(+sp.infl||0),Math.max(0,months||0)/12):t;
+}
+/* Quota dei percorsi Monte Carlo che alla data target valgono almeno il
+   target. Rendimento, volatilità e costi del Simulatore, niente tasse, seme
+   fisso. opts: {cur, months, pac, n, seed}; cur e months di default da
+   goalCurrent() e monthsLeft(), con la frazione di mese. null se non si
+   applica (modalità diversa dal portafoglio, target o scadenza mancanti). */
+function goalProbability(g,sp,opts){
+  opts=opts||{};
+  if(!goalIsPf(g))return null;
+  const cur=opts.cur!=null?opts.cur:goalCurrent(g);
+  const months=opts.months!==undefined?opts.months:monthsLeft(g);
+  if(months==null)return null;
+  const target=goalTarget(g,sp,months);
+  if(!(target>0))return null;
+  if(cur>=target)return 1;
+  if(!(months>0))return 0;
+  const r=mcSimulate({init:cur,pac:opts.pac!=null?opts.pac:goalPac(g,sp),months:months,
+    rate:sp.rate,vol:sp.vol,ter:sp.ter,n:opts.n||2000,seed:opts.seed==null?42:opts.seed,bands:false});
+  let ok=0; r.finals.forEach(f=>{ if(f>=target)ok++; });
+  return ok/r.n;
+}
+/* Versamento mensile minimo (in euro interi) per arrivare a `want` di
+   probabilità. Bisezione con 500 percorsi e sempre lo stesso seme: ogni
+   percorso cresce col versamento, quindi la probabilità non scende mai e la
+   bisezione converge. Si parte dal versamento che basta a rendimento zero
+   (mancante / mesi rimasti); se con la volatilità non basta, si raddoppia.
+   Con lo stesso seme i 500 percorsi sono identici a ogni tentativo e il
+   finale di ognuno è lineare nel versamento (A + versamento × B): bastano due
+   corse, a 0 e a 1000 €, e ogni tentativo costa un conteggio invece di una
+   simulazione. Il risultato è quello della bisezione che risimula. */
+function pacForProbability(g,sp,want,opts){
+  want=want==null?.75:want; opts=opts||{};
+  if(!goalIsPf(g))return null;
+  const cur=opts.cur!=null?opts.cur:goalCurrent(g);
+  const months=opts.months!==undefined?opts.months:monthsLeft(g);
+  if(!(months>0))return null;
+  const target=goalTarget(g,sp,months);
+  if(!(target>0))return null;
+  if(cur>=target)return 0;
+  const run=pac=>mcSimulate({init:cur,pac:pac,months:months,rate:sp.rate,vol:sp.vol,ter:sp.ter,
+    n:500,seed:opts.seed==null?42:opts.seed,bands:false,keepPaths:true}).paths;
+  const A=run(0), B=run(1000).map((v,i)=>(v-A[i])/1000);
+  const ok=pac=>{ let c=0; for(let i=0;i<A.length;i++)if(A[i]+pac*B[i]>=target)c++; return c/A.length>=want; };
+  if(ok(0))return 0;
+  let lo=0, hi=Math.max(1,Math.ceil((target-cur)/months)), guard=0;
+  while(!ok(hi)){ if(++guard>30)return null; lo=hi; hi*=2; }
+  while(hi-lo>1){ const mid=Math.floor((lo+hi)/2); if(ok(mid))hi=mid; else lo=mid; }
+  return hi;
+}
+/* Cache per chiave di parametri: renderGoals() rifà il Monte Carlo solo se
+   è cambiato qualcosa. I mesi arrivano arrotondati al centesimo, così la
+   chiave non cambia a ogni millisecondo. */
+const GOAL_MC={};
+function goalMC(g,sp,cur,months){
+  const pac=goalPac(g,sp);
+  const key=JSON.stringify([cur,months,pac,goalTarget(g,sp,months),sp.rate,sp.vol,sp.ter]);
+  if(!GOAL_MC[key]){
+    if(Object.keys(GOAL_MC).length>100)Object.keys(GOAL_MC).forEach(k=>delete GOAL_MC[k]);
+    const p=goalProbability(g,sp,{cur:cur,months:months});
+    GOAL_MC[key]={p:p,pac:pac,pac75:p!=null&&p<.75?pacForProbability(g,sp,.75,{cur:cur,months:months}):null};
+  }
+  return GOAL_MC[key];
+}
 function renderGoals(){
   const grid=$('#goalsGrid'), empty=$('#goalsEmpty');
   const gs=S.goals||[];
@@ -6911,15 +7333,39 @@ function renderGoals(){
       '<div class="big">Nessun obiettivo</div>'+
       '<div class="sm">Fissa un traguardo — un fondo emergenza, l\'anticipo per una casa, l\'indipendenza finanziaria — e segui i progressi mese dopo mese.</div>'+
       '<div class="wl-empty-cta"><button class="btn btn-primary btn-sm" id="gEmptyAdd">＋ Aggiungi obiettivo</button></div></div>';
+    $('#goalsFoot').innerHTML='';
     const b=$('#gEmptyAdd'); if(b)b.addEventListener('click',()=>openGoal(null));
     return;
   }
   empty.innerHTML='';
+  UI.simPf=undefined;
+  const sp=simParams();
+  /* ipotesi in %: 7%, 12,5%, 0,22% (al più due decimali, senza zeri inutili) */
+  const pct=v=>{ const x=Math.round(v*1e4)/100;
+    return nf(x,Number.isInteger(x)?0:Number.isInteger(Math.round(x*100)/10)?1:2)+'%'; };
   grid.innerHTML=gs.map(g=>{
     const st=goalStatus(g), cur=goalCurrent(g), target=num(g.target);
     const ml=monthsLeft(g), missing=Math.max(0,target-cur);
     const perMonth=(ml&&ml>0.5&&missing>0)?missing/ml:null;
     const modeLbl=g.mode==='manual'?'importo manuale':(g.mode==='emergency'?'fondo emergenza':'totale portafoglio');
+    /* probabilità: totale portafoglio, non completato, scadenza futura */
+    let prob='';
+    if(goalIsPf(g)&&st.progress<100&&ml>0&&target>0){
+      const mR=Math.round(ml*100)/100, mc=goalMC(g,sp,cur,mR), pr=mc.p;
+      if(pr!=null){
+        const col=pr>=.75?'var(--up)':pr>=.5?'var(--warn)':'var(--down)';
+        const tip='Su 2000 scenari con rendimento '+pct(sp.rate)+', volatilità '+pct(sp.vol)+
+          ' e costi '+pct(sp.ter)+' (ipotesi del Simulatore)';
+        prob='<div class="goal-prob">'+
+          '<div title="'+esc(tip)+'">Probabilità di raggiungerlo: <b class="pr" style="color:'+col+'">'+probTxt(pr)+'</b>'+
+            ' <span class="sub">'+(mc.pac>0?'versando <b class="mask">'+money0(mc.pac)+'</b>/mese':'senza versamenti')+'</span></div>'+
+          /* con 500 percorsi la bisezione può fermarsi sotto il versamento attuale
+             quando la probabilità è a ridosso del 75%: lì la riga non direbbe niente */
+          (pr<.75&&mc.pac75!=null&&mc.pac75>mc.pac?'<div>Per arrivare al 75%: <b class="mask">'+money0(mc.pac75)+'</b>/mese</div>':'')+
+          (g.realTarget?'<div class="sub">In euro di oggi: alla scadenza servono <b class="mask">'+money0(goalTarget(g,sp,mR))+'</b></div>':'')+
+        '</div>';
+      }
+    }
     return '<div class="goal">'+
       '<div class="goal-hd">'+
         '<div class="goal-ic">'+esc(g.icon||'🎯')+'</div>'+
@@ -6938,10 +7384,13 @@ function renderGoals(){
       '<div class="goal-foot">'+
         '<span>Target <b>'+(g.targetDate?fmtDate(g.targetDate):'–')+'</b></span>'+
         (ml!=null?'<span>Mancano <b>'+(ml>=12?nf(ml/12,1)+' anni':Math.round(ml)+' mesi')+'</b></span>':'')+
-        (perMonth?'<span>Servono <b class="mask">'+money0(perMonth)+'</b>/mese</span>':'')+
-      '</div>'+
+        (perMonth?'<span>Servono <b class="mask">'+money0(perMonth)+'</b>/mese senza contare i rendimenti</span>':'')+
+      '</div>'+prob+
     '</div>';
   }).join('');
+  $('#goalsFoot').innerHTML='<div class="note mt18">Le probabilità degli obiettivi sul totale del portafoglio usano le ipotesi del '+
+    'Simulatore: rendimento '+pct(sp.rate)+', volatilità '+pct(sp.vol)+', costi '+pct(sp.ter)+', inflazione '+pct(sp.infl)+'. '+
+    '<button type="button" class="linkbtn" data-nav="simulatore" style="padding:0">Cambia le ipotesi nel Simulatore</button></div>';
   $$('#goalsGrid [data-gedit]').forEach(b=>b.addEventListener('click',()=>openGoal(b.getAttribute('data-gedit'))));
 }
 function openGoal(id){
@@ -6956,11 +7405,20 @@ function openGoal(id){
   $('#gMode').value=g&&(g.mode==='manual'||g.mode==='emergency')?g.mode:'portfolio';
   $('#gManual').value=fnum(g&&g.manual!=null?g.manual:'');
   $('#gManualWrap').style.display=$('#gMode').value==='manual'?'block':'none';
+  /* versamento: finché non lo tocchi segue il default della modalità e si
+     salva vuoto, così resta legato al Simulatore */
+  const pacEl=$('#gPac');
+  if(g&&g.pac!=null&&g.pac!==''){ pacEl.value=fnum(g.pac); pacEl.dataset.auto=''; }
+  else{ pacEl.value=fnum(goalPacDefault($('#gMode').value)); pacEl.dataset.auto='1'; }
+  $('#gReal').checked=!!(g&&g.realTarget);
+  $('#gRealHint').textContent='Il target cresce con l\'inflazione del Simulatore ('+
+    nf(num((S.settings.sim||simDefaults()).infl),1)+'% annuo) fino alla scadenza.';
   $('#gDelete').style.display=g?'':'none';
   $('#gId').value=g?g.id:'';
   $('#ovGoal').classList.add('on');
   setTimeout(()=>{ if(!g)$('#gName').focus(); },90);
 }
+const goalPacDefault=mode=>mode==='manual'||mode==='emergency'?0:num((S.settings.sim||simDefaults()).pac);
 function saveGoal(){
   const name=$('#gName').value.trim();
   if(!name){ toast('Dai un nome all\'obiettivo','err'); $('#gName').focus(); return; }
@@ -6969,7 +7427,9 @@ function saveGoal(){
     id:id||uid(), name:name, icon:$('#gIcon').value.trim()||'🎯',
     target:num($('#gTarget').value), targetDate:$('#gTargetDate').value,
     startDate:$('#gStartDate').value||todayISO(),
-    mode:$('#gMode').value, manual:num($('#gManual').value)
+    mode:$('#gMode').value, manual:num($('#gManual').value),
+    pac:$('#gPac').dataset.auto?null:Math.max(0,num($('#gPac').value)),
+    realTarget:$('#gReal').checked
   };
   if(id)S.goals=S.goals.map(g=>g.id===id?obj:g); else S.goals.push(obj);
   save(); closeAll(); renderAll();
@@ -7029,7 +7489,7 @@ function parseCSV(text){
 const CSV_FIELDS=[
   ['ticker','Ticker / Simbolo *'],['isin','ISIN'],['name','Nome'],['cls','Categoria'],['sector','Settore'],
   ['country','Paese / Area'],['currency','Valuta'],['platform','Piattaforma'],['qty','Quantità *'],['avg','Prezzo di carico / operazione *'],
-  ['price','Prezzo attuale'],['yield','Yield dividendo %'],['risk','Rischio 3–9'],['factor','Fattore'],
+  ['price','Prezzo attuale'],['yield','Yield dividendo %'],['ter','TER %'],['risk','Rischio 3–9'],['factor','Fattore'],
   ['targetWeight','Peso previsto %'],['dateAdded','Data / In portafoglio dal'],
   ['txType','Operazione (acquisto/vendita)'],['fee','Commissione'],
   ['divTotal','Dividendo (totale)'],['divShare','Dividendo per azione']
@@ -7051,6 +7511,12 @@ const CSV_HINTS={
   platform:['piattaforma','platform','broker','intermediario'],
   risk:['rischio','risk'],
   yield:['yield','dividend','rendiment','cedola','div%'],
+  /* "ter" solo come parola a sé: dentro "intermediario" o "estero" non è il
+     TER. Le forme lunghe battono 'spese' (Commissione), 'cost' (Prezzo di
+     carico) e 'corrente' (Prezzo attuale). Niente 'expense' da solo: in un
+     CSV di movimenti "Expenses" sono le commissioni */
+  ter:[{re:/\bter\b/,len:3},'spese correnti','spesa corrente','costi correnti','costo corrente',
+       'costi annui','ongoing','expense ratio'],
   factor:['fattore','factor','stile','style'],
   targetWeight:['peso previsto','target','peso'],
   dateAdded:['portafoglio dal','in portafoglio','data acquisto','data di acquisto','inserimento',
@@ -7075,15 +7541,18 @@ function parseTxType(v){
   return '';
 }
 /* Ritorna la colonna che combacia meglio: vince la parola chiave più lunga,
-   cioè la più specifica. `used` esclude le colonne già assegnate. */
+   cioè la più specifica. `used` esclude le colonne già assegnate. Una chiave
+   può essere anche {re,len}: un'espressione con la sua lunghezza convenzionale. */
 function guessColumn(headers,field,used){
   const h=headers.map(x=>String(x).toLowerCase());
   const pats=CSV_HINTS[field]||[];
   let best=-1,len=-1;
   for(let j=0;j<h.length;j++){
     if(used&&used[j])continue;
-    for(let k=0;k<pats.length;k++)
-      if(h[j].indexOf(pats[k])>-1&&pats[k].length>len){ best=j; len=pats[k].length; }
+    for(let k=0;k<pats.length;k++){
+      const p=pats[k], L=typeof p==='string'?p.length:p.len;
+      if(L>len&&(typeof p==='string'?h[j].indexOf(p)>-1:p.re.test(h[j]))){ best=j; len=L; }
+    }
   }
   return {i:best,len:len};
 }
@@ -7166,6 +7635,8 @@ function csvPosFields(){
     ['platform','Piattaforma',v=>normPlatform(v)],
     ['price','Prezzo attuale',v=>num(v)],
     ['yield','Yield dividendo %',v=>num(v)],
+    /* senza cifre ("—", "n/d") il TER resta assente: uno zero abbasserebbe la media */
+    ['ter','TER %',v=>/\d/.test(v)?num(v):''],
     ['risk','Rischio',v=>Math.max(3,Math.min(9,Math.round(num(v))))],
     ['factor','Fattore',v=>normFactor(v)],
     ['targetWeight','Peso previsto %',v=>num(v)]
@@ -7303,12 +7774,12 @@ const stamp=()=>new Date().toISOString().slice(0,10);
 function exportPositions(){
   if(!S.positions.length){ toast('Nessuna posizione da esportare','err'); return; }
   const head=['Ticker','ISIN','Nome','Categoria','Settore','Paese','Valuta','Piattaforma','Quantità','Prezzo carico',
-    'Prezzo attuale','Yield %','Rischio','Fattore','Peso previsto %','In portafoglio dal','Mesi stacco',
+    'Prezzo attuale','Yield %','TER %','Rischio','Fattore','Peso previsto %','In portafoglio dal','Mesi stacco',
     'Chiusa il','Valore EUR','G/P EUR','G/P %','Realizzato EUR'];
   const lines=[head.join(',')];
   S.positions.forEach(p=>lines.push([
     p.ticker,p.isin||'',p.name||'',p.cls||'',p.sector||'',p.country||'',p.currency||'EUR',normPlatform(p.platform),
-    p._q,p._avg,num(p.price),p.yield==null?'':num(p.yield),Math.round(num(p.risk))||6,
+    p._q,p._avg,num(p.price),p.yield==null?'':num(p.yield),p.ter==null||p.ter===''?'':num(p.ter),Math.round(num(p.risk))||6,
     normFactor(p.factor),p.targetWeight==null?'':num(p.targetWeight),p.dateAdded||'',p.divMonths||'',
     p.closedDate||'',p._value.toFixed(2),p._pnl.toFixed(2),p._pnlPct.toFixed(2),num(p._realized).toFixed(2)
   ].map(csvField).join(',')));
@@ -7529,7 +8000,7 @@ function renderPage(k){
   else if(k==='ribilanciamento'){ renderRebalance(); }
   else if(k==='watchlist'){ renderWatchlist(); }
   else if(k==='dividendi'){ renderDividends(); }
-  else if(k==='simulatore'){ simulate(); }
+  else if(k==='simulatore'){ renderSim(); }
   else if(k==='storico'){ renderHistory(); }
   else if(k==='obiettivi'){ renderGoals(); }
   else if(k==='impostazioni'){ renderSettings(); }
@@ -7751,10 +8222,23 @@ function wire(){
   ['dGrowth','dYears','dReinvest'].forEach(id=>$('#'+id).addEventListener('input',updateDiv));
 
   /* --- simulatore --- */
-  ['sInit','sPac','sYears','sRate','sInfl','sRetSkew','sPacSkew'].forEach(id=>
-    $('#'+id).addEventListener('input',simulate));
+  Object.keys(SIM_FIELDS).forEach(id=>
+    $('#'+id).addEventListener('input',()=>{ simStore(id); simulate(); simQueueMC(); }));
+  /* il valore attuale contiene plusvalenze latenti: la base fiscale è il costo */
   $('#sUseCur').addEventListener('click',()=>{
-    $('#sInit').value=Math.round(T.value); simulate(); toast('Capitale iniziale impostato sul valore attuale');
+    S.settings.sim.init=Math.round(T.value); S.settings.sim.taxBase=Math.round(T.cost);
+    save(); simFill(); simulate(); simulateMC();
+    toast('Capitale iniziale e base fiscale presi dal portafoglio attuale');
+  });
+  $('#sUseTer').addEventListener('click',()=>{
+    const PT=portfolioTer(); if(!PT)return;
+    S.settings.sim.ter=Math.round(PT.ter*100)/100; save(); simFill(); simulate(); simulateMC();
+  });
+  $('#sUseVol').addEventListener('click',()=>{
+    S.settings.sim.vol=null; save(); simFill(); simulate(); simulateMC();
+  });
+  $('#sReseed').addEventListener('click',()=>{
+    S.settings.sim.seed=Math.floor(Math.random()*4294967296); save(); simulateMC();
   });
 
   /* --- storico --- */
@@ -7779,7 +8263,9 @@ function wire(){
   $('#gDelete').addEventListener('click',()=>{ if(UI.editGoal)deleteGoal(UI.editGoal); });
   $('#gMode').addEventListener('change',e=>{
     $('#gManualWrap').style.display=e.target.value==='manual'?'block':'none';
+    if($('#gPac').dataset.auto)$('#gPac').value=fnum(goalPacDefault(e.target.value));
   });
+  $('#gPac').addEventListener('input',e=>{ e.target.dataset.auto=''; });
 
   /* --- import CSV --- */
   $('#csvParse').addEventListener('click',csvRead);
@@ -7893,6 +8379,7 @@ $('#chipDivP').innerHTML=ic('trend',17);
 $('#chipCal').innerHTML=ic('clock',17);
 $('#chipSim').innerHTML=ic('settings',17);
 $('#chipSimR').innerHTML=ic('trend',17);
+$('#chipSimMc').innerHTML=ic('bolt',17);
 $('#chipHist').innerHTML=ic('clock',17);
 $('#chipBench').innerHTML=ic('balance',17);
 $('#chipSnap').innerHTML=ic('db',17);
