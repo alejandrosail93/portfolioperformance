@@ -333,6 +333,23 @@ html[data-theme="light"] .field textarea,html[data-theme="light"] .inp{backgroun
 .field textarea{min-height:88px;resize:vertical;font-size:13px}
 .field .hint{font-size:11.5px;color:var(--muted);margin-top:5px}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+/* campo con un pulsante accanto: ISIN + "Trova ticker" */
+.inrow{display:flex;gap:8px;align-items:stretch}
+.inrow input{flex:1;min-width:0}
+#fIsin{text-transform:uppercase}
+#fIsin::placeholder{text-transform:none}
+#fIsinHint:empty{display:none}
+.field .hint.bad{color:var(--warn)}
+.isin-res{margin:-4px 0 15px;font-size:12.5px;color:var(--ink-soft);line-height:1.5}
+.isin-res:empty{display:none}
+.isin-res a{color:var(--accent-ink);text-decoration:underline}
+.isin-list{display:flex;flex-direction:column;gap:6px}
+.isin-opt{display:flex;gap:10px;align-items:baseline;width:100%;min-width:0;text-align:left;
+  padding:9px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);font-size:13px}
+.isin-opt:hover,.isin-opt:focus-visible{border-color:var(--accent)}
+.isin-opt b{font-weight:700;color:var(--ink)}
+.isin-opt .ex{color:var(--muted);font-size:12px;white-space:nowrap}
+.isin-opt .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft)}
 .range{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:5px;
   background:var(--surface-3);outline:none;padding:0;border:0}
 .range::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;
@@ -1139,7 +1156,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
             <div class="right"><span class="sub hide-sm">clicca una riga per il dettaglio</span></div>
           </div>
           <div class="filters">
-            <input type="text" class="fs" id="fltSearch" placeholder="Cerca titolo o nome…">
+            <input type="text" class="fs" id="fltSearch" placeholder="Cerca titolo, nome o ISIN…">
             <select id="fltPlatform" aria-label="Piattaforma"></select>
             <select id="fltCls"></select>
             <select id="fltSector"></select>
@@ -1813,8 +1830,14 @@ html[data-theme="light"] .maptbl select{background:#fff}
       <div id="derivedNote"></div>
       <div class="frow">
         <div class="field"><label>Ticker / Simbolo</label><input id="fTicker" placeholder="es. AAPL"></div>
-        <div class="field"><label>Nome</label><input id="fName" placeholder="es. Apple Inc."></div>
+        <div class="field"><label>ISIN</label>
+          <div class="inrow"><input id="fIsin" placeholder="es. IE00B4L5Y983" autocomplete="off" spellcheck="false">
+            <button type="button" class="btn btn-soft btn-sm" id="fIsinFind" disabled
+              title="Cerca su Yahoo Finance il ticker che corrisponde all'ISIN">Trova ticker</button></div>
+          <div class="hint" id="fIsinHint"></div></div>
       </div>
+      <div class="isin-res" id="isinResults"></div>
+      <div class="field"><label>Nome</label><input id="fName" placeholder="es. Apple Inc."></div>
       <div class="frow">
         <div class="field"><label>Categoria</label><select id="fCls"></select></div>
         <div class="field"><label>Valuta</label><select id="fCur"></select></div>
@@ -2135,6 +2158,24 @@ function normComposition(text,norm){
   }).join('\n');
 }
 
+/* Codice ISIN: 2 lettere di paese, 9 caratteri alfanumerici e una cifra di
+   controllo. Le lettere diventano numeri (A=10 … Z=35) e sulla stringa di
+   cifre che ne esce si applica l'algoritmo di Luhn. Spazi e minuscole non
+   contano: "ie00 b4l5 y983" è lo stesso codice di IE00B4L5Y983. */
+function normIsin(v){ return String(v==null?'':v).replace(/\s+/g,'').toUpperCase(); }
+function isinValid(s){
+  const v=normIsin(s);
+  if(!/^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(v))return false;
+  const d=v.replace(/[A-Z]/g,c=>String(c.charCodeAt(0)-55));
+  let sum=0;
+  for(let i=d.length-1,k=0;i>=0;i--,k++){
+    let x=d.charCodeAt(i)-48;
+    if(k%2){ x*=2; if(x>9)x-=9; }
+    sum+=x;
+  }
+  return sum%10===0;
+}
+
 function blankState(){
   return {
     v:3, positions:[], watchlist:[], goals:[], targets:{}, history:[], countries:[],
@@ -2180,6 +2221,12 @@ function normalizeState(){
   };
   (S.positions||[]).forEach(fix);
   (S.watchlist||[]).forEach(fix);
+  /* ISIN: solo pulizia (spazi, maiuscole). Un codice non valido si conserva,
+     lo segnala la scheda: un dato dell'utente non si cancella */
+  (S.positions||[]).forEach(p=>{
+    if(!p||p.isin==null)return;
+    const v=normIsin(p.isin); if(v!==p.isin){ p.isin=v; dirty=true; }
+  });
   /* dateAdded: per le posizioni già salvate si deduce dalla prima transazione.
      Se non ci sono transazioni resta assente e viene trattata come caso limite
      in qtyAt(), senza inventare una data che l'utente non ha mai indicato. */
@@ -3232,6 +3279,11 @@ function saveQCache(){ try{ localStorage.setItem(QKEY,JSON.stringify(QCACHE)); }
 function yURL(host,sym,qs){
   return 'https://'+host+'.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+qs;
 }
+/* ricerca di Yahoo (per ISIN, nome o simbolo): serve a "Trova ticker" */
+function ySearchURL(host,q){
+  return 'https://'+host+'.finance.yahoo.com/v1/finance/search?q='+encodeURIComponent(q)+
+    '&quotesCount=6&newsCount=0';
+}
 function yQuote(sym,force){
   /* range=1d, non 5d: chartPreviousClose e' la chiusura che precede la prima
      barra del grafico, quindi con 5d era quella di cinque sedute prima e la
@@ -3259,6 +3311,16 @@ function yQuote(sym,force){
     }
     throw e;
   });
+}
+/* Yahoo non quota per ISIN, ma la sua ricerca lo conosce: restituisce i
+   simboli dello stesso strumento sulle varie borse (al massimo 6). */
+function ySearch(q){
+  return fetchJSON(ySearchURL('query1',q),[ySearchURL('query2',q)]).then(d=>
+    ((d&&Array.isArray(d.quotes))?d.quotes:[]).filter(x=>x&&x.symbol).slice(0,6).map(x=>({
+      symbol:String(x.symbol),
+      exchange:String(x.exchDisp||x.exchange||''),
+      name:String(x.longname||x.shortname||'')
+    })));
 }
 let refreshing=false;
 /* Posizioni con un aggiornamento singolo gia' in volo. Sta in un Set e non
@@ -3438,7 +3500,7 @@ function fillPlatformSelect(sel,cur){
 function matchFilters(p,f){
   if(f.search){
     const q=f.search.toLowerCase();
-    if((String(p.ticker||'')+' '+String(p.name||'')).toLowerCase().indexOf(q)<0)return false;
+    if((String(p.ticker||'')+' '+String(p.name||'')+' '+String(p.isin||'')).toLowerCase().indexOf(q)<0)return false;
   }
   if(f.cls&&(p.cls||'')!==f.cls)return false;
   if(f.sector&&(p.sector||'')!==f.sector)return false;
@@ -3796,6 +3858,52 @@ function setClsSelect(sel,val){
     .map(c=>'<option>'+esc(c)+'</option>').join('');
   el.value=v;
 }
+/* ---------- ISIN nella scheda ---------- */
+const ISIN_BAD='Codice ISIN non valido: controlla le 12 cifre';
+/* Pulsante attivo solo con un ISIN valido. L'avviso compare quando il codice
+   è completo o il campo non è più in uso, non a ogni tasto mentre lo si scrive. */
+function syncIsinUI(warn){
+  const v=normIsin($('#fIsin').value), ok=isinValid(v);
+  $('#fIsinFind').disabled=!ok;
+  const h=$('#fIsinHint');
+  if(v&&!ok&&(warn||v.length>=12)){ h.textContent=ISIN_BAD; h.classList.add('bad'); }
+  else { h.textContent=''; h.classList.remove('bad'); }
+}
+/* Un ISIN valido scritto (o importato in passato) nel campo Ticker passa nel
+   campo ISIN: Yahoo non lo accetta come simbolo. */
+function tickerToIsin(){
+  const t=$('#fTicker').value;
+  if(!isinValid(t)||normIsin($('#fIsin').value))return false;
+  $('#fIsin').value=normIsin(t); $('#fTicker').value='';
+  syncIsinUI(true);
+  toast('Questo è un codice ISIN: l\'ho spostato nel campo ISIN. Per il simbolo usa "Trova ticker"');
+  return true;
+}
+function isinResultsHTML(isin,list){
+  const link=t=>'<a href="'+yLookupURL(isin)+'" target="_blank" rel="noopener">'+t+'</a>';
+  if(!list)return 'Ricerca non riuscita: servizio non raggiungibile. Riprova più tardi oppure '+
+    link('cercalo su Yahoo Finance')+'.';
+  if(!list.length)return 'Nessun ticker trovato per '+esc(isin)+'. Puoi provare a '+link('cercarlo su Yahoo Finance')+'.';
+  return '<div class="isin-list">'+list.map(r=>
+    '<button type="button" class="isin-opt" data-sym="'+esc(r.symbol)+'" title="Usa '+esc(r.symbol)+' come ticker">'+
+      '<b>'+esc(r.symbol)+'</b>'+(r.exchange?'<span class="ex">'+esc(r.exchange)+'</span>':'')+
+      '<span class="nm">'+esc(r.name)+'</span></button>').join('')+'</div>';
+}
+/* "Trova ticker": solo su richiesta, mai durante l'import (sarebbero decine
+   di chiamate). Una risposta arrivata dopo una ricerca più recente si scarta. */
+let isinSeq=0;
+function isinFind(){
+  const isin=normIsin($('#fIsin').value);
+  if(!isinValid(isin)){ syncIsinUI(true); return Promise.resolve(); }
+  const seq=++isinSeq;
+  $('#fIsinFind').disabled=true;
+  $('#isinResults').innerHTML='Cerco '+esc(isin)+' su Yahoo Finance…';
+  return ySearch(isin).then(l=>l,()=>null).then(list=>{
+    if(seq!==isinSeq)return;
+    syncIsinUI();
+    $('#isinResults').innerHTML=isinResultsHTML(isin,list);
+  });
+}
 function openPos(id){
   const p=id?S.positions.filter(x=>x.id===id)[0]:null;
   buildCountryList(); buildSectorList();
@@ -3803,6 +3911,8 @@ function openPos(id){
   UI.editTx=p&&p.tx?JSON.parse(JSON.stringify(p.tx)):[];
   $('#posTitle').textContent=p?'Modifica posizione':'Aggiungi posizione';
   $('#fTicker').value=p?(p.ticker||''):'';
+  $('#fIsin').value=p?(p.isin||''):'';
+  isinSeq++; $('#isinResults').innerHTML='';
   $('#fName').value=p?(p.name||''):'';
   setClsSelect('#fCls',p&&p.cls?p.cls:'Stocks');
   $('#fCur').value=p&&p.currency?p.currency:'EUR';
@@ -3827,6 +3937,7 @@ function openPos(id){
   $('#txDate').value=todayISO();
   $('#txQty').value=''; $('#txPrice').value=''; $('#txFee').value='';
   setPosTab('det'); toggleComp(); renderTxList();
+  if(!tickerToIsin())syncIsinUI(true);
   $('#ovPos').classList.add('on');
   setTimeout(()=>{ if(!p)$('#fTicker').focus(); },90);
 }
@@ -3879,12 +3990,16 @@ function addTx(){
   renderTxList();
 }
 function savePos(){
-  const t=$('#fTicker').value.trim(), n=$('#fName').value.trim();
-  if(!t&&!n){ toast('Inserisci almeno un ticker o un nome','err'); setPosTab('det'); $('#fTicker').focus(); return; }
+  tickerToIsin();
+  const t=$('#fTicker').value.trim(), n=$('#fName').value.trim(), isin=normIsin($('#fIsin').value);
+  if(!t&&!n&&!isin){ toast('Inserisci almeno un ticker, un nome o un ISIN','err'); setPosTab('det'); $('#fTicker').focus(); return; }
+  if(isin&&!isinValid(isin)){
+    toast(ISIN_BAD,'err'); setPosTab('det'); syncIsinUI(true); $('#fIsin').focus(); return;
+  }
   const isNew=!UI.editId;
   const p=isNew?{id:uid()}:S.positions.filter(x=>x.id===UI.editId)[0];
   if(!p)return;
-  p.ticker=t.toUpperCase(); p.name=n;
+  p.ticker=t.toUpperCase(); p.name=n; p.isin=isin;
   p.cls=normCls($('#fCls').value); p.currency=$('#fCur').value;
   p.sector=normSector($('#fSector').value); p.country=rememberCountry($('#fCountry').value);
   p.price=num($('#fPrice').value);
@@ -4063,6 +4178,7 @@ function openDrawer(id){
       '<div style="flex:1;min-width:0">'+
         '<div style="font-size:16.5px;font-weight:730;letter-spacing:-.2px">'+esc(p.ticker||p.name||'—')+'</div>'+
         '<div style="font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name||'')+'</div>'+
+        (p.isin?'<div id="dwIsin" style="font-size:11px;color:var(--muted);letter-spacing:.3px;margin-top:2px">ISIN '+esc(p.isin)+'</div>':'')+
       '</div>'+
       '<span class="badge '+a.c+'" title="'+esc(a.t)+'">'+a.s+' '+esc(p._action)+'</span>'+
       '<button class="rowbtn" id="dwClose" title="Chiudi">'+ic('x',16)+'</button>'+
@@ -6911,7 +7027,7 @@ function parseCSV(text){
   return rows.filter(r=>r.some(c=>c.trim()!==''));
 }
 const CSV_FIELDS=[
-  ['ticker','Ticker / Simbolo *'],['name','Nome'],['cls','Categoria'],['sector','Settore'],
+  ['ticker','Ticker / Simbolo *'],['isin','ISIN'],['name','Nome'],['cls','Categoria'],['sector','Settore'],
   ['country','Paese / Area'],['currency','Valuta'],['platform','Piattaforma'],['qty','Quantità *'],['avg','Prezzo di carico / operazione *'],
   ['price','Prezzo attuale'],['yield','Yield dividendo %'],['risk','Rischio 3–9'],['factor','Fattore'],
   ['targetWeight','Peso previsto %'],['dateAdded','Data / In portafoglio dal'],
@@ -6919,7 +7035,9 @@ const CSV_FIELDS=[
   ['divTotal','Dividendo (totale)'],['divShare','Dividendo per azione']
 ];
 const CSV_HINTS={
-  ticker:['ticker','simbolo','symbol','isin','strumento','titolo'],
+  /* niente 'isin' qui: un ISIN nel ticker fa fallire le quotazioni di Yahoo */
+  ticker:['ticker','simbolo','symbol','strumento','titolo'],
+  isin:['isin','codice isin'],
   name:['nome','name','descrizione'],
   cls:['categoria','classe','asset','tipo','class'],
   sector:['settore','sector','comparto'],
@@ -6986,9 +7104,9 @@ function guessAllColumns(headers){
 }
 /* Esito dell'import: resta visibile sotto il riquadro finché non se ne fa un
    altro. Un valore scartato in silenzio sarebbe il modo peggiore di sbagliare. */
-function csvReport(conflitti,scartate){
+function csvReport(conflitti,scartate,senzaTicker){
   const host=$('#csvReport'); if(!host)return;
-  if(!conflitti.length&&!scartate){ host.innerHTML=''; return; }
+  if(!conflitti.length&&!scartate&&!senzaTicker){ host.innerHTML=''; return; }
   let s='';
   if(conflitti.length){
     const gruppi={};
@@ -7011,6 +7129,9 @@ function csvReport(conflitti,scartate){
     s+='<div class="note mt18">'+scartate+(scartate===1?' riga non conteneva':' righe non contenevano')+
        ' né un\'operazione né un dividendo né una commissione: '+
        (scartate===1?'è stata ignorata':'sono state ignorate')+'.</div>';
+  if(senzaTicker)
+    s+='<div class="note mt18"><b>'+senzaTicker+(senzaTicker===1?' posizione senza ticker':' posizioni senza ticker')+
+       '</b>: apri la scheda e usa <b>Trova ticker</b>. Finché il ticker manca, il prezzo non si aggiorna.</div>';
   host.innerHTML=s;
 }
 function csvRead(){
@@ -7054,11 +7175,12 @@ function csvDoImport(){
   if(!parsedCSV)return;
   const map={};
   $$('#mapRows select').forEach(s=>{ map[s.getAttribute('data-field')]=parseInt(s.value,10); });
-  if(!(map.ticker>-1)){ toast('Seleziona almeno la colonna del Ticker','err'); return; }
+  if(!(map.ticker>-1)&&!(map.isin>-1)){ toast('Seleziona la colonna del Ticker o dell\'ISIN','err'); return; }
   const get=(r,k)=>map[k]>-1?String(r[map[k]]==null?'':r[map[k]]).trim():'';
   const has=k=>map[k]>-1;
   /* Con una colonna Operazione, Commissione o Dividendo ogni riga è un
-     MOVIMENTO: righe con lo stesso ticker confluiscono in un'unica posizione
+     MOVIMENTO: righe con lo stesso ticker (o, senza ticker, con lo stesso
+     ISIN) confluiscono in un'unica posizione
      con il suo registro. Senza quelle colonne resta il comportamento di
      sempre: una riga = una posizione con quantità e prezzo di carico. */
   const txMode=has('txType')||has('fee')||has('divTotal')||has('divShare');
@@ -7067,17 +7189,31 @@ function csvDoImport(){
   let righe=0, movimenti=0, scartate=0;
 
   parsedCSV.data.forEach(r=>{
-    const t=get(r,'ticker'); if(!t)return;
-    const key=t.toUpperCase();
+    let t=get(r,'ticker').toUpperCase(), isin=has('isin')?normIsin(get(r,'isin')):'';
+    /* un ISIN nella colonna Ticker (CSV mappati alla vecchia maniera) passa
+       nel campo isin: Yahoo non lo accetta come simbolo */
+    if(t&&isinValid(t)){
+      const ti=normIsin(t); t='';
+      if(!isin)isin=ti;
+      else if(isin!==ti)conflitti.push({ticker:isin,campo:'ISIN',tenuto:isin,scartato:ti});
+    }
+    if(!t&&!isin)return;
+    /* chiave di raggruppamento: il ticker se c'è, altrimenti l'ISIN */
+    const key=t?'T:'+t:'I:'+isin, label=t||isin;
     let p=byTicker[key];
     if(!p){
       p=byTicker[key]={
-        id:uid(), ticker:key, name:'', cls:'Other', sector:'', country:'',
+        id:uid(), ticker:t, isin:'', name:'', cls:'Other', sector:'', country:'',
         currency:'EUR', platform:'', qty:0, avg:0, price:0, yield:null, risk:6,
         factor:'Nessuno', targetWeight:null, emergency:0, tx:[]
       };
       visti[key]={};
       order.push(p);
+    }
+    if(isin){
+      const sv=visti[key];
+      if(!('isin' in sv)){ sv.isin=isin; p.isin=isin; }
+      else if(sv.isin!==isin)conflitti.push({ticker:label,campo:'ISIN',tenuto:sv.isin,scartato:isin});
     }
     /* i dati del titolo si prendono dalla prima riga che li valorizza,
        ovunque si trovi: non serve che siano tutti sulla prima */
@@ -7089,7 +7225,7 @@ function csvDoImport(){
       const sv=visti[key];
       if(!(k in sv)){ sv[k]=v; p[k]=v; return; }
       if(String(sv[k])!==String(v))
-        conflitti.push({ticker:key,campo:f[1],tenuto:sv[k],scartato:v});
+        conflitti.push({ticker:label,campo:f[1],tenuto:sv[k],scartato:v});
     });
     righe++;
 
@@ -7135,18 +7271,20 @@ function csvDoImport(){
     if(!p.dateAdded)delete p.dateAdded;
     S.positions.push(p);
   });
+  const senzaTicker=order.filter(p=>!p.ticker).length;
 
   parsedCSV=null;
   $('#mapArea').style.display='none';
   $('#csvPaste').value=''; $('#csvFile').value='';
   save(); renderAll();
   const n=order.length;
-  csvReport(conflitti,scartate);
-  toast(txMode
+  csvReport(conflitti,scartate,senzaTicker);
+  toast((txMode
     ? n+(n===1?' posizione':' posizioni')+' · '+movimenti+(movimenti===1?' movimento':' movimenti')+
       (conflitti.length?' · '+conflitti.length+' valori discordanti':'')+
       (scartate?' · '+scartate+' righe senza dati':'')
-    : n+(n===1?' posizione importata':' posizioni importate'),conflitti.length?'':'ok');
+    : n+(n===1?' posizione importata':' posizioni importate'))+
+    (senzaTicker?' · '+senzaTicker+' senza ticker':''),conflitti.length?'':'ok');
   if(n)refreshPrices(true);
 }
 
@@ -7164,12 +7302,12 @@ function download(name,content,type){
 const stamp=()=>new Date().toISOString().slice(0,10);
 function exportPositions(){
   if(!S.positions.length){ toast('Nessuna posizione da esportare','err'); return; }
-  const head=['Ticker','Nome','Categoria','Settore','Paese','Valuta','Piattaforma','Quantità','Prezzo carico',
+  const head=['Ticker','ISIN','Nome','Categoria','Settore','Paese','Valuta','Piattaforma','Quantità','Prezzo carico',
     'Prezzo attuale','Yield %','Rischio','Fattore','Peso previsto %','In portafoglio dal','Mesi stacco',
     'Chiusa il','Valore EUR','G/P EUR','G/P %','Realizzato EUR'];
   const lines=[head.join(',')];
   S.positions.forEach(p=>lines.push([
-    p.ticker,p.name||'',p.cls||'',p.sector||'',p.country||'',p.currency||'EUR',normPlatform(p.platform),
+    p.ticker,p.isin||'',p.name||'',p.cls||'',p.sector||'',p.country||'',p.currency||'EUR',normPlatform(p.platform),
     p._q,p._avg,num(p.price),p.yield==null?'':num(p.yield),Math.round(num(p.risk))||6,
     normFactor(p.factor),p.targetWeight==null?'':num(p.targetWeight),p.dateAdded||'',p.divMonths||'',
     p.closedDate||'',p._value.toFixed(2),p._pnl.toFixed(2),p._pnlPct.toFixed(2),num(p._realized).toFixed(2)
@@ -7181,10 +7319,10 @@ function exportTx(){
   const rows=[];
   S.positions.forEach(p=>(p.tx||[]).forEach(t=>rows.push({p:p,t:t})));
   if(!rows.length){ toast('Nessuna transazione registrata','err'); return; }
-  const lines=[['Ticker','Tipo','Data','Quantità','Prezzo','Commissioni','Importo','Valuta'].join(',')];
+  const lines=[['Ticker','ISIN','Tipo','Data','Quantità','Prezzo','Commissioni','Importo','Valuta'].join(',')];
   rows.sort((a,b)=>String(a.t.date).localeCompare(String(b.t.date)));
   rows.forEach(({p,t})=>lines.push([
-    p.ticker,(TXT[t.type]||TXT.buy).l,t.date,
+    p.ticker,p.isin||'',(TXT[t.type]||TXT.buy).l,t.date,
     t.type==='fee'?'':num(t.qty), t.type==='fee'?num(t.amount):num(t.price),
     num(t.fee), txAmount(t).toFixed(2), p.currency||'EUR'
   ].map(csvField).join(',')));
@@ -7528,6 +7666,18 @@ function wire(){
   $('#txAdd').addEventListener('click',addTx);
   $('#posSave').addEventListener('click',savePos);
   $('#posDelete').addEventListener('click',()=>{ if(UI.editId)deletePos(UI.editId); });
+  /* ISIN: un codice scritto nel Ticker si sposta; "Trova ticker" anche con Invio */
+  $('#fTicker').addEventListener('input',tickerToIsin);
+  $('#fIsin').addEventListener('input',()=>{ isinSeq++; $('#isinResults').innerHTML=''; syncIsinUI(); });
+  $('#fIsin').addEventListener('change',()=>syncIsinUI(true));
+  $('#fIsin').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); isinFind(); } });
+  $('#fIsinFind').addEventListener('click',isinFind);
+  $('#isinResults').addEventListener('click',e=>{
+    const b=e.target.closest('[data-sym]'); if(!b)return;
+    const sym=b.getAttribute('data-sym');
+    $('#fTicker').value=sym; isinSeq++; $('#isinResults').innerHTML='';
+    toast('Ticker '+sym+' inserito: premi Salva per confermarlo','ok');
+  });
 
   /* --- chiusura modali e drawer --- */
   $$('[data-close]').forEach(b=>b.addEventListener('click',closeAll));
