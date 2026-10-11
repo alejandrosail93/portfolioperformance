@@ -151,6 +151,10 @@ body.sb-collapsed .sb-mini .lbl{display:none}
 body.sb-collapsed .sb-mini{justify-content:center;padding:9px 0}
 
 .main{min-width:0;display:flex;flex-direction:column}
+/* .wrap sta sullo stesso elemento di .page e di .tb-in, con la stessa
+   specificità: quelle regole fissano solo padding-top e padding-bottom. Con la
+   scorciatoia "padding:24px 0 90px", venendo dopo, azzeravano i 28px laterali
+   e le card finivano attaccate al menu e al bordo destro. */
 .wrap{max-width:1320px;margin:0 auto;width:100%;padding:0 28px}
 
 /* ==========================================================================
@@ -160,7 +164,7 @@ body.sb-collapsed .sb-mini{justify-content:center;padding:9px 0}
   position:sticky;top:0;z-index:30;background:var(--topbar);backdrop-filter:saturate(180%) blur(14px);
   -webkit-backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--line);
 }
-.tb-in{display:flex;align-items:center;gap:14px;padding:13px 0;min-height:64px}
+.tb-in{display:flex;align-items:center;gap:14px;padding-top:13px;padding-bottom:13px;min-height:64px}
 .tb-title{min-width:0;flex:none}
 .tb-title h1{font-size:19px;font-weight:750;letter-spacing:-.35px;white-space:nowrap}
 .tb-title .sub{font-size:12.5px;color:var(--muted);margin-top:1px;white-space:nowrap}
@@ -179,6 +183,11 @@ body.sb-collapsed .sb-mini{justify-content:center;padding:9px 0}
   border-right:1px solid var(--line);line-height:1.25}
 .tb-pv .v{font-size:15px;font-weight:750;letter-spacing:-.2px}
 .tb-pv .d{font-size:11.5px;font-weight:650}
+/* Dashboard: il valore è già nell'hero, quassù si dissolve finché l'hero è
+   sullo schermo (watchHero). La dissolvenza parte dopo il primo controllo,
+   così all'apertura non si vede sparire. */
+.topbar.tb-anim .tb-pv{transition:opacity .2s ease,visibility .2s}
+.topbar.hero-on .tb-pv{opacity:0;visibility:hidden}
 
 /* ==========================================================================
    5. BOTTONI
@@ -234,29 +243,78 @@ html[data-theme="light"] .seg button.on{background:#fff}
 .g2{grid-template-columns:1fr 1fr}
 .g2-wide{grid-template-columns:1.35fr .65fr}
 /* dashboard: Allocazione + Contributo, col Contributo un po' più largo
-   (filtri, ordinamento e totale). Con 1.25/.75 le 6 schede dell'Allocazione
-   restano su una riga da 1280px in su e la legenda resta accanto alla
-   ciambella fino a 1120px, dove la griglia va comunque su una colonna. */
+   (filtri, ordinamento e totale). Con 1.25/.75 la legenda resta accanto alla
+   ciambella fino a 1120px, dove la griglia va su una colonna. Le 7 schede
+   dell'Allocazione stanno nella riga del titolo da 1280px in su: fra 1121 e
+   1460px solo perché il padding orizzontale dei selettori nelle testate
+   scende a 7px. Con 13px servono 625px, e a 1280 ce ne sono 549 (misurati
+   con i margini laterali della pagina). La stessa regola tiene su una riga
+   anche la testata del Contributo, che a 1440 ci stava per 1px. Sotto i 560px
+   le schede vanno su una griglia 4+3. */
 .g2-dash{grid-template-columns:1.25fr .75fr}
+@media(min-width:1121px) and (max-width:1460px){
+  .g2-dash .card-hd .seg button{padding-left:7px;padding-right:7px}
+}
 .g3{grid-template-columns:repeat(3,1fr)}
 
 /* ==========================================================================
    7. KPI
    ========================================================================== */
-.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;min-width:0}
 .kpi .l{font-size:11.5px;font-weight:650;letter-spacing:.3px;color:var(--muted);
   display:flex;align-items:center;gap:6px;text-transform:uppercase}
 .kpi .v{font-size:24px;font-weight:750;letter-spacing:-.6px;margin-top:7px;line-height:1.15;
   overflow-wrap:break-word}
 .kpi .s{font-size:12.5px;color:var(--muted);margin-top:4px;font-weight:550}
+/* "da sapere oggi": tre card come le KPI, con un'icona nell'angolo; sono
+   pulsanti (data-nav), quindi anche da tastiera. Una colonna sotto i 900px,
+   nell'ordine dividendi, obiettivo, segnale. */
+.today{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:900px){.today{grid-template-columns:1fr}}
+.tcard{position:relative;display:block;width:100%;text-align:left;transition:border-color .14s}
+.tcard:hover{border-color:var(--surface-3)}
+.tcard:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tcard>span{display:block}
+.tcard .l{padding-right:32px}
+.tcard .tic{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:9px;
+  display:grid;place-items:center;background:var(--surface-2)}
+.tcard .tname{font-size:15.5px;font-weight:720;letter-spacing:-.2px;margin-top:8px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tcard .tsig,.tcard .tmsg{font-size:13px;line-height:1.5;color:var(--ink-soft);margin-top:8px}
+.tcard .tsig b{color:var(--ink)}
+.tcard .goal-bar{height:8px;margin:11px 0 8px}
+
+/* Prima apertura: finché non c'è nessuna posizione, né aperta né chiusa, la
+   Dashboard è solo il benvenuto e la barra in alto non dice "€ 0". La classe
+   la mette markEmpty() a ogni render: alla prima posizione torna tutto. */
+body:not(.pf-empty) #welcomeCard{display:none}
+body.pf-empty #pg-dashboard>:not(#welcomeCard){display:none}
+body.pf-empty .tb-pv{display:none}
+.wc .card-bd{padding:26px 28px 28px}
+.wc-t{font-size:22px;font-weight:760;letter-spacing:-.4px;line-height:1.25}
+.wc-s{font-size:13.5px;color:var(--ink-soft);margin-top:6px}
+.wc-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+.wc-act{display:flex;gap:13px;align-items:flex-start;width:100%;text-align:left;padding:16px;
+  border-radius:var(--r);border:1px solid var(--line);background:var(--surface-2);
+  transition:border-color .14s,background .14s}
+.wc-act:hover{border-color:var(--accent);background:var(--accent-soft)}
+.wc-act:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wc-ic{width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;
+  background:var(--accent-soft);color:var(--accent-ink)}
+.wc-tx{display:flex;flex-direction:column;gap:3px;min-width:0}
+.wc-tx b{font-size:14px;font-weight:700;color:var(--ink)}
+.wc-tx span{font-size:12.5px;color:var(--muted);line-height:1.45}
+@media(max-width:900px){.wc-acts{grid-template-columns:1fr}}
 .up{color:var(--up)}
 .down{color:var(--down)}
 .pillv{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;
-  font-size:12px;font-weight:700}
+  font-size:12px;font-weight:700;white-space:nowrap}
 .pillv.up{background:var(--up-soft)}
 .pillv.down{background:var(--down-soft)}
 .pillv.flat{background:var(--surface-3);color:var(--ink-soft)}
+.pillv.sm{font-size:11px;font-weight:650;padding:1px 7px}
+.pillv[hidden]{display:none}
 
 /* privacy blur */
 body.privacy .mask{filter:blur(9px);pointer-events:none;user-select:none}
@@ -266,7 +324,16 @@ body.privacy .mask{filter:blur(9px);pointer-events:none;user-select:none}
    ========================================================================== */
 .hero-val{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
 .hero-val .big{font-size:38px;font-weight:780;letter-spacing:-1.4px;line-height:1}
-.hero-val .meta{display:flex;align-items:center;gap:9px;padding-bottom:4px;font-size:13.5px;font-weight:650}
+/* Il blocco del valore si restringe e va a capo al suo interno prima di
+   spingere sotto i selettori Valore/Rendimento e 1M…MAX: fra 1366 e 1440 px
+   la pillola "oggi" scende sotto quella del periodo, da 1920 px sta accanto.
+   La pillola non va mai a capo: se non c'è posto è l'etichetta a scendere. */
+.hero-l{flex:1 1 440px;min-width:0}
+.hero-val .meta{display:flex;align-items:center;flex-wrap:wrap;gap:4px 9px;padding-bottom:4px;font-size:13.5px;font-weight:650;
+  flex:1 1 200px;min-width:0}
+/* posizioni e ora dei prezzi, sotto il valore */
+.hero-sub{font-size:12.5px;color:var(--muted);font-weight:550;margin-top:9px}
+.hero-sub:empty{display:none}
 .chart-host{position:relative;width:100%}
 .chart-host svg{width:100%;display:block;overflow:visible}
 .ct-tip{
@@ -414,7 +481,7 @@ html[data-theme="light"] .field textarea,html[data-theme="light"] .inp{backgroun
 .mt18{margin-top:18px}
 
 /* pagine */
-.page{display:none;padding:24px 0 90px;animation:slide .22s ease}
+.page{display:none;padding-top:24px;padding-bottom:90px;animation:slide .22s ease}
 .page.on{display:block}
 @keyframes slide{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
 
@@ -908,8 +975,6 @@ html[data-theme="light"] .maptbl select{background:#fff}
 @media(max-width:1120px){
   .g2-wide,.g2-dash{grid-template-columns:1fr}
   .kpis{grid-template-columns:repeat(2,1fr)}
-  /* su due colonne la quinta card resterebbe sola a metà riga: prende la riga intera */
-  .kpis>.kpi:nth-child(5){grid-column:1/-1}
 }
 @media(max-width:980px){
   .app{grid-template-columns:1fr}
@@ -922,7 +987,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .hm-hd{font-size:9.5px;letter-spacing:.3px}
   .hm-yl{font-size:10.5px;padding-right:6px}
   .hm-tiles{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
-  .tb-in{min-height:58px;padding:10px 0;gap:10px}
+  .tb-in{min-height:58px;padding-top:10px;padding-bottom:10px;gap:10px}
   .tb-title h1{font-size:17px}
   .tb-search{display:none}
   .tb-pv{display:none}
@@ -931,7 +996,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .card-bd{padding:16px}
   .card-hd{padding:14px 16px}
   thead th:first-child,tbody td:first-child{padding-left:16px}
-  .page{padding:18px 0 30px}
+  .page{padding-top:18px;padding-bottom:30px}
   .modal{max-width:none;border-radius:18px;max-height:92vh}
   .frow{grid-template-columns:1fr}
   .field input,.field select,.field textarea,.inp{font-size:16px}
@@ -1103,18 +1168,35 @@ html[data-theme="light"] .maptbl select{background:#fff}
 
       <!-- ============ DASHBOARD ============ -->
       <section class="page on wrap" id="pg-dashboard">
-        <div class="card">
+        <!-- prima apertura: finché non c'è nessuna posizione la Dashboard è solo questo (body.pf-empty) -->
+        <div class="card wc" id="welcomeCard">
+          <div class="card-bd">
+            <h2 class="wc-t">Benvenuto nel tuo portafoglio</h2>
+            <p class="wc-s">I dati restano su questo dispositivo. Scegli come cominciare.</p>
+            <div class="wc-acts">
+              <button type="button" class="wc-act" id="wcDemo"><span class="wc-ic"></span><span class="wc-tx">
+                <b>Prova con i dati di esempio</b><span>Un portafoglio di prova da esplorare: lo cancelli quando vuoi da Impostazioni</span></span></button>
+              <button type="button" class="wc-act" id="wcCsv"><span class="wc-ic"></span><span class="wc-tx">
+                <b>Importa il CSV del tuo broker</b><span>Posizioni o movimenti, abbinando le colonne del file</span></span></button>
+              <button type="button" class="wc-act" id="wcAdd"><span class="wc-ic"></span><span class="wc-tx">
+                <b>Aggiungi un titolo a mano</b><span>Ticker, quantità e prezzo di carico</span></span></button>
+            </div>
+          </div>
+        </div>
+        <div class="card" id="heroCard">
           <div class="card-bd">
             <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px">
-              <div>
+              <div class="hero-l">
                 <div style="font-size:12px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Valore del portafoglio</div>
                 <div class="hero-val">
                   <div class="big num mask" id="heroValue">—</div>
                   <div class="meta">
                     <span class="pillv flat mask" id="heroChg">—</span>
                     <span style="color:var(--muted);font-weight:550" id="heroChgLbl"></span>
+                    <span class="pillv sm flat mask" id="heroDay" hidden></span>
                   </div>
                 </div>
+                <div class="hero-sub" id="heroMeta"></div>
               </div>
               <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <span class="seg" id="heroMode">
@@ -1134,6 +1216,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
         </div>
 
         <div class="kpis mt18" id="kpis"></div>
+        <div class="today mt18" id="todayCards"></div>
 
         <div class="grid g2-dash mt18">
           <div class="card">
@@ -1697,7 +1780,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
             </div>
           </div>
         </div>
-        <div class="card mt18">
+        <div class="card mt18" id="impCard">
           <div class="card-hd"><h2><span class="chip g" id="chipImp"></span> Importa da CSV</h2></div>
           <div class="card-bd">
             <div class="note" style="margin-bottom:15px">Incolla il CSV del tuo broker (prima riga = intestazioni) oppure carica il file, poi abbina le colonne. Riconosce virgola, punto e virgola e tabulazione.
@@ -2703,16 +2786,31 @@ function timeTicks(t0,t1,maxN){
 }
 /* i grafici con x non temporale (simulatore, dividendi) passano fmtX: per loro
    le tacche restano quelle dei punti */
-function idxTicks(ts,fmtX){
-  const nX=Math.min(5,ts.length-1), out=[];
+function idxTicks(ts,fmtX,maxN){
+  const nX=Math.min(5,ts.length-1,maxN==null?5:maxN), out=[];
   for(let i=0;i<=nX;i++){ const t=ts[Math.round(i*(ts.length-1)/nX)]; out.push({t:t,l:fmtX(t)}); }
   return out;
 }
+/* Quante tacche dipende dalla larghezza: al più una ogni 64 px, mai più di 6
+   come prima, quindi da 384 px di asse in su non cambia niente. Su un
+   telefono 6 tacche fisse facevano accavallare le etichette ("nov '25gen '26").
+   Poi un'etichetta a meno di 44 px dalla precedente tenuta si scarta. La
+   distanza è fra i centri del testo: ai bordi l'etichetta è allineata a
+   sinistra o a destra, e il suo centro sta mezza larghezza più in là della
+   tacca. Larghezza stimata a 5,5 px per carattere: a 11 px "mag '26" ne
+   misura 39, "lug '26" 33. */
+const AXIS_TICK_PX=64, AXIS_GAP_PX=44;
 function axisLabels(ts,X,right,H,opt){
-  const marks=(opt&&opt.fmtX)?idxTicks(ts,opt.fmtX):timeTicks(ts[0],ts[ts.length-1],6);
+  const maxN=Math.min(6,Math.max(2,Math.floor(right/AXIS_TICK_PX)));
+  const marks=(opt&&opt.fmtX)?idxTicks(ts,opt.fmtX,maxN):timeTicks(ts[0],ts[ts.length-1],maxN);
+  let prev=-Infinity;
   return marks.map(m=>{
     const x=X(m.t);
     const anchor=x<28?'start':(x>right-28?'end':'middle');
+    const half=String(m.l).length*2.75;
+    const c=anchor==='start'?x+half:(anchor==='end'?x-half:x);
+    if(c-prev<AXIS_GAP_PX)return '';
+    prev=c;
     return '<text class="ct-lbl" x="'+x.toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+anchor+'">'+esc(m.l)+'</text>';
   }).join('');
 }
@@ -3054,6 +3152,30 @@ function go(k){
 /* ==========================================================================
    9. DASHBOARD — KPI + grafico performance
    ========================================================================== */
+/* "prezzi aggiornati alle 15:32"; con la data se non è oggi */
+function pricesWhen(ts,now){
+  if(!ts)return 'prezzi non ancora aggiornati';
+  const d=new Date(ts), n=new Date(now);
+  const day=d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate();
+  return 'prezzi aggiornati '+(day?'':'il '+d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',
+    year:d.getFullYear()===n.getFullYear()?undefined:'numeric'})+' ')+'alle '+fmtTime(ts);
+}
+/* Barra in alto: sulla Dashboard il valore del portafoglio è già nell'hero, e
+   lassù compare solo quando l'hero esce dallo schermo, cioè finisce sotto la
+   barra (64 px). Sulle altre pagine l'hero non è visibile e il valore resta.
+   Senza IntersectionObserver resta sempre. */
+let heroObs=null;
+function watchHero(){
+  if(heroObs||typeof IntersectionObserver!=='function')return;
+  const hero=$('#heroCard'), bar=$('.topbar'); if(!hero||!bar)return;
+  /* all'apertura sulla Dashboard l'hero è in alto: niente valore che sparisce */
+  bar.classList.toggle('hero-on',UI.page==='dashboard');
+  heroObs=new IntersectionObserver(es=>{
+    es.forEach(e=>bar.classList.toggle('hero-on',e.isIntersecting));
+    if(!bar.classList.contains('tb-anim'))requestAnimationFrame(()=>bar.classList.add('tb-anim'));
+  },{rootMargin:'-64px 0px 0px 0px'});
+  heroObs.observe(hero);
+}
 function rangeCut(series,r){
   if(!series.length)return series;
   const end=series[series.length-1].t; let from=0;
@@ -3086,10 +3208,27 @@ function renderHero(){
   }else{
     deltaAbs=T.pnl; deltaPct=T.pnlPct; lbl.textContent='rendimento complessivo';
   }
-  const good=(deltaPct==null?deltaAbs:deltaPct)>=0;
-  chg.className='pillv mask '+(deltaPct==null&&deltaAbs===0?'flat':(good?'up':'down'));
-  chg.innerHTML=(good?'▲':'▼')+' '+(deltaPct!=null?nf(Math.abs(deltaPct),2)+'%':'')+
-    (deltaAbs!=null?'<span style="opacity:.75;font-weight:600;margin-left:2px">('+(good?'+':'−')+money0(Math.abs(deltaAbs)).replace('€ ','€')+')</span>':'');
+  /* neutra, senza freccia né segno, se la variazione arrotondata è zero o non
+     c'è nessuna posizione: a portafoglio vuoto T.pnlPct vale 0, non null, e la
+     pillola diventava verde, "▲ 0,00% (+€0)" */
+  const ref=deltaPct==null?deltaAbs:deltaPct;
+  const flat=!S.positions.length||ref==null||
+    ((deltaPct==null||Math.abs(deltaPct)<.005)&&(deltaAbs==null||Math.abs(deltaAbs)<.5));
+  const good=ref>=0;
+  chg.className='pillv mask '+(flat?'flat':(good?'up':'down'));
+  chg.innerHTML=(flat?'':(good?'▲':'▼')+' ')+(deltaPct!=null?nf(Math.abs(deltaPct),2)+'%':'')+
+    (deltaAbs!=null?'<span style="opacity:.75;font-weight:600;margin-left:2px">('+(flat?'':(good?'+':'−'))+money0(Math.abs(deltaAbs)).replace('€ ','€')+')</span>':'');
+  /* variazione di oggi accanto, solo se i prezzi la danno */
+  const dy=$('#heroDay');
+  if(T.day||T.dayPct){
+    const z=Math.abs(T.dayPct)<.005;
+    dy.className='pillv sm mask '+(z?'flat':(T.dayPct>0?'up':'down'));
+    dy.textContent='oggi '+(z?nf(0,2)+'%':pctv(T.dayPct));
+    dy.hidden=false;
+  }else dy.hidden=true;
+  /* sotto: quante posizioni e quando sono arrivati i prezzi. Il conteggio
+     stava nella card "Valore totale", tolta perché ripeteva l'hero. */
+  $('#heroMeta').textContent=T.n+(T.n===1?' posizione':' posizioni')+' · '+pricesWhen(S.lastUpdate,Date.now());
 
   const pts=series.map(p=>({t:p.t,v:mode==='value'?p.value:(p.cost>0?(p.value/p.cost-1)*100:0),gap:p.gap}));
   const hn=$('#heroNote'); if(hn)hn.innerHTML=H.src==='calc'?histCoverageNote(H.info):'';
@@ -3252,9 +3391,10 @@ function kpiPersonal(){
   return {l:'Rendimento annuo',v:pctv(use*100),cls:use>=0?'up':'down',mask:1,tip:tip.join('\n'),
     s:R.annual!=null?'tuo, con i versamenti'+twr:'da '+fmtDate(R.firstDate)+' · non annualizzato'};
 }
+/* Il valore totale non c'è: è il numero grande dell'hero, e il conteggio delle
+   posizioni sta sotto di lui. */
 function renderKpis(){
   const cards=[
-    {l:'Valore totale',v:money0(T.value),s:T.n+(T.n===1?' posizione':' posizioni'),mask:1},
     {l:'Capitale investito',v:money0(T.cost),s:T.dividends?'+ '+money0(T.dividends)+' dividendi incassati':'costo di carico',mask:1},
     {l:'Guadagno / Perdita',v:(T.pnl>=0?'+':'−')+'€ '+Math.round(Math.abs(T.pnl)).toLocaleString('it-IT'),
       s:pctv(T.pnlPct)+(T.realized?' · '+money0(T.realized)+' realizzati':''),cls:T.pnl>=0?'up':'down',mask:1},
@@ -3271,6 +3411,78 @@ function renderKpis(){
   const tc=$('#tbChange');
   tc.className='d '+(T.pnl>=0?'up':'down');
   tc.textContent=pctv(T.pnlPct)+' totale';
+}
+/* --------------------------------------------------------------------------
+   9a. DA SAPERE OGGI — tre card fra le KPI e l'Allocazione: prossimi
+   dividendi, obiettivo più vicino, segnale principale della Salute. Si
+   cliccano e portano alla pagina (data-nav). In privacy si oscurano gli
+   importi, le percentuali restano.
+   -------------------------------------------------------------------------- */
+const LIV_COL={bad:'var(--down)',warn:'var(--warn)',ok:'var(--up)'};
+function todayCard(nav,icon,col,body,extra){
+  return '<button type="button" class="kpi tcard" data-nav="'+nav+'"'+(extra||'')+'>'+body+
+    '<span class="tic" style="color:'+col+'">'+ic(icon,15)+'</span></button>';
+}
+function renderToday(){
+  const host=$('#todayCards'); if(!host)return;
+  const now=new Date();
+  /* importi: col centesimo sotto i 10 €, interi sopra */
+  const amt=v=>'<span class="mask">'+(v<10?money(v):money0(v))+'</span>';
+
+  /* 1. prossimi dividendi */
+  const D=nextDividends(activePositions(),now);
+  let div;
+  if(D.month){
+    const mese=new Date(2000,D.month-1,1).toLocaleDateString('it-IT',{month:'long'});
+    const it=D.items.slice(0,2).map(x=>esc(x.name)+' '+amt(x.amount)).join(' · ')+
+      (D.items.length>2?' e '+(D.items.length===3?'un altro':'altri '+(D.items.length-2)):'');
+    div='<span class="l">Prossimi dividendi · '+esc(mese)+'</span>'+
+      '<span class="v num">'+amt(D.total)+'</span><span class="s">'+it+'</span>';
+  }else{
+    div='<span class="l">Prossimi dividendi</span><span class="tmsg">'+
+      (D.unassigned?'Indica i mesi di stacco nella scheda dei titoli':'Imposta lo yield dei titoli per stimare i dividendi')+'</span>';
+  }
+
+  /* 2. obiettivo più vicino, con la probabilità del Monte Carlo se è sul
+     totale del portafoglio: stessi argomenti di renderGoals(), quindi la
+     stessa voce di GOAL_MC e nessuna simulazione in più */
+  const g=nearestGoal(S.goals,now);
+  let goal;
+  if(g){
+    const st=goalStatus(g), ml=monthsLeft(g), target=num(g.target);
+    const quando=ml==null?'':ml<1?'meno di un mese':ml<24?Math.round(ml)+(Math.round(ml)===1?' mese':' mesi'):nf(ml/12,ml<120?1:0)+' anni';
+    let prob='';
+    if(goalIsPf(g)&&target>0&&ml>0){
+      UI.simPf=undefined;
+      const mc=goalMC(g,simParams(),goalCurrent(g),Math.round(ml*100)/100), pr=mc.p;
+      if(pr!=null)prob=' · probabilità <b style="color:'+(pr>=.75?'var(--up)':pr>=.5?'var(--warn)':'var(--down)')+'">'+probTxt(pr)+'</b>';
+    }
+    goal='<span class="l">Obiettivo più vicino</span>'+
+      '<span class="tname">'+esc(g.icon||'🎯')+' '+esc(g.name||'Obiettivo')+'</span>'+
+      '<span class="goal-bar"><i style="width:'+st.progress.toFixed(1)+'%;background:'+st.color+'"></i></span>'+
+      '<span class="s">'+nf(st.progress,0)+'%'+(quando?' · mancano '+quando:'')+prob+'</span>';
+  }else{
+    goal='<span class="l">Obiettivi</span><span class="tname">Fissa un traguardo</span><span class="s">'+
+      ((S.goals||[]).length?'Gli obiettivi che hai sono completati o scaduti':'Un fondo emergenza, una casa, l\'indipendenza')+'</span>';
+  }
+
+  /* 3. segnale principale: il primo rosso, altrimenti il primo giallo,
+     altrimenti il primo verde */
+  const al=healthSignals();
+  const top=al.filter(a=>a[0]==='bad')[0]||al.filter(a=>a[0]==='warn')[0]||al[0];
+  let sig, col='var(--muted)';
+  if(top){
+    col=LIV_COL[top[0]];
+    const altri=al.length-1;
+    sig='<span class="l">Segnale principale</span><span class="tsig">'+top[2]+'</span>'+
+      (altri?'<span class="s">+'+altri+(altri===1?' altro':' altri')+'</span>':'');
+  }else{
+    sig='<span class="l">Segnale principale</span><span class="tmsg">Aggiungi posizioni per valutare la salute del portafoglio</span>';
+  }
+
+  host.innerHTML=todayCard('dividendi','coins','var(--gold)',div)+
+    todayCard('obiettivi','target','var(--accent-ink)',goal)+
+    todayCard('salute','heart',col,sig,top?' style="box-shadow:inset 3px 0 0 '+col+'"':'');
 }
 
 /* ==========================================================================
@@ -5204,16 +5416,11 @@ function gaugeSvg(score,lbl,col,sub){
     '</svg><div class="gl" style="color:'+col+'">'+esc(lbl)+'</div>'+(sub?'<div class="gs">'+esc(sub)+'</div>':'');
 }
 function setBar(id,v){ const e=$('#'+id); if(e)e.style.width=v+'%'; const t=$('#'+id+'v'); if(t)t.textContent=v; }
-function renderHealth(){
+/* Punteggi della Salute, per i gauge e per i segnali. null senza posizioni o
+   con valore zero. */
+function healthScore(){
   const n=activeCount(), total=T.value;
-  if(!n||total<=0){
-    $('#gauge').innerHTML=gaugeSvg(0,'Nessun dato','',' ');
-    $('#gaugeRisk').innerHTML=gaugeSvg(0,'Nessun dato','',' ');
-    $('#gaugeCur').innerHTML=gaugeSvg(0,'Nessun dato','',' ');
-    ['m1','m2','m3'].forEach(id=>setBar(id,0));
-    $('#alerts').innerHTML='<div class="empty" style="padding:20px"><div class="sm">Aggiungi posizioni per valutare la salute del portafoglio.</div></div>';
-    return;
-  }
+  if(!n||total<=0)return null;
   const hhi=computeHHI();
   const evenScore=n>1?Math.round(100*(1-(hhi-1/n)/(1-1/n))):0;
   const breadth=Math.round(Math.min(100,n/12*100));
@@ -5223,26 +5430,16 @@ function renderHealth(){
   const catScore=Math.round(Math.max(0,Math.min(100,100-Math.max(0,topCat-40)*1.6)));
   let overall=Math.round(.4*evenScore+.35*breadth+.25*catScore);
   overall=Math.max(0,Math.min(100,overall));
-  const lbl=overall>=80?'Eccellente':overall>=60?'Buona':overall>=40?'Da migliorare':'Fragile';
-  $('#gauge').innerHTML=gaugeSvg(overall,lbl);
-  setBar('m1',evenScore); setBar('m2',breadth); setBar('m3',catScore);
-
-  let wsR=0,vsR=0;
-  activePositions().forEach(p=>{ const v=Math.max(3,Math.min(9,Math.round(num(p.risk))||6)); wsR+=p._value*v; vsR+=p._value; });
-  const riskAvg=vsR>0?wsR/vsR:6;
-  const riskScore=Math.round(Math.max(0,Math.min(100,(riskAvg-3)/6*100)));
-  const riskLbl=riskAvg<5?'Prudente':riskAvg<=7?'Bilanciato':'Aggressivo';
-  const riskCol=riskAvg<5?'var(--teal)':riskAvg<=7?'var(--gold)':'var(--down)';
-  $('#gaugeRisk').innerHTML=gaugeSvg(riskScore,riskLbl,riskCol,'rischio medio '+nf(riskAvg,1)+' su 9');
-
-  const curs=groupBy('currency','EUR');
-  const curW=Object.keys(curs).map(k=>curs[k]/total);
-  const topCur=curW.length?Math.max.apply(null,curW)*100:0;
-  const curScore=Math.round(Math.max(0,Math.min(100,100-Math.max(0,topCur-40)*1.6)));
-  const curLbl=curScore>=80?'Eccellente':curScore>=60?'Buona':curScore>=40?'Da migliorare':'Fragile';
-  $('#gaugeCur').innerHTML=gaugeSvg(curScore,curLbl,'','valuta principale al '+nf(topCur,0)+'%');
-
-  /* --- segnali --- */
+  return {n:n,total:total,evenScore:evenScore,breadth:breadth,cats:cats,topCat:topCat,catScore:catScore,overall:overall};
+}
+/* Segnali della Salute in ordine di importanza, come triple [livello, icona,
+   html] con livello 'bad', 'warn' o 'ok'. L'html è già sicuro: i nomi passano
+   da esc(). Li disegna renderHealth() e la Dashboard ne mostra il principale.
+   Vuoto senza posizioni. `sc` evita di ricalcolare i punteggi. */
+function healthSignals(sc){
+  if(sc===undefined)sc=healthScore();
+  if(!sc)return [];
+  const n=sc.n, total=sc.total, cats=sc.cats, topCat=sc.topCat, overall=sc.overall;
   const top=activePositions().slice().sort((a,b)=>b._value-a._value)[0];
   const topW=top?top._value/total*100:0, al=[];
   const nm=p=>esc(p.ticker||p.name||'—');
@@ -5281,7 +5478,40 @@ function renderHealth(){
   else if(worst&&worst.pct>25)al.push(['warn','!','<b>'+worst.n+'</b> posizioni si sovrappongono su settore <b>'+esc(worst.sec)+'</b> e paese <b>'+esc(worst.ctry)+'</b> ('+worst.pct.toFixed(0)+'%).']);
   if(!al.length)al.push(['ok','✓','Buon equilibrio: nessuna concentrazione eccessiva rilevata.']);
   if(overall>=80)al.push(['ok','✓','Diversificazione complessiva solida. Continua così.']);
-  $('#alerts').innerHTML=al.map(a=>'<div class="alert a-'+a[0]+'"><span class="ai">'+a[1]+'</span><div>'+a[2]+'</div></div>').join('');
+  return al;
+}
+function renderHealth(){
+  const sc=healthScore();
+  if(!sc){
+    $('#gauge').innerHTML=gaugeSvg(0,'Nessun dato','',' ');
+    $('#gaugeRisk').innerHTML=gaugeSvg(0,'Nessun dato','',' ');
+    $('#gaugeCur').innerHTML=gaugeSvg(0,'Nessun dato','',' ');
+    ['m1','m2','m3'].forEach(id=>setBar(id,0));
+    $('#alerts').innerHTML='<div class="empty" style="padding:20px"><div class="sm">Aggiungi posizioni per valutare la salute del portafoglio.</div></div>';
+    return;
+  }
+  const total=sc.total, overall=sc.overall;
+  const lbl=overall>=80?'Eccellente':overall>=60?'Buona':overall>=40?'Da migliorare':'Fragile';
+  $('#gauge').innerHTML=gaugeSvg(overall,lbl);
+  setBar('m1',sc.evenScore); setBar('m2',sc.breadth); setBar('m3',sc.catScore);
+
+  let wsR=0,vsR=0;
+  activePositions().forEach(p=>{ const v=Math.max(3,Math.min(9,Math.round(num(p.risk))||6)); wsR+=p._value*v; vsR+=p._value; });
+  const riskAvg=vsR>0?wsR/vsR:6;
+  const riskScore=Math.round(Math.max(0,Math.min(100,(riskAvg-3)/6*100)));
+  const riskLbl=riskAvg<5?'Prudente':riskAvg<=7?'Bilanciato':'Aggressivo';
+  const riskCol=riskAvg<5?'var(--teal)':riskAvg<=7?'var(--gold)':'var(--down)';
+  $('#gaugeRisk').innerHTML=gaugeSvg(riskScore,riskLbl,riskCol,'rischio medio '+nf(riskAvg,1)+' su 9');
+
+  const curs=groupBy('currency','EUR');
+  const curW=Object.keys(curs).map(k=>curs[k]/total);
+  const topCur=curW.length?Math.max.apply(null,curW)*100:0;
+  const curScore=Math.round(Math.max(0,Math.min(100,100-Math.max(0,topCur-40)*1.6)));
+  const curLbl=curScore>=80?'Eccellente':curScore>=60?'Buona':curScore>=40?'Da migliorare':'Fragile';
+  $('#gaugeCur').innerHTML=gaugeSvg(curScore,curLbl,'','valuta principale al '+nf(topCur,0)+'%');
+
+  /* --- segnali --- */
+  $('#alerts').innerHTML=healthSignals(sc).map(a=>'<div class="alert a-'+a[0]+'"><span class="ai">'+a[1]+'</span><div>'+a[2]+'</div></div>').join('');
 }
 
 
@@ -6197,6 +6427,31 @@ function payoutMonths(p){
   return {months:[],src:'none'};
 }
 function annualIncome(p){ return p._value*num(p.yield)/100; }
+/* Prossimi dividendi, per la Dashboard: il primo mese, da quello corrente in
+   avanti (dopo dicembre si ricomincia da gennaio), in cui qualche titolo
+   stacca. Come nel calendario, la rendita annua di un titolo si divide in
+   parti uguali fra i suoi mesi di stacco. Pura: le posizioni hanno già
+   _value, `today` è una Date. month è 1-12, null se non stacca nessuno;
+   items dal più grande; unassigned conta i titoli con una rendita ma senza
+   mesi di stacco. */
+function nextDividends(positions,today){
+  const cm=today.getMonth()+1, by={};
+  let unassigned=0;
+  (positions||[]).forEach(p=>{
+    const inc=annualIncome(p); if(!(inc>0))return;
+    const pm=payoutMonths(p);
+    if(!pm.months.length){ unassigned++; return; }
+    const per=inc/pm.months.length;
+    pm.months.forEach(m=>{ (by[m]=by[m]||[]).push({name:p.ticker||p.name||'—',amount:per}); });
+  });
+  for(let i=0;i<12;i++){
+    const m=(cm-1+i)%12+1, items=by[m];
+    if(!items)continue;
+    items.sort((a,b)=>b.amount-a.amount);
+    return {month:m,total:items.reduce((s,x)=>s+x.amount,0),items:items,unassigned:unassigned};
+  }
+  return {month:null,total:0,items:[],unassigned:unassigned};
+}
 
 function renderDividends(){
   const host=$('#dRows'); if(!host)return;
@@ -7447,6 +7702,24 @@ function monthsLeft(g){
   const m=(end-Date.now())/(1000*60*60*24*30.44);
   return m>0?m:0;
 }
+/* Obiettivo più vicino, per la Dashboard: fra quelli non completati e con la
+   scadenza ancora davanti, la data target più vicina. Pura: `today` è una
+   Date, `curOf` dà il valore attuale di un obiettivo (di default
+   goalCurrent). Completato vuol dire valore ≥ target, come in goalStatus().
+   null se non ce n'è nessuno. */
+function nearestGoal(goals,today,curOf){
+  curOf=curOf||goalCurrent;
+  const t=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  let best=null;
+  (goals||[]).forEach(g=>{
+    const d=String(g&&g.targetDate||'').slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d<=t)return;
+    const target=num(g.target);
+    if(target>0&&curOf(g)>=target)return;
+    if(!best||d<String(best.targetDate).slice(0,10))best=g;
+  });
+  return best;
+}
 /* --- probabilità di raggiungerlo -------------------------------------------
    Solo per gli obiettivi sul totale del portafoglio: fondo emergenza e importo
    manuale non sono esposti al mercato come il portafoglio. Le ipotesi sono
@@ -8198,9 +8471,31 @@ function syncDisconnect(){
 /* ==========================================================================
    13. RENDER
    ========================================================================== */
+/* Prima apertura: nessuna posizione, né aperta né chiusa. Il CSS lascia sulla
+   Dashboard solo il benvenuto e toglie il valore dalla barra in alto. */
+function markEmpty(){ document.body.classList.toggle('pf-empty',!S.positions.length); }
+/* "Prova con i dati di esempio": posizioni da perdere non ce ne sono, quindi
+   niente conferma. Watchlist, obiettivi, target e storico però demoData() li
+   sostituisce: se ce ne sono, si chiede. */
+function welcomeDemo(){
+  const altro=(S.watchlist||[]).length+(S.goals||[]).length+(S.history||[]).length+Object.keys(S.targets||{}).length;
+  if(altro&&!confirm('Carico i dati di esempio? Sostituiscono watchlist, obiettivi, target e storico che hai già inserito.'))return;
+  demoData();
+}
+/* "Importa il CSV del tuo broker": Impostazioni, alla card di importazione
+   (sotto la barra in alto), col fuoco sulla scelta del file */
+function goImport(){
+  go('impostazioni');
+  const card=$('#impCard'), f=$('#csvFile'); if(!card)return;
+  requestAnimationFrame(()=>{
+    window.scrollTo({top:Math.max(0,card.getBoundingClientRect().top+window.scrollY-80),behavior:'smooth'});
+    if(f)f.focus({preventScroll:true});
+  });
+}
 function renderPage(k){
+  markEmpty();
   if(k==='dashboard'){
-    renderHero(); renderKpis(); populateFilters(); renderAlloc(); renderContrib(); renderTable();
+    renderHero(); renderKpis(); renderToday(); populateFilters(); renderAlloc(); renderContrib(); renderTable();
   }
   else if(k==='analisi'){ renderExposure(); renderCorrelation(); renderRiskDist(); renderFactorDist(); renderEtfList(); }
   else if(k==='salute'){ renderHealth(); renderQuant(); }
@@ -8250,6 +8545,10 @@ function wire(){
     if(S.positions.length&&!confirm('Sostituisco i dati attuali con quelli di esempio?'))return;
     demoData();
   });
+  /* --- benvenuto, a portafoglio vuoto --- */
+  $('#wcDemo').addEventListener('click',welcomeDemo);
+  $('#wcCsv').addEventListener('click',goImport);
+  $('#wcAdd').addEventListener('click',()=>openPos(null));
   $('#btnWipe').addEventListener('click',()=>{
     if(!confirm('Cancello tutti i dati di questa dashboard? L\'operazione non è reversibile.'))return;
     S=blankState(); save(); applyTheme(); applyPrivacy(); renderAll(); toast('Dati cancellati');
@@ -8575,6 +8874,9 @@ function wire(){
 $('#btnRefresh').innerHTML=ic('refresh',17);
 $('#contribRefresh').innerHTML=ic('refresh',15);
 $('#btnAdd').querySelector('.ic').innerHTML=ic('plus',16);
+$('#wcDemo .wc-ic').innerHTML=ic('pie',19);
+$('#wcCsv .wc-ic').innerHTML=ic('inbox',19);
+$('#wcAdd .wc-ic').innerHTML=ic('plus',19);
 $('#chipAlloc').innerHTML=ic('pie',17);
 $('#chipContrib').innerHTML=ic('trend',17);
 $('#chipPos').innerHTML=ic('wallet',17);
@@ -8619,6 +8921,7 @@ loadSync(); load(); loadPHist(); loadMHist(); loadBHist(); buildNav(); initPosFo
 applyTheme(); applyPrivacy(); applyCollapsed();
 enrich();
 go(location.hash.slice(1)||'dashboard');
+watchHero();
 renderAll();
 updateCloudBadge();
 if(activeCount()) refreshPrices(true);
