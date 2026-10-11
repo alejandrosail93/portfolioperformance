@@ -317,6 +317,10 @@ tbody tr:last-child td{border-bottom:0}
 .badge.d{background:var(--down-soft);color:var(--down)}
 .badge.w{background:var(--warn-soft);color:var(--warn)}
 .badge.g{background:var(--gold-soft);color:var(--gold)}
+/* badge piccoli sotto il nome (watchlist): vanno a capo, mai più larghi della colonna */
+.badge.sm{padding:1px 7px;font-size:10.5px;border-radius:6px;gap:4px}
+.badge .bdot{width:7px;height:7px;border-radius:50%;flex:none}
+.wl-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;max-width:190px}
 
 /* ==========================================================================
    10. FORM
@@ -336,9 +340,9 @@ html[data-theme="light"] .field textarea,html[data-theme="light"] .inp{backgroun
 /* campo con un pulsante accanto: ISIN + "Trova ticker" */
 .inrow{display:flex;gap:8px;align-items:stretch}
 .inrow input{flex:1;min-width:0}
-#fIsin{text-transform:uppercase}
-#fIsin::placeholder{text-transform:none}
-#fIsinHint:empty{display:none}
+#fIsin,#fwIsin{text-transform:uppercase}
+#fIsin::placeholder,#fwIsin::placeholder{text-transform:none}
+#fIsinHint:empty,#fwIsinHint:empty{display:none}
 .field .hint.bad{color:var(--warn)}
 .isin-res{margin:-4px 0 15px;font-size:12.5px;color:var(--ink-soft);line-height:1.5}
 .isin-res:empty{display:none}
@@ -373,7 +377,8 @@ html[data-theme="light"] .field textarea,html[data-theme="light"] .inp{backgroun
   color:var(--muted)}
 .modal .mh .x:hover{background:var(--surface-2);color:var(--ink)}
 .modal .mb{padding:20px 22px;overflow-y:auto}
-.modal .mf{display:flex;gap:9px;justify-content:flex-end;padding:15px 22px;border-top:1px solid var(--line-soft)}
+/* su telefono i pulsanti vanno a capo invece di uscire dalla scheda (watchlist: quattro pulsanti) */
+.modal .mf{display:flex;flex-wrap:wrap;gap:9px;justify-content:flex-end;padding:15px 22px;border-top:1px solid var(--line-soft)}
 
 .drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--surface);
   border-left:1px solid var(--line);z-index:110;transform:translateX(100%);transition:transform .24s cubic-bezier(.3,.9,.3,1);
@@ -639,7 +644,12 @@ tbody tr.clk{cursor:pointer}
 .barbell .bw{grid-row:2;display:flex;align-items:flex-end;width:100%;min-height:0}
 .barbell .cnt{grid-row:1;font-size:12px;font-weight:750;color:var(--ink-soft);
   font-variant-numeric:tabular-nums}
+/* percentuali (Investito, Valore): più piccole, devono stare sopra colonne di 30 px */
+.barbell .cnt.pct{font-size:10.5px;letter-spacing:-.25px;white-space:nowrap}
+.barbell .cnt.pct small{font-size:.8em;font-weight:650;margin-left:.5px}
 .barbell .bb{width:100%;border-radius:8px 8px 3px 3px;min-height:3px;transition:height .2s}
+/* riga del medio / fattore principale: sotto titolo e selettore, a tutta larghezza */
+.card-hd .dist-sub{width:100%;margin-top:-4px}
 .barbell .lv{grid-row:3;font-size:10.5px;color:var(--muted);text-align:center;line-height:1.25;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
 
@@ -967,10 +977,12 @@ html[data-theme="light"] .maptbl select{background:#fff}
   /* 9 fattori non stanno in orizzontale: etichette in verticale, dal basso */
   #factorBar{gap:5px;height:230px}
   #factorBar .lv{writing-mode:vertical-rl;transform:rotate(180deg);width:auto;height:64px;text-align:end}
-  /* le 6 schede dell'allocazione non stanno in una riga: griglia 3×2 a tutta larghezza */
+  /* le 7 schede dell'allocazione non stanno in una riga: griglia 4+3 a tutta larghezza */
   .card-hd .right.wide-sm{margin-left:0;width:100%}
-  #allocSeg{display:grid;grid-template-columns:repeat(3,1fr);width:100%}
+  #allocSeg{display:grid;grid-template-columns:repeat(4,1fr);width:100%}
   #allocSeg button{padding:6px 4px}
+  /* Titoli · Investito · Valore delle distribuzioni: a tutta larghezza */
+  .seg.dist-mode{display:grid;grid-template-columns:repeat(3,1fr);width:100%}
   /* tabellina per anno dello Storico: quattro colonne devono stare nello schermo */
   .ytbl th,.ytbl td{padding-left:7px;padding-right:7px}
   .ytbl th{letter-spacing:.1px}
@@ -1132,6 +1144,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
                   <button data-v="pos" class="on">Titolo</button><button data-v="cls">Categoria</button>
                   <button data-v="sector">Settore</button><button data-v="country">Paese</button>
                   <button data-v="factor">Fattore</button><button data-v="risk">Rischio</button>
+                  <button data-v="tier">Tier</button>
                 </span>
               </div>
             </div>
@@ -1140,6 +1153,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
                 <option value="">Raggruppa: nessuno</option><option value="cls">Raggruppa: Categoria</option>
                 <option value="sector">Raggruppa: Settore</option><option value="country">Raggruppa: Paese</option>
                 <option value="factor">Raggruppa: Fattore</option><option value="risk">Raggruppa: Rischio</option>
+                <option value="tier">Raggruppa: Tier</option>
               </select>
               <select id="aFltCls"></select>
               <select id="aFltSector"></select>
@@ -1184,6 +1198,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
             <select id="fltCls"></select>
             <select id="fltSector"></select>
             <select id="fltCountry"></select>
+            <select id="fltTier" aria-label="Tier"></select>
             <select id="fltAction"></select>
             <span class="fcount" id="fltCount"></span>
             <button class="fclear" id="fltClear">Azzera filtri</button>
@@ -1240,18 +1255,24 @@ html[data-theme="light"] .maptbl select{background:#fff}
         <div class="grid g2 mt18">
           <div class="card">
             <div class="card-hd"><h2><span class="chip d" id="chipRisk"></span> Distribuzione del rischio</h2>
-              <div class="right"><span class="sub">medio: <b id="riskAvg" style="color:var(--ink)">–</b></span></div></div>
+              <div class="right wide-sm"><span class="seg dist-mode" id="riskMode" aria-label="Peso delle barre">
+                <button data-m="count" class="on">Titoli</button><button data-m="cost">Investito</button><button data-m="value">Valore</button>
+              </span></div>
+              <div class="sub dist-sub"><span id="riskAvgLbl">medio</span>: <b id="riskAvg" style="color:var(--ink)">–</b></div></div>
             <div class="card-bd">
               <div class="barbell" id="riskBar"></div>
-              <div class="note mt18">Assegna a ogni titolo un punteggio da <b>3</b> (molto prudente) a <b>9</b> (molto aggressivo) nella sua scheda. Le barre mostrano quante posizioni cadono in ogni livello.</div>
+              <div class="note mt18" id="riskNote"></div>
             </div>
           </div>
           <div class="card">
             <div class="card-hd"><h2><span class="chip t" id="chipFactor"></span> Distribuzione per fattore</h2>
-              <div class="right"><span class="sub" id="factorTop"></span></div></div>
+              <div class="right wide-sm"><span class="seg dist-mode" id="factorMode" aria-label="Peso delle barre">
+                <button data-m="count" class="on">Titoli</button><button data-m="cost">Investito</button><button data-m="value">Valore</button>
+              </span></div>
+              <div class="sub dist-sub" id="factorTop"></div></div>
             <div class="card-bd">
               <div class="barbell" id="factorBar"></div>
-              <div class="note mt18">Assegna un <b>fattore</b> (Market Beta, Growth, Quality, Value, Diversifiers…) a ogni titolo per vedere come si distribuisce il portafoglio per stile di investimento.</div>
+              <div class="note mt18" id="factorNote"></div>
             </div>
           </div>
         </div>
@@ -1844,13 +1865,22 @@ html[data-theme="light"] .maptbl select{background:#fff}
 </div></div>
 
 <!-- ===================== SCHEDA WATCHLIST ===================== -->
-<div class="ov" id="ovWatch"><div class="modal" style="max-width:600px">
+<!-- Stessi campi, stesso ordine e stessi id della scheda posizione, con il
+     prefisso fw invece di f: li legge DESC_FIELDS. Mancano solo i campi di un
+     titolo posseduto (in portafoglio dal, prezzo attuale, transazioni). -->
+<div class="ov" id="ovWatch"><div class="modal" style="max-width:640px">
   <div class="mh"><h3 id="wTitle">Aggiungi titolo da comprare</h3><button class="x" data-close></button></div>
   <div class="mb">
     <div class="frow">
       <div class="field"><label>Ticker / Simbolo</label><input id="fwTicker" placeholder="es. NVDA"></div>
-      <div class="field"><label>Nome</label><input id="fwName" placeholder="es. NVIDIA Corp."></div>
+      <div class="field"><label>ISIN</label>
+        <div class="inrow"><input id="fwIsin" placeholder="es. IE00B4L5Y983" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn btn-soft btn-sm" id="fwIsinFind" disabled
+            title="Cerca su Yahoo Finance il ticker che corrisponde all'ISIN">Trova ticker</button></div>
+        <div class="hint" id="fwIsinHint"></div></div>
     </div>
+    <div class="isin-res" id="fwIsinResults"></div>
+    <div class="field"><label>Nome</label><input id="fwName" placeholder="es. NVIDIA Corp."></div>
     <div class="frow">
       <div class="field"><label>Categoria</label><select id="fwCls"></select></div>
       <div class="field"><label>Valuta</label><select id="fwCur"></select></div>
@@ -1864,12 +1894,35 @@ html[data-theme="light"] .maptbl select{background:#fff}
       <div class="field"><label>Prezzo di acquisto previsto</label><input id="fwAvg" type="text" inputmode="decimal"></div>
     </div>
     <div class="frow">
-      <div class="field"><label>Rischio 3–9</label><input id="fwRisk" type="number" min="3" max="9" step="1" placeholder="6"></div>
       <div class="field"><label>Peso previsto (%)</label><input id="fwTarget" type="text" inputmode="decimal" placeholder="es. 5"></div>
+      <div class="field"><label>Rischio 3–9</label><input id="fwRisk" type="number" min="3" max="9" step="1" placeholder="6"></div>
     </div>
     <div class="frow">
       <div class="field"><label>Yield dividendo %</label><input id="fwYield" type="text" inputmode="decimal"></div>
+      <div class="field"><label>TER / costi annui %</label><input id="fwTer" type="text" inputmode="decimal" placeholder="es. 0,20">
+        <div class="hint">Per ETF e fondi; lascia vuoto per le azioni.</div></div>
+    </div>
+    <div class="frow">
       <div class="field"><label>Fattore</label><select id="fwFactor"></select></div>
+      <div class="field"><label>Tier</label><select id="fwTier"></select></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Piattaforma</label><select id="fwPlatform"></select></div>
+      <div class="field"><label>Fondo emergenza</label><select id="fwEmergency">
+        <option value="">—</option><option value="1">Sì</option></select></div>
+    </div>
+    <div class="field"><label>Mesi di stacco dividendi</label>
+      <input id="fwDivMonths" placeholder="es. 3, 6, 9, 12">
+      <div class="hint">Facoltativo: passa nel portafoglio insieme al titolo e serve al calendario dividendi.</div>
+    </div>
+    <div class="field" id="fwCompWrap" style="display:none">
+      <label>Composizione ETF per settore</label>
+      <textarea id="fwCompSector" placeholder="Una riga per voce, es.&#10;Tecnologia: 28%&#10;Sanità: 12%"></textarea>
+      <div class="hint">Facoltativa: se compilata, l'ETF viene scomposto nell'analisi dell'esposizione.</div>
+    </div>
+    <div class="field" id="fwCompWrap2" style="display:none">
+      <label>Composizione ETF per paese</label>
+      <textarea id="fwCompCountry" placeholder="Una riga per voce, es.&#10;Stati Uniti: 62%&#10;Europa: 20%"></textarea>
     </div>
     <div class="field" style="margin-bottom:0"><label>Note</label>
       <textarea id="fwNote" placeholder="Perché ti interessa, a che prezzo entreresti…" style="min-height:60px"></textarea></div>
@@ -1933,10 +1986,13 @@ html[data-theme="light"] .maptbl select{background:#fff}
       </div>
       <div class="frow">
         <div class="field"><label>Fattore</label><select id="fFactor"></select></div>
+        <div class="field"><label>Tier</label><select id="fTier"></select></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Piattaforma</label><select id="fPlatform"></select></div>
         <div class="field"><label>Fondo emergenza</label><select id="fEmergency">
           <option value="">—</option><option value="1">Sì</option></select></div>
       </div>
-      <div class="field"><label>Piattaforma</label><select id="fPlatform"></select></div>
       <div class="field"><label>Mesi di stacco dividendi</label>
         <input id="fDivMonths" placeholder="es. 3, 6, 9, 12">
         <div class="hint">Facoltativo: serve al calendario dividendi. Se registri i dividendi come transazioni non serve, i mesi vengono dedotti da lì.</div>
@@ -2253,6 +2309,9 @@ function simDefaults(){
   return {init:10000,pac:300,years:20,rate:7,infl:2,retSkew:0,pacSkew:0,vol:null,seed:42,
     ter:0,taxBase:null};
 }
+/* Peso delle distribuzioni per rischio e fattore in Analisi: numero di titoli,
+   capitale investito (costo di carico) o valore di mercato. */
+const DIST_MODES=['count','cost','value'];
 function blankState(){
   return {
     v:3, positions:[], watchlist:[], goals:[], targets:{}, history:[], countries:[],
@@ -2260,14 +2319,14 @@ function blankState(){
     settings:{theme:'dark',privacy:false,collapsed:false,riskFree:2,proxy:'',
               rebalanceBands:[10,20,30],capGainTax:26,
               scenBench:'6040',scenSel:'inflEU',scenSens:{},benchKey:'URTH',
-              sim:simDefaults()}
+              sim:simDefaults(),distMode:'count'}
   };
 }
 let S=blankState();
 const UI={
   page:'dashboard', heroRange:'1A', heroMode:'value',
   allocView:'pos', allocGroup:'', contribView:'total', contribSort:{k:'perf',dir:-1}, contribPlatform:'', allocFilters:{cls:'',sector:'',country:''},
-  filters:{search:'',platform:'',cls:'',sector:'',country:'',action:''},
+  filters:{search:'',platform:'',cls:'',sector:'',country:'',tier:'',action:''},
   sortK:'_value', sortDir:-1,
   editId:null, editTx:[], drawerId:null,
   expo:{level:'cat',leaf:null},
@@ -2296,12 +2355,14 @@ function normalizeState(){
     [['compSector',normSector],['compCountry',normCountry]].forEach(([k,fn])=>{
       if(!o[k])return; const v=normComposition(o[k],fn); if(v!==o[k]){o[k]=v;dirty=true;}
     });
+    /* Tier: solo se c'è, così i dati di prima restano identici */
+    if(o.tier!=null){ const v=normPTier(o.tier); if(v!==o.tier){o.tier=v;dirty=true;} }
   };
   (S.positions||[]).forEach(fix);
   (S.watchlist||[]).forEach(fix);
   /* ISIN: solo pulizia (spazi, maiuscole). Un codice non valido si conserva,
      lo segnala la scheda: un dato dell'utente non si cancella */
-  (S.positions||[]).forEach(p=>{
+  (S.positions||[]).concat(S.watchlist||[]).forEach(p=>{
     if(!p||p.isin==null)return;
     const v=normIsin(p.isin); if(v!==p.isin){ p.isin=v; dirty=true; }
   });
@@ -2348,6 +2409,11 @@ function normalizeState(){
      indici disponibili torna al default invece di lasciare le metriche vuote */
   if(S.settings&&S.settings.benchKey!=null&&typeof BENCH_LIST!=='undefined'&&
      !BENCH_LIST.some(b=>b.key===S.settings.benchKey)){ S.settings.benchKey='URTH'; dirty=true; }
+  /* peso delle distribuzioni in Analisi: un valore sconosciuto torna a
+     "Titoli". Se manca ci pensa il default di blankState() */
+  if(S.settings&&S.settings.distMode!==undefined&&DIST_MODES.indexOf(S.settings.distMode)<0){
+    S.settings.distMode='count'; dirty=true;
+  }
   /* ipotesi del Simulatore: chiavi mancanti dai default, numeri nei limiti
      dei campi. vol e taxBase null restano null (automatici). Uno stato senza settings,
      come quelli dei test, non viene toccato */
@@ -3513,6 +3579,9 @@ function demoData(){
   const ago=m=>{ const d=new Date(); d.setMonth(d.getMonth()-m); return d.toISOString().slice(0,10); };
   [28,26,24,20,16,14,10,7,4].forEach((m,i)=>{ if(P[i])P[i].dateAdded=ago(m); });
   P.forEach((p,i)=>{ p.platform=PLATFORMS[i%PLATFORMS.length].k; });
+  /* il tier di ogni titolo; l'Eni resta senza, per mostrare "Non assegnato" */
+  ['Core','Satellite','Satellite','Thematic','Core','Hedge','','Speculative','Hedge']
+    .forEach((t,i)=>{ if(P[i]&&t)P[i].tier=t; });
   /* la prima posizione mostra il registro transazioni in azione */
   P[1].tx=[
     {id:uid(),type:'buy',date:'2023-03-14',qty:20,price:148.2,fee:2.5},
@@ -3523,8 +3592,10 @@ function demoData(){
   ];
   S.positions=P;
   S.watchlist=[
-    {id:uid(),ticker:'NVDA',name:'NVIDIA Corp.',cls:'Stocks',sector:'Technology',country:'USA',currency:'USD',risk:8,factor:'Growth',targetWeight:5},
-    {id:uid(),ticker:'SWDA.MI',name:'iShares Core MSCI World',cls:'ETF',sector:'Multi-sector',country:'World',currency:'EUR',risk:5,factor:'Quality',targetWeight:10}
+    {id:uid(),ticker:'NVDA',name:'NVIDIA Corp.',cls:'Stocks',sector:'Technology',country:'USA',currency:'USD',risk:8,factor:'Growth',targetWeight:5,
+     tier:'Thematic',platform:'Directa'},
+    {id:uid(),ticker:'SWDA.MI',isin:'IE00B4L5Y983',name:'iShares Core MSCI World',cls:'ETF',sector:'Multi-sector',country:'World',currency:'EUR',risk:5,factor:'Quality',targetWeight:10,
+     tier:'Core',ter:.2}
   ];
   S.targets={'ETF':45,'Stocks':30,'Bonds':12,'Crypto':5,'Commodities':8};
   S.goals=[
@@ -3606,6 +3677,48 @@ function fillPlatformSelect(sel,cur){
       pf.s+' '+esc(pf.l||pf.k)+' ('+(nPf[pf.k]||0)+')</option>').join('');
   return cur||'';
 }
+/* Tier: il ruolo del titolo nel portafoglio. Elenco chiuso con i nomi in
+   inglese, come le altre etichette dei dati; vuoto = "Non assegnato".
+   "Speculative" è anche un fattore: dove possono comparire insieme il Tier ha
+   il prefisso "Tier" (tooltip, menu "Raggruppa: Tier"). TIER_HEX e tierRgba()
+   sono un'altra cosa: le fasce di colore della concentrazione. */
+const PTIERS=['Core','Cash','Hedge','Speculative','Thematic','Recovery','Satellite'];
+/* colori fissi presi da PAL: lo stesso tier ha lo stesso colore in ogni vista */
+const PTIER_COLORS={Core:'#6c7cff',Cash:'#2bb9c4',Hedge:'#25c685',Speculative:'#f2565b',
+  Thematic:'#a072f0',Recovery:'#f08a3c',Satellite:'#e8b13c'};
+const PTIER_NONE='-';                  /* valore del filtro per i titoli senza tier */
+const PTIER_NONE_LBL='Non assegnato';
+const PTIER_ALIAS={
+  core:'Core', nucleo:'Core',
+  cash:'Cash', 'liquidità':'Cash', liquidita:'Cash', monetario:'Cash',
+  hedge:'Hedge', copertura:'Hedge', coperture:'Hedge',
+  speculative:'Speculative', speculativo:'Speculative', speculativa:'Speculative',
+  thematic:'Thematic', tematico:'Thematic', tematica:'Thematic',
+  recovery:'Recovery', recupero:'Recovery', turnaround:'Recovery',
+  satellite:'Satellite', satelliti:'Satellite'
+};
+/* Maiuscole e spazi non contano. Un valore sconosciuto diventa "non assegnato"
+   con un avviso in sviluppo: un tier non si inventa mai. */
+function normPTier(v){
+  const s=String(v==null?'':v).normalize('NFC').replace(/\s+/g,'').toLowerCase();
+  if(!s)return '';
+  if(PTIER_ALIAS[s])return PTIER_ALIAS[s];
+  devWarn('ptier:'+s,'Tier non riconosciuto: "'+v+'", resta non assegnato');
+  return '';
+}
+const ptierColor=t=>PTIER_COLORS[normPTier(t)]||'var(--muted)';
+/* Menu Tier sopra la tabella, come quello della piattaforma: elenco fisso col
+   numero di titoli; "Non assegnato" solo finché c'è un titolo senza tier. */
+function fillTierSelect(sel,cur){
+  const n={};
+  activePositions().forEach(p=>{ const k=normPTier(p.tier)||PTIER_NONE; n[k]=(n[k]||0)+1; });
+  if(cur===PTIER_NONE&&!n[PTIER_NONE])cur='';
+  if(sel)sel.innerHTML='<option value="">Tier: tutti</option>'+
+    PTIERS.concat(n[PTIER_NONE]?[PTIER_NONE]:[]).map(k=>
+      '<option value="'+esc(k)+'"'+(cur===k?' selected':'')+'>'+
+      esc(k===PTIER_NONE?PTIER_NONE_LBL:k)+' ('+(n[k]||0)+')</option>').join('');
+  return cur||'';
+}
 
 /* ---------- filtri ---------- */
 function matchFilters(p,f){
@@ -3617,6 +3730,7 @@ function matchFilters(p,f){
   if(f.sector&&(p.sector||'')!==f.sector)return false;
   if(f.country&&(p.country||'')!==f.country)return false;
   if(f.platform&&normPlatform(p.platform)!==(f.platform===PF_NONE?'':f.platform))return false;
+  if(f.tier&&normPTier(p.tier)!==(f.tier===PTIER_NONE?'':f.tier))return false;
   if(f.action&&p._action!==f.action)return false;
   return true;
 }
@@ -3643,6 +3757,7 @@ function populateFilters(){
   fillSelect('#aFltSector','sector','Settore: tutti',UI.allocFilters);
   fillSelect('#aFltCountry','country','Paese: tutti',UI.allocFilters);
   UI.filters.platform=fillPlatformSelect($('#fltPlatform'),UI.filters.platform||'');
+  UI.filters.tier=fillTierSelect($('#fltTier'),UI.filters.tier||'');
   const fa=$('#fltAction');
   fa.innerHTML='<option value="">Azione: tutte</option>'+
     Object.keys(ACT).map(a=>'<option'+(UI.filters.action===a?' selected':'')+'>'+esc(a)+'</option>').join('');
@@ -3656,17 +3771,21 @@ function populateFilters(){
    Analisi; il rischio è una scala, quindi va dal 3 al 9 invece che per peso. */
 const ALLOC_KEY={
   factor:p=>normFactor(p.factor),
-  risk:p=>'Rischio '+Math.max(3,Math.min(9,Math.round(num(p.risk))||6))
+  risk:p=>'Rischio '+Math.max(3,Math.min(9,Math.round(num(p.risk))||6)),
+  tier:p=>normPTier(p.tier)||PTIER_NONE_LBL
 };
+/* Rischio e Tier hanno un ordine proprio (la scala dal 3 al 9, l'elenco dei
+   tier con "Non assegnato" in fondo); le altre schede vanno per peso. */
 function allocGroups(rows,v){
   const key=ALLOC_KEY[v]||(p=>String(p[v]||'').trim()||'—'), m={};
   rows.forEach(p=>{ const k=key(p); const g=m[k]||(m[k]={name:k,value:0,rows:[]});
     g.value+=p._value; g.rows.push(p); });
   const lv=g=>parseInt(g.name.slice(8),10);
+  const ti=g=>{ const i=PTIERS.indexOf(g.name); return i<0?PTIERS.length:i; };
   const gs=Object.keys(m).map(k=>m[k]).filter(g=>g.value>0)
-    .sort(v==='risk'?(a,b)=>lv(a)-lv(b):(a,b)=>b.value-a.value);
+    .sort(v==='risk'?(a,b)=>lv(a)-lv(b):v==='tier'?(a,b)=>ti(a)-ti(b):(a,b)=>b.value-a.value);
   gs.forEach((g,i)=>{ g.c=v==='factor'?(FACTOR_COLORS[g.name]||PAL[i%PAL.length])
-    :v==='risk'?riskColor(lv(g)):PAL[i%PAL.length]; });
+    :v==='risk'?riskColor(lv(g)):v==='tier'?(PTIER_COLORS[g.name]||'var(--muted)'):PAL[i%PAL.length]; });
   return gs;
 }
 function allocList(){
@@ -3923,12 +4042,17 @@ function txAmount(t){
   if(t.type==='sell')return num(t.qty)*num(t.price)-num(t.fee);
   return -(num(t.qty)*num(t.price)+num(t.fee));
 }
-function initPosForm(){
-  $('#fCls').innerHTML=CLASSES.map(c=>'<option>'+esc(c)+'</option>').join('');
-  $('#fCur').innerHTML=CURRENCIES.map(c=>'<option>'+esc(c)+'</option>').join('');
-  $('#fFactor').innerHTML=FACTORS.map(f=>'<option>'+esc(f)+'</option>').join('');
-  $('#fPlatform').innerHTML='<option value="">—</option>'+
+/* menu a tendina comuni alla scheda posizione ('f') e a quella watchlist ('fw') */
+function initDescSelects(pre){
+  $('#'+pre+'Cls').innerHTML=CLASSES.map(c=>'<option>'+esc(c)+'</option>').join('');
+  $('#'+pre+'Cur').innerHTML=CURRENCIES.map(c=>'<option>'+esc(c)+'</option>').join('');
+  $('#'+pre+'Factor').innerHTML=FACTORS.map(f=>'<option>'+esc(f)+'</option>').join('');
+  $('#'+pre+'Tier').innerHTML='<option value="">—</option>'+PTIERS.map(t=>'<option>'+esc(t)+'</option>').join('');
+  $('#'+pre+'Platform').innerHTML='<option value="">—</option>'+
     PLATFORMS.map(pf=>'<option value="'+esc(pf.k)+'">'+pf.s+' '+esc(pf.k)+'</option>').join('');
+}
+function initPosForm(){
+  initDescSelects('f');
   buildCountryList(); buildSectorList();
 }
 /* etichette canoniche già presenti nei dati, così i valori in uso restano suggeriti */
@@ -3955,10 +4079,14 @@ function setPosTab(t){
   $('#tabDet').style.display=t==='det'?'':'none';
   $('#tabTx').style.display=t==='tx'?'':'none';
 }
-function toggleComp(){
-  const isEtf=$('#fCls').value==='ETF';
-  $('#fCompWrap').style.display=isEtf?'':'none';
-  $('#fCompWrap2').style.display=isEtf?'':'none';
+/* Prefisso degli id di una scheda: 'f' posizione, 'fw' watchlist. Qualsiasi
+   altro valore, anche l'evento di un listener, vale 'f'. */
+const formPre=pre=>pre==='fw'?'fw':'f';
+function toggleComp(pre){
+  pre=formPre(pre);
+  const isEtf=$('#'+pre+'Cls').value==='ETF';
+  $('#'+pre+'CompWrap').style.display=isEtf?'':'none';
+  $('#'+pre+'CompWrap2').style.display=isEtf?'':'none';
 }
 /* Se un record ha una categoria non prevista (dato vecchio mai mappato) la si
    aggiunge al volo come opzione: il valore resta selezionato e non va perso. */
@@ -3969,24 +4097,75 @@ function setClsSelect(sel,val){
     .map(c=>'<option>'+esc(c)+'</option>').join('');
   el.value=v;
 }
+/* ---------- campi descrittivi, comuni a posizione e watchlist ----------
+   Un solo elenco per le due schede: stesso suffisso d'id (prefisso 'f' nella
+   scheda posizione, 'fw' nella watchlist), stessa lettura e stessa
+   normalizzazione. watchToPortfolio() li copia tutti. Restano fuori solo i campi
+   di un titolo posseduto: quantità, carico, prezzo, data e transazioni.
+   get: dal valore del campo al dato salvato; put: dal dato al valore del campo
+   (di base il testo, vuoto se manca); set: quando serve altro che .value. */
+const optNum=v=>v===''?null:num(v);
+const DESC_FIELDS=[
+  {k:'ticker',      id:'Ticker',      get:v=>v.trim().toUpperCase()},
+  {k:'isin',        id:'Isin',        get:normIsin},
+  {k:'name',        id:'Name',        get:v=>v.trim()},
+  {k:'cls',         id:'Cls',         get:v=>normCls(v),
+    set:(pre,v)=>setClsSelect('#'+pre+'Cls',v||'Stocks')},
+  {k:'currency',    id:'Cur',         get:v=>v,                   put:v=>v||'EUR'},
+  {k:'sector',      id:'Sector',      get:v=>normSector(v)},
+  {k:'country',     id:'Country',     get:v=>rememberCountry(v)},
+  {k:'targetWeight',id:'Target',      get:optNum,                 put:v=>fnum(v)},
+  {k:'risk',        id:'Risk',        get:v=>v===''?null:Math.max(3,Math.min(9,Math.round(num(v))))},
+  {k:'yield',       id:'Yield',       get:optNum,                 put:v=>fnum(v)},
+  {k:'ter',         id:'Ter',         get:v=>v.trim()===''?null:num(v), put:v=>fnum(v)},
+  {k:'factor',      id:'Factor',      get:v=>normFactor(v),       put:v=>normFactor(v)},
+  {k:'tier',        id:'Tier',        get:v=>normPTier(v),        put:v=>normPTier(v)},
+  {k:'emergency',   id:'Emergency',   get:v=>v?1:0,               put:v=>v?'1':''},
+  {k:'platform',    id:'Platform',    get:v=>normPlatform(v),     put:v=>normPlatform(v)},
+  {k:'divMonths',   id:'DivMonths',   get:v=>v.trim()},
+  {k:'compSector',  id:'CompSector',  get:v=>normComposition(v.trim(),normSector)},
+  {k:'compCountry', id:'CompCountry', get:v=>normComposition(v.trim(),normCountry)},
+  {k:'note',        id:'Note',        get:v=>v.trim()}
+];
+function descFromForm(pre){
+  const o={};
+  DESC_FIELDS.forEach(f=>{ o[f.k]=f.get(String($('#'+pre+f.id).value)); });
+  return o;
+}
+function descToForm(pre,o){
+  DESC_FIELDS.forEach(f=>{
+    const v=o?o[f.k]:undefined;
+    if(f.set)f.set(pre,v);
+    else $('#'+pre+f.id).value=f.put?f.put(v):(v==null?'':String(v));
+  });
+}
 /* ---------- ISIN nella scheda ---------- */
 const ISIN_BAD='Codice ISIN non valido: controlla le 12 cifre';
+/* Gli elementi ISIN della scheda posizione ('f', quella di sempre) o della
+   watchlist ('fw'). Qualsiasi altro valore, anche un evento, vale 'f'. */
+function isinIds(pre){
+  return pre==='fw'
+    ?{ticker:'#fwTicker',isin:'#fwIsin',find:'#fwIsinFind',hint:'#fwIsinHint',res:'#fwIsinResults'}
+    :{ticker:'#fTicker',isin:'#fIsin',find:'#fIsinFind',hint:'#fIsinHint',res:'#isinResults'};
+}
 /* Pulsante attivo solo con un ISIN valido. L'avviso compare quando il codice
    è completo o il campo non è più in uso, non a ogni tasto mentre lo si scrive. */
-function syncIsinUI(warn){
-  const v=normIsin($('#fIsin').value), ok=isinValid(v);
-  $('#fIsinFind').disabled=!ok;
-  const h=$('#fIsinHint');
+function syncIsinUI(warn,pre){
+  const id=isinIds(pre);
+  const v=normIsin($(id.isin).value), ok=isinValid(v);
+  $(id.find).disabled=!ok;
+  const h=$(id.hint);
   if(v&&!ok&&(warn||v.length>=12)){ h.textContent=ISIN_BAD; h.classList.add('bad'); }
   else { h.textContent=''; h.classList.remove('bad'); }
 }
 /* Un ISIN valido scritto (o importato in passato) nel campo Ticker passa nel
    campo ISIN: Yahoo non lo accetta come simbolo. */
-function tickerToIsin(){
-  const t=$('#fTicker').value;
-  if(!isinValid(t)||normIsin($('#fIsin').value))return false;
-  $('#fIsin').value=normIsin(t); $('#fTicker').value='';
-  syncIsinUI(true);
+function tickerToIsin(pre){
+  const id=isinIds(pre);
+  const t=$(id.ticker).value;
+  if(!isinValid(t)||normIsin($(id.isin).value))return false;
+  $(id.isin).value=normIsin(t); $(id.ticker).value='';
+  syncIsinUI(true,pre);
   toast('Questo è un codice ISIN: l\'ho spostato nel campo ISIN. Per il simbolo usa "Trova ticker"');
   return true;
 }
@@ -4003,16 +4182,17 @@ function isinResultsHTML(isin,list){
 /* "Trova ticker": solo su richiesta, mai durante l'import (sarebbero decine
    di chiamate). Una risposta arrivata dopo una ricerca più recente si scarta. */
 let isinSeq=0;
-function isinFind(){
-  const isin=normIsin($('#fIsin').value);
-  if(!isinValid(isin)){ syncIsinUI(true); return Promise.resolve(); }
+function isinFind(pre){
+  const id=isinIds(pre);
+  const isin=normIsin($(id.isin).value);
+  if(!isinValid(isin)){ syncIsinUI(true,pre); return Promise.resolve(); }
   const seq=++isinSeq;
-  $('#fIsinFind').disabled=true;
-  $('#isinResults').innerHTML='Cerco '+esc(isin)+' su Yahoo Finance…';
+  $(id.find).disabled=true;
+  $(id.res).innerHTML='Cerco '+esc(isin)+' su Yahoo Finance…';
   return ySearch(isin).then(l=>l,()=>null).then(list=>{
     if(seq!==isinSeq)return;
-    syncIsinUI();
-    $('#isinResults').innerHTML=isinResultsHTML(isin,list);
+    syncIsinUI(false,pre);
+    $(id.res).innerHTML=isinResultsHTML(isin,list);
   });
 }
 function openPos(id){
@@ -4021,35 +4201,18 @@ function openPos(id){
   UI.editId=p?p.id:null;
   UI.editTx=p&&p.tx?JSON.parse(JSON.stringify(p.tx)):[];
   $('#posTitle').textContent=p?'Modifica posizione':'Aggiungi posizione';
-  $('#fTicker').value=p?(p.ticker||''):'';
-  $('#fIsin').value=p?(p.isin||''):'';
+  descToForm('f',p);
   isinSeq++; $('#isinResults').innerHTML='';
-  $('#fName').value=p?(p.name||''):'';
-  setClsSelect('#fCls',p&&p.cls?p.cls:'Stocks');
-  $('#fCur').value=p&&p.currency?p.currency:'EUR';
-  $('#fSector').value=p?(p.sector||''):'';
-  $('#fCountry').value=p?(p.country||''):'';
   $('#fDateAdded').value=p?(p.dateAdded||''):todayISO();
   $('#fQty').value=fnum(p&&p.qty!=null?p.qty:'');
   $('#fAvg').value=fnum(p&&p.avg!=null?p.avg:'');
   $('#fPrice').value=fnum(p&&p.price!=null?p.price:'');
-  $('#fTarget').value=fnum(p&&p.targetWeight!=null?p.targetWeight:'');
-  $('#fRisk').value=p&&p.risk!=null?p.risk:'';
-  $('#fYield').value=fnum(p&&p.yield!=null?p.yield:'');
-  $('#fTer').value=fnum(p&&p.ter!=null?p.ter:'');
-  $('#fFactor').value=p?normFactor(p.factor):'Nessuno';
-  $('#fEmergency').value=p&&p.emergency?'1':'';
-  $('#fPlatform').value=p?normPlatform(p.platform):'';
-  $('#fCompSector').value=p?(p.compSector||''):'';
-  $('#fCompCountry').value=p?(p.compCountry||''):'';
-  $('#fDivMonths').value=p?(p.divMonths||''):'';
-  $('#fNote').value=p?(p.note||''):'';
   $('#fId').value=p?p.id:'';
   $('#posDelete').style.display=p?'':'none';
   $('#txDate').value=todayISO();
   $('#txQty').value=''; $('#txPrice').value=''; $('#txFee').value='';
-  setPosTab('det'); toggleComp(); renderTxList();
-  if(!tickerToIsin())syncIsinUI(true);
+  setPosTab('det'); toggleComp('f'); renderTxList();
+  if(!tickerToIsin('f'))syncIsinUI(true,'f');
   $('#ovPos').classList.add('on');
   setTimeout(()=>{ if(!p)$('#fTicker').focus(); },90);
 }
@@ -4102,29 +4265,17 @@ function addTx(){
   renderTxList();
 }
 function savePos(){
-  tickerToIsin();
+  tickerToIsin('f');
   const t=$('#fTicker').value.trim(), n=$('#fName').value.trim(), isin=normIsin($('#fIsin').value);
   if(!t&&!n&&!isin){ toast('Inserisci almeno un ticker, un nome o un ISIN','err'); setPosTab('det'); $('#fTicker').focus(); return; }
   if(isin&&!isinValid(isin)){
-    toast(ISIN_BAD,'err'); setPosTab('det'); syncIsinUI(true); $('#fIsin').focus(); return;
+    toast(ISIN_BAD,'err'); setPosTab('det'); syncIsinUI(true,'f'); $('#fIsin').focus(); return;
   }
   const isNew=!UI.editId;
   const p=isNew?{id:uid()}:S.positions.filter(x=>x.id===UI.editId)[0];
   if(!p)return;
-  p.ticker=t.toUpperCase(); p.name=n; p.isin=isin;
-  p.cls=normCls($('#fCls').value); p.currency=$('#fCur').value;
-  p.sector=normSector($('#fSector').value); p.country=rememberCountry($('#fCountry').value);
+  Object.assign(p,descFromForm('f'));
   p.price=num($('#fPrice').value);
-  p.targetWeight=$('#fTarget').value===''?null:num($('#fTarget').value);
-  p.risk=$('#fRisk').value===''?null:Math.max(3,Math.min(9,Math.round(num($('#fRisk').value))));
-  p.yield=$('#fYield').value===''?null:num($('#fYield').value);
-  p.ter=$('#fTer').value.trim()===''?null:num($('#fTer').value);
-  p.factor=$('#fFactor').value; p.emergency=$('#fEmergency').value?1:0;
-  p.platform=normPlatform($('#fPlatform').value);
-  p.compSector=normComposition($('#fCompSector').value.trim(),normSector);
-  p.compCountry=normComposition($('#fCompCountry').value.trim(),normCountry);
-  p.divMonths=$('#fDivMonths').value.trim();
-  p.note=$('#fNote').value.trim();
   /* la data scritta dall'utente vince sempre; per le nuove posizioni, se il
      campo è vuoto, si registra oggi */
   const da=$('#fDateAdded').value;
@@ -4278,6 +4429,7 @@ function openDrawer(id){
     ['Settore',esc(p.sector||'—'),0],
     ['Paese / Area',esc(p.country||'—'),0],
     ['Fattore',esc(normFactor(p.factor)),0],
+    ['Tier',esc(normPTier(p.tier)||'—'),0],
     ['In portafoglio dal',p.dateAdded?fmtDate(p.dateAdded):'—',0],
     ['Peso previsto',p.targetWeight!=null&&p.targetWeight!==''?nf(num(p.targetWeight),1)+'%':'—',0],
     ['Da operare',p._tDiff!=null?(p._tDiff>=0?'+':'−')+money0(Math.abs(p._tDiff)):'—',1,
@@ -4612,44 +4764,102 @@ function renderCorrelation(){
     (elig.length>12?'<div class="statusline">Mostrate le 12 posizioni principali per peso con storico sufficiente.</div>':'')+
     '<div class="note mt18">Correlazione di Pearson tra i rendimenti mensili, calcolata solo sulle coppie con almeno 12 mesi di storico sovrapposto. Vicino a <b>+1</b> si muovono insieme, vicino a <b>−1</b> in direzioni opposte, vicino a <b>0</b> sono poco collegate.</div>';
 }
+/* ---------- distribuzioni per rischio e fattore ----------
+   Peso di ogni titolo: 1 in Titoli, il costo di carico in Investito, il valore
+   di mercato in Valore. n conta sempre i titoli, anche nelle modalità pesate;
+   amt è l'importo da mostrare (il costo in Investito, il valore altrimenti).
+   In Investito un titolo senza prezzo di carico non pesa: si conta a parte. */
+const distMode=()=>{ const m=S.settings&&S.settings.distMode; return DIST_MODES.indexOf(m)>-1?m:'count'; };
+function distWeights(rows,keyFn,mode){
+  const by={}; let total=0,excluded=0;
+  rows.forEach(p=>{
+    const k=keyFn(p), g=by[k]||(by[k]={n:0,w:0,amt:0,pct:0});
+    let w=mode==='cost'?num(p._cost):mode==='value'?num(p._value):1;
+    if(mode==='cost'&&!(w>0)){ excluded++; w=0; }
+    g.n++; g.w+=w; total+=w;
+    g.amt+=mode==='cost'?Math.max(0,num(p._cost)):num(p._value);
+  });
+  Object.keys(by).forEach(k=>{ by[k].pct=total>0?by[k].w/total*100:0; });
+  return {by:by,total:total,excluded:excluded};
+}
+/* media delle chiavi numeriche (i livelli di rischio) con gli stessi pesi */
+function distAvg(d){
+  if(!(d.total>0))return null;
+  let s=0; Object.keys(d.by).forEach(k=>{ s+=Number(k)*d.by[k].w; });
+  return s/d.total;
+}
+const riskLevel=p=>Math.max(3,Math.min(9,Math.round(num(p.risk))||6));
+const DIST_TXT={
+  count:{avg:'medio per titoli',top:'dei titoli',
+    risk:'Le barre mostrano quante posizioni cadono in ogni livello.',
+    factor:'Le barre contano i titoli di ogni fattore.'},
+  cost:{avg:'medio pesato sull\'investito',top:'dell\'investito',
+    risk:'Le barre mostrano quanta parte del capitale investito (costo di carico) cade in ogni livello.',
+    factor:'Le barre pesano ogni fattore sul capitale investito (costo di carico).'},
+  value:{avg:'medio pesato sul valore',top:'del valore',
+    risk:'Le barre mostrano quanta parte del valore di mercato cade in ogni livello.',
+    factor:'Le barre pesano ogni fattore sul valore di mercato.'}
+};
+/* Colonne del grafico: altezza proporzionale al peso. In Titoli il peso è il
+   numero di titoli, quindi barre e numeri restano quelli di sempre; nelle
+   modalità pesate sopra la barra c'è la percentuale. Nel tooltip l'importo
+   sparisce in modalità privacy, come il resto della pagina. */
+function distBars(keys,d,mode,color,name,short){
+  const maxW=Math.max.apply(null,[0].concat(keys.map(k=>d.by[k]?d.by[k].w:0)));
+  return keys.map(k=>{
+    const g=d.by[k]||{n:0,w:0,amt:0,pct:0};
+    const tip=name(k)+': '+g.n+(g.n===1?' titolo':' titoli')+
+      (S.settings.privacy?'':' · '+money0(g.amt))+' · '+nf(g.pct,1)+'%';
+    return '<div class="col" title="'+esc(tip)+'">'+
+      (mode==='count'?'<div class="cnt">'+(g.w>0?g.n:'')+'</div>'
+        :'<div class="cnt pct">'+(g.w>0?nf(g.pct,1)+'<small>%</small>':'')+'</div>')+
+      '<div class="bw"><div class="bb" style="height:'+(g.w>0?Math.max(6,g.w/maxW*100):2)+'%;background:'+
+        (g.w>0?color(k):'var(--surface-2)')+'"></div></div>'+
+      '<div class="lv">'+esc(short(k))+'</div></div>';
+  }).join('');
+}
+/* nota sotto la card: cosa misurano le barre e, in Investito, chi resta fuori */
+function distNote(lead,d,mode,kind){
+  const x=d.excluded;
+  return lead+' '+DIST_TXT[mode][kind]+
+    (mode==='cost'&&x?'<br><b>'+x+(x===1?' titolo senza prezzo di carico escluso':' titoli senza prezzo di carico esclusi')+
+      '</b> dal calcolo.':'');
+}
+function syncDistSeg(sel,mode){
+  $$(sel+' button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-m')===mode));
+}
 function renderRiskDist(){
   const host=$('#riskBar'); if(!host)return;
-  const counts={},vals={};
-  for(let i=3;i<=9;i++){counts[i]=0;vals[i]=0;}
-  activePositions().forEach(p=>{
-    const r=Math.max(3,Math.min(9,Math.round(num(p.risk))||6));
-    counts[r]++; vals[r]+=p._value;
-  });
-  const maxC=Math.max.apply(null,[1].concat(Object.keys(counts).map(k=>counts[k])));
-  host.innerHTML=[3,4,5,6,7,8,9].map(r=>
-    '<div class="col" title="'+counts[r]+' posizioni · '+money0(vals[r])+'">'+
-    '<div class="cnt">'+(counts[r]||'')+'</div>'+
-    '<div class="bw"><div class="bb" style="height:'+(counts[r]?Math.max(6,counts[r]/maxC*100):2)+'%;background:'+
-      (counts[r]?riskColor(r):'var(--surface-2)')+'"></div></div>'+
-    '<div class="lv">'+r+'</div></div>').join('');
-  let ws=0,vs=0;
-  activePositions().forEach(p=>{ const r=Math.max(3,Math.min(9,Math.round(num(p.risk))||6)); ws+=p._value*r; vs+=p._value; });
-  $('#riskAvg').textContent=vs>0?nf(ws/vs,1):'–';
+  const mode=distMode(), d=distWeights(activePositions(),riskLevel,mode);
+  syncDistSeg('#riskMode',mode);
+  host.innerHTML=distBars([3,4,5,6,7,8,9],d,mode,riskColor,r=>'Rischio '+r,r=>String(r));
+  const avg=distAvg(d);
+  $('#riskAvgLbl').textContent=DIST_TXT[mode].avg;
+  $('#riskAvg').textContent=avg!=null?nf(avg,1):'–';
+  $('#riskNote').innerHTML=distNote('Assegna a ogni titolo un punteggio da <b>3</b> (molto prudente) a '+
+    '<b>9</b> (molto aggressivo) nella sua scheda.',d,mode,'risk');
 }
 const FACTOR_COLORS={'Market Beta':'#6c7cff','Value':'#25c685','Quality':'#5cc48d','Quality-Growth':'#b9b23f','Growth':'#e8b13c',
   'Speculative':'#f2565b','Diversifiers':'#a072f0','Real Assets / Inflation Hedge':'#c08552','Nessuno':'#8b93ad'};
 const FACTOR_ORDER=['Market Beta','Value','Quality','Quality-Growth','Growth','Speculative','Diversifiers','Real Assets / Inflation Hedge','Nessuno'];
 const FACTOR_SHORT={'Market Beta':'Beta','Quality-Growth':'Qual-Gr','Speculative':'Spec.','Diversifiers':'Divers.','Real Assets / Inflation Hedge':'Real Ass.'};
+/* fattore principale, Nessuno escluso, con gli stessi pesi delle barre: a
+   parità vince il primo nell'ordine dei fattori */
+function distTop(d,keys){
+  let best=null,bw=0;
+  keys.forEach(k=>{ if(k!=='Nessuno'&&d.by[k]&&d.by[k].w>bw){ bw=d.by[k].w; best=k; } });
+  return best?{key:best,pct:d.by[best].pct}:null;
+}
 function renderFactorDist(){
   const host=$('#factorBar'); if(!host)return;
-  const counts={},vals={};
-  FACTOR_ORDER.forEach(f=>{counts[f]=0;vals[f]=0;});
-  activePositions().forEach(p=>{ const f=normFactor(p.factor); counts[f]++; vals[f]+=p._value; });
-  const maxC=Math.max.apply(null,[1].concat(FACTOR_ORDER.map(f=>counts[f])));
-  host.innerHTML=FACTOR_ORDER.map(f=>
-    '<div class="col" title="'+esc(f)+': '+counts[f]+' posizioni · '+money0(vals[f])+'">'+
-    '<div class="cnt">'+(counts[f]||'')+'</div>'+
-    '<div class="bw"><div class="bb" style="height:'+(counts[f]?Math.max(6,counts[f]/maxC*100):2)+'%;background:'+
-      (counts[f]?FACTOR_COLORS[f]:'var(--surface-2)')+'"></div></div>'+
-    '<div class="lv">'+esc(FACTOR_SHORT[f]||f)+'</div></div>').join('');
-  let best=null,bv=0;
-  FACTOR_ORDER.forEach(f=>{ if(f!=='Nessuno'&&vals[f]>bv){bv=vals[f];best=f;} });
-  $('#factorTop').textContent=(best&&T.value>0)?best+' · '+nf(bv/T.value*100,0)+'% del capitale':'nessuna posizione classificata';
+  const mode=distMode(), d=distWeights(activePositions(),p=>normFactor(p.factor),mode);
+  syncDistSeg('#factorMode',mode);
+  host.innerHTML=distBars(FACTOR_ORDER,d,mode,f=>FACTOR_COLORS[f],f=>f,f=>FACTOR_SHORT[f]||f);
+  const top=distTop(d,FACTOR_ORDER);
+  $('#factorTop').textContent=top?top.key+' · '+nf(top.pct,0)+'% '+DIST_TXT[mode].top
+    :(mode==='cost'&&d.excluded&&!(d.total>0)?'nessun titolo con un prezzo di carico':'nessuna posizione classificata');
+  $('#factorNote').innerHTML=distNote('Assegna un <b>fattore</b> (Market Beta, Growth, Quality, Value, '+
+    'Diversifiers…) a ogni titolo per vedere come si distribuisce il portafoglio per stile di investimento.',d,mode,'factor');
 }
 function renderEtfList(){
   const wrap=$('#etfList'); if(!wrap)return;
@@ -5840,11 +6050,7 @@ function renderRebalance(){
 /* ==========================================================================
    12k. WATCHLIST — titoli da comprare
    ========================================================================== */
-function initWatchForm(){
-  $('#fwCls').innerHTML=CLASSES.map(c=>'<option>'+esc(c)+'</option>').join('');
-  $('#fwCur').innerHTML=CURRENCIES.map(c=>'<option>'+esc(c)+'</option>').join('');
-  $('#fwFactor').innerHTML=FACTORS.map(f=>'<option>'+esc(f)+'</option>').join('');
-}
+function initWatchForm(){ initDescSelects('fw'); }
 function renderWatchlist(){
   const wl=S.watchlist||[], tb=$('#watchBody'), empty=$('#watchEmpty');
   $('#tblWatch').style.display=wl.length?'':'none';
@@ -5864,11 +6070,19 @@ function renderWatchlist(){
     const amount=num(w.qty)*num(w.avg)*fxRate(w.currency);
     const dayCls=w.prevClose&&num(w.price)?(num(w.price)>=num(w.prevClose)?'up':'down'):'';
     const dayPct=w.prevClose&&num(w.prevClose)>0?(num(w.price)/num(w.prevClose)-1)*100:null;
+    /* piattaforma e tier sotto il nome, solo se ci sono: nella watchlist
+       aiutano a ricordare dove comprare e che ruolo avrà il titolo (nella
+       tabella posizioni la piattaforma resta fuori dalle righe) */
+    const pf=platformLabel(w.platform), tr=normPTier(w.tier);
+    const tags=(pf?'<span class="badge sm" title="Piattaforma">'+esc(pf)+'</span>':'')+
+      (tr?'<span class="badge sm" title="Tier: '+esc(tr)+'"><span class="bdot" style="background:'+
+        PTIER_COLORS[tr]+'"></span>'+esc(tr)+'</span>':'');
     return '<tr data-id="'+w.id+'" class="clk">'+
       '<td><div class="tk"><div class="tk-av" style="background:'+avColor(w.ticker||w.name)+'">'+
         esc((String(w.ticker||w.name||'?').replace(/[^A-Za-z0-9]/g,'').slice(0,2)||'?').toUpperCase())+'</div>'+
         '<div class="tk-tx"><div class="t1">'+esc(w.ticker||'—')+'</div>'+
-        '<div class="t2">'+esc(w.name||w.cls||'')+'</div></div></div></td>'+
+        '<div class="t2">'+esc(w.name||w.isin||w.cls||'')+'</div>'+
+        (tags?'<div class="wl-tags">'+tags+'</div>':'')+'</div></div></td>'+
       '<td class="hide-sm"><span class="badge">'+esc(w.cls||'Altro')+'</span></td>'+
       '<td class="hide-xs">'+(w.sector?esc(w.sector):'<span class="cellsub">–</span>')+'</td>'+
       '<td class="hide-xs">'+(w.country?esc(w.country):'<span class="cellsub">–</span>')+'</td>'+
@@ -5888,53 +6102,41 @@ function openWatch(id){
   buildCountryList(); buildSectorList();
   UI.editWatch=w?w.id:null;
   $('#wTitle').textContent=w?'Modifica titolo':'Aggiungi titolo da comprare';
-  $('#fwTicker').value=w?(w.ticker||''):'';
-  $('#fwName').value=w?(w.name||''):'';
-  setClsSelect('#fwCls',w&&w.cls?w.cls:'Stocks');
-  $('#fwCur').value=w&&w.currency?w.currency:'EUR';
-  $('#fwSector').value=w?(w.sector||''):'';
-  $('#fwCountry').value=w?(w.country||''):'';
+  descToForm('fw',w);
+  isinSeq++; $('#fwIsinResults').innerHTML='';
   $('#fwQty').value=fnum(w&&num(w.qty)?w.qty:'');
   $('#fwAvg').value=fnum(w&&num(w.avg)?w.avg:'');
-  $('#fwRisk').value=w&&w.risk!=null?w.risk:'';
-  $('#fwTarget').value=fnum(w&&w.targetWeight!=null?w.targetWeight:'');
-  $('#fwYield').value=fnum(w&&w.yield!=null?w.yield:'');
-  $('#fwFactor').value=w?normFactor(w.factor):'Nessuno';
-  $('#fwNote').value=w?(w.note||''):'';
   $('#fwId').value=w?w.id:'';
   $('#wDelete').style.display=w?'':'none';
+  toggleComp('fw');
+  if(!tickerToIsin('fw'))syncIsinUI(true,'fw');
   $('#ovWatch').classList.add('on');
   setTimeout(()=>{ if(!w)$('#fwTicker').focus(); },90);
 }
 function watchFromForm(id){
-  const rk=Math.round(num($('#fwRisk').value));
-  const tw=$('#fwTarget').value.trim();
-  return {
-    id:id||uid(),
-    ticker:$('#fwTicker').value.trim().toUpperCase(),
-    name:$('#fwName').value.trim(),
-    cls:normCls($('#fwCls').value), currency:$('#fwCur').value,
-    sector:normSector($('#fwSector').value), country:rememberCountry($('#fwCountry').value),
-    qty:num($('#fwQty').value), avg:num($('#fwAvg').value),
-    risk:rk?Math.max(3,Math.min(9,rk)):6,
-    targetWeight:tw===''?null:num(tw),
-    yield:$('#fwYield').value===''?null:num($('#fwYield').value),
-    factor:$('#fwFactor').value||'Nessuno',
-    note:$('#fwNote').value.trim()
-  };
+  return Object.assign({id:id||uid()},descFromForm('fw'),
+    {qty:num($('#fwQty').value), avg:num($('#fwAvg').value)});
+}
+/* Stessi controlli di savePos(): un ISIN nel Ticker si sposta, serve almeno
+   ticker, nome o ISIN, e un ISIN scritto deve essere valido. */
+function watchFormOk(){
+  tickerToIsin('fw');
+  const t=$('#fwTicker').value.trim(), n=$('#fwName').value.trim(), isin=normIsin($('#fwIsin').value);
+  if(!t&&!n&&!isin){ toast('Inserisci almeno un ticker, un nome o un ISIN','err'); $('#fwTicker').focus(); return false; }
+  if(isin&&!isinValid(isin)){ toast(ISIN_BAD,'err'); syncIsinUI(true,'fw'); $('#fwIsin').focus(); return false; }
+  return true;
 }
 function saveWatch(){
-  const t=$('#fwTicker').value.trim(), n=$('#fwName').value.trim();
-  if(!t&&!n){ toast('Inserisci almeno un ticker o un nome','err'); $('#fwTicker').focus(); return; }
+  if(!watchFormOk())return;
   const id=UI.editWatch;
-  const obj=watchFromForm(id);
-  if(id){
-    const old=S.watchlist.filter(x=>x.id===id)[0];
-    if(old){ obj.price=old.price; obj.prevClose=old.prevClose; }
-    S.watchlist=S.watchlist.map(x=>x.id===id?obj:x);
-  }else S.watchlist.push(obj);
+  const old=id?S.watchlist.filter(x=>x.id===id)[0]:null;
+  /* in modifica si parte dal titolo salvato: prezzo, chiusura di ieri e ogni
+     campo che la scheda non mostra restano com'erano */
+  const obj=Object.assign({},old||{},watchFromForm(id));
+  if(old)S.watchlist=S.watchlist.map(x=>x===old?obj:x);
+  else S.watchlist.push(obj);
   save(); closeAll(); renderAll();
-  toast(id?'Titolo aggiornato':'Titolo aggiunto alla watchlist','ok');
+  toast(old?'Titolo aggiornato':'Titolo aggiunto alla watchlist','ok');
   if(obj.ticker&&!num(obj.price))refreshWatchOne(obj);
 }
 function deleteWatch(id){
@@ -5944,23 +6146,22 @@ function deleteWatch(id){
   save(); closeAll(); renderAll(); toast('Titolo eliminato');
 }
 function watchToPortfolio(){
-  const t=$('#fwTicker').value.trim(), n=$('#fwName').value.trim();
-  if(!t&&!n){ toast('Inserisci almeno un ticker o un nome','err'); return; }
+  if(!watchFormOk())return;
   if(!num($('#fwQty').value)){ toast('Serve la quantità per spostarlo nel portafoglio','err'); $('#fwQty').focus(); return; }
   if(!num($('#fwAvg').value)){ toast('Serve il prezzo di acquisto per spostarlo nel portafoglio','err'); $('#fwAvg').focus(); return; }
   const id=UI.editWatch;
   const w=watchFromForm(null);
-  const p={
-    id:uid(), ticker:w.ticker, name:w.name, cls:w.cls, currency:w.currency,
-    sector:w.sector, country:w.country, qty:w.qty, avg:w.avg,
-    price:num($('#fwAvg').value), prevClose:null,
-    risk:w.risk, targetWeight:w.targetWeight, yield:w.yield, factor:w.factor,
-    note:w.note, emergency:0, tx:[]
-  };
+  /* tutti i campi descrittivi, più quelli di un titolo posseduto. La data è
+     oggi, come per una posizione nuova inserita a mano: senza, lo storico la
+     considererebbe in portafoglio da sempre. Il prezzo è quello previsto
+     finché non arriva la quotazione. */
+  const p={id:uid()};
+  DESC_FIELDS.forEach(f=>{ p[f.k]=w[f.k]; });
+  Object.assign(p,{qty:w.qty, avg:w.avg, price:w.avg, prevClose:null, dateAdded:todayISO(), tx:[]});
   S.positions.push(p);
   if(id)S.watchlist=S.watchlist.filter(x=>x.id!==id);
   save(); closeAll(); renderAll();
-  toast(esc(p.ticker||p.name)+' spostato nel portafoglio','ok');
+  toast(esc(p.ticker||p.name||p.isin)+' spostato nel portafoglio','ok');
   if(p.ticker)refreshOne(p);
 }
 function refreshWatchOne(w){
@@ -7490,7 +7691,7 @@ const CSV_FIELDS=[
   ['ticker','Ticker / Simbolo *'],['isin','ISIN'],['name','Nome'],['cls','Categoria'],['sector','Settore'],
   ['country','Paese / Area'],['currency','Valuta'],['platform','Piattaforma'],['qty','Quantità *'],['avg','Prezzo di carico / operazione *'],
   ['price','Prezzo attuale'],['yield','Yield dividendo %'],['ter','TER %'],['risk','Rischio 3–9'],['factor','Fattore'],
-  ['targetWeight','Peso previsto %'],['dateAdded','Data / In portafoglio dal'],
+  ['tier','Tier'],['targetWeight','Peso previsto %'],['dateAdded','Data / In portafoglio dal'],
   ['txType','Operazione (acquisto/vendita)'],['fee','Commissione'],
   ['divTotal','Dividendo (totale)'],['divShare','Dividendo per azione']
 ];
@@ -7518,6 +7719,8 @@ const CSV_HINTS={
   ter:[{re:/\bter\b/,len:3},'spese correnti','spesa corrente','costi correnti','costo corrente',
        'costi annui','ongoing','expense ratio'],
   factor:['fattore','factor','stile','style'],
+  /* "tier" solo come parola a sé: dentro "frontiera" o "cantiere" non lo è */
+  tier:[{re:/\btier\b/,len:4},'ruolo','bucket'],
   targetWeight:['peso previsto','target','peso'],
   dateAdded:['portafoglio dal','in portafoglio','data acquisto','data di acquisto','inserimento',
              'apertura','data','date','added','since'],
@@ -7639,6 +7842,8 @@ function csvPosFields(){
     ['ter','TER %',v=>/\d/.test(v)?num(v):''],
     ['risk','Rischio',v=>Math.max(3,Math.min(9,Math.round(num(v))))],
     ['factor','Fattore',v=>normFactor(v)],
+    /* un tier sconosciuto torna vuoto e non conta: resta non assegnato */
+    ['tier','Tier',v=>normPTier(v)],
     ['targetWeight','Peso previsto %',v=>num(v)]
   ];
 }
@@ -7774,13 +7979,13 @@ const stamp=()=>new Date().toISOString().slice(0,10);
 function exportPositions(){
   if(!S.positions.length){ toast('Nessuna posizione da esportare','err'); return; }
   const head=['Ticker','ISIN','Nome','Categoria','Settore','Paese','Valuta','Piattaforma','Quantità','Prezzo carico',
-    'Prezzo attuale','Yield %','TER %','Rischio','Fattore','Peso previsto %','In portafoglio dal','Mesi stacco',
+    'Prezzo attuale','Yield %','TER %','Rischio','Fattore','Tier','Peso previsto %','In portafoglio dal','Mesi stacco',
     'Chiusa il','Valore EUR','G/P EUR','G/P %','Realizzato EUR'];
   const lines=[head.join(',')];
   S.positions.forEach(p=>lines.push([
     p.ticker,p.isin||'',p.name||'',p.cls||'',p.sector||'',p.country||'',p.currency||'EUR',normPlatform(p.platform),
     p._q,p._avg,num(p.price),p.yield==null?'':num(p.yield),p.ter==null||p.ter===''?'':num(p.ter),Math.round(num(p.risk))||6,
-    normFactor(p.factor),p.targetWeight==null?'':num(p.targetWeight),p.dateAdded||'',p.divMonths||'',
+    normFactor(p.factor),p.tier||'',p.targetWeight==null?'':num(p.targetWeight),p.dateAdded||'',p.divMonths||'',
     p.closedDate||'',p._value.toFixed(2),p._pnl.toFixed(2),p._pnlPct.toFixed(2),num(p._realized).toFixed(2)
   ].map(csvField).join(',')));
   download('portafoglio_'+stamp()+'.csv','﻿'+lines.join('\n'),'text/csv;charset=utf-8');
@@ -7946,6 +8151,9 @@ function applyRemote(remote){
   S=Object.assign(blankState(),remote);
   S.settings=Object.assign(blankState().settings,remote.settings||{});
   S.fx=Object.assign({EUR:1},remote.fx||{});
+  /* come all'avvio e nel ripristino del backup: i dati di un'altra versione
+     dell'app arrivano con le etichette normalizzate */
+  normalizeState();
   applyTheme(); applyPrivacy(); applyCollapsed(); buildCountryList(); buildSectorList(); renderAll();
 }
 function syncOnStartup(){
@@ -8033,6 +8241,8 @@ function wire(){
   });
   $('#btnPrivacy').addEventListener('click',()=>{
     S.settings.privacy=!S.settings.privacy; applyPrivacy(); save();
+    /* i tooltip delle distribuzioni contengono importi: vanno riscritti */
+    if(UI.page==='analisi'){ renderRiskDist(); renderFactorDist(); }
   });
   $('#btnRefresh').addEventListener('click',()=>refreshPrices(false));
   $('#btnAdd').addEventListener('click',()=>openPos(null));
@@ -8090,11 +8300,11 @@ function wire(){
     UI.filters.search=e.target.value; $('#globalSearch').value=e.target.value; renderTable();
   });
   [['#fltPlatform','platform'],['#fltCls','cls'],['#fltSector','sector'],['#fltCountry','country'],
-   ['#fltAction','action']].forEach(([sel,f])=>{
+   ['#fltTier','tier'],['#fltAction','action']].forEach(([sel,f])=>{
     $(sel).addEventListener('change',e=>{ UI.filters[f]=e.target.value; renderTable(); });
   });
   $('#fltClear').addEventListener('click',()=>{
-    UI.filters={search:'',platform:'',cls:'',sector:'',country:'',action:''};
+    UI.filters={search:'',platform:'',cls:'',sector:'',country:'',tier:'',action:''};
     $('#globalSearch').value=''; populateFilters(); renderTable();
   });
 
@@ -8131,23 +8341,27 @@ function wire(){
 
   /* --- scheda posizione --- */
   $$('#posTabs button').forEach(b=>b.addEventListener('click',()=>setPosTab(b.getAttribute('data-t'))));
-  $('#fCls').addEventListener('change',toggleComp);
   $('#fCur').addEventListener('change',renderTxList);
   $('#txType').addEventListener('change',syncTxLabels);
   $('#txAdd').addEventListener('click',addTx);
   $('#posSave').addEventListener('click',savePos);
   $('#posDelete').addEventListener('click',()=>{ if(UI.editId)deletePos(UI.editId); });
-  /* ISIN: un codice scritto nel Ticker si sposta; "Trova ticker" anche con Invio */
-  $('#fTicker').addEventListener('input',tickerToIsin);
-  $('#fIsin').addEventListener('input',()=>{ isinSeq++; $('#isinResults').innerHTML=''; syncIsinUI(); });
-  $('#fIsin').addEventListener('change',()=>syncIsinUI(true));
-  $('#fIsin').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); isinFind(); } });
-  $('#fIsinFind').addEventListener('click',isinFind);
-  $('#isinResults').addEventListener('click',e=>{
-    const b=e.target.closest('[data-sym]'); if(!b)return;
-    const sym=b.getAttribute('data-sym');
-    $('#fTicker').value=sym; isinSeq++; $('#isinResults').innerHTML='';
-    toast('Ticker '+sym+' inserito: premi Salva per confermarlo','ok');
+  /* scheda posizione e scheda watchlist: composizione solo per gli ETF; ISIN:
+     un codice scritto nel Ticker si sposta, "Trova ticker" anche con Invio */
+  ['f','fw'].forEach(pre=>{
+    const id=isinIds(pre);
+    $('#'+pre+'Cls').addEventListener('change',()=>toggleComp(pre));
+    $(id.ticker).addEventListener('input',()=>tickerToIsin(pre));
+    $(id.isin).addEventListener('input',()=>{ isinSeq++; $(id.res).innerHTML=''; syncIsinUI(false,pre); });
+    $(id.isin).addEventListener('change',()=>syncIsinUI(true,pre));
+    $(id.isin).addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); isinFind(pre); } });
+    $(id.find).addEventListener('click',()=>isinFind(pre));
+    $(id.res).addEventListener('click',e=>{
+      const b=e.target.closest('[data-sym]'); if(!b)return;
+      const sym=b.getAttribute('data-sym');
+      $(id.ticker).value=sym; isinSeq++; $(id.res).innerHTML='';
+      toast('Ticker '+sym+' inserito: premi Salva per confermarlo','ok');
+    });
   });
 
   /* --- chiusura modali e drawer --- */
@@ -8160,6 +8374,11 @@ function wire(){
     UI.expo.level=b.getAttribute('data-lvl');
     UI.expo.leaf=null;
     renderExposure();
+  }));
+
+  /* --- distribuzioni: una sola scelta per le due card, così restano confrontabili --- */
+  $$('.dist-mode button').forEach(b=>b.addEventListener('click',()=>{
+    S.settings.distMode=b.getAttribute('data-m'); save(); renderRiskDist(); renderFactorDist();
   }));
 
   /* --- scenari --- */
