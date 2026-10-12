@@ -9,6 +9,14 @@
 /* ==========================================================================
    1. DESIGN TOKENS — dark-first, tema chiaro completo
    ========================================================================== */
+/* Accento: il verde acqua di Scalable Capital (#28ebcf, "Bright Turquoise"
+   secondo la scheda del brand su brandfetch: un riferimento, non un dato
+   ufficiale). Sul turchese il bianco non si legge (1,4:1), quindi il testo
+   sopra l'accento è --on-accent, scuro. Nel tema chiaro l'accento è più scuro,
+   perché il turchese su bianco avrebbe 1,5:1, e lì --on-accent torna bianco.
+   --up sta a 24° di tonalità dall'accento: guadagni e perdite non si
+   confondono con la linea del grafico. --sky ha preso il posto di --teal, che
+   col verde acqua quasi coincideva. Contrasti e distanze: test-rifinitura.js. */
 :root{
   color-scheme:dark;
   --bg:#0a0d12;
@@ -21,17 +29,19 @@
   --ink:#e9edf4;
   --ink-soft:#a2aebe;
   --muted:#69748a;
-  --accent:#6c7cff;
-  --accent-2:#8b6cf6;
-  --accent-ink:#a9b3ff;
-  --accent-soft:rgba(108,124,255,.15);
+  --accent:#28ebcf;
+  --accent-2:#20c9e8;
+  --accent-ink:#6df2dc;
+  --accent-soft:rgba(40,235,207,.13);
+  --on-accent:#06241f;
+  --accent-glow:rgba(40,235,207,.28);
   --gold:#e8b13c;
   --gold-soft:rgba(232,177,60,.14);
-  --teal:#2bb9c4;
-  --teal-soft:rgba(43,185,196,.14);
+  --sky:#4fb0ff;
+  --sky-soft:rgba(79,176,255,.14);
   --violet:#a072f0;
-  --up:#25c685;
-  --up-soft:rgba(37,198,133,.14);
+  --up:#34d27b;
+  --up-soft:rgba(52,210,123,.14);
   --down:#f2565b;
   --down-soft:rgba(242,86,91,.14);
   --warn:#e8a33c;
@@ -55,17 +65,19 @@ html[data-theme="light"]{
   --ink:#0f141c;
   --ink-soft:#4e5a6c;
   --muted:#8b97a8;
-  --accent:#4a5bef;
-  --accent-2:#7c4ded;
-  --accent-ink:#3b4ad6;
-  --accent-soft:rgba(74,91,239,.10);
+  --accent:#0a7f72;
+  --accent-2:#0a8fb5;
+  --accent-ink:#07665b;
+  --accent-soft:rgba(10,127,114,.10);
+  --on-accent:#ffffff;
+  --accent-glow:rgba(10,127,114,.25);
   --gold:#c58a12;
   --gold-soft:rgba(197,138,18,.12);
-  --teal:#137e88;
-  --teal-soft:rgba(19,126,136,.12);
+  --sky:#1f78c8;
+  --sky-soft:rgba(31,120,200,.12);
   --violet:#7b46cc;
-  --up:#0da96a;
-  --up-soft:rgba(13,169,106,.12);
+  --up:#12a150;
+  --up-soft:rgba(18,161,80,.12);
   --down:#dc3b40;
   --down-soft:rgba(220,59,64,.12);
   --warn:#c98410;
@@ -98,6 +110,12 @@ button{cursor:pointer;border:0;background:none;-webkit-tap-highlight-color:trans
 a{color:var(--accent-ink);text-decoration:none}
 svg{display:block}
 .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+/* valori che dipendono dai prezzi: mentre un aggiornamento dura (body.is-refreshing,
+   vedi refreshSpin) pulsano piano, restando leggibili. Se la rete non risponde
+   restano i numeri di prima. */
+.px{transition:opacity .2s}
+body.is-refreshing .px{animation:pxpulse 1.1s ease-in-out infinite}
+@keyframes pxpulse{50%{opacity:.45}}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--surface-3);border-radius:8px;border:3px solid var(--bg)}
@@ -116,9 +134,9 @@ body.sb-collapsed{--sb-w:76px}
 }
 .sb-brand{display:flex;align-items:center;gap:11px;padding:4px 8px 18px;min-width:0}
 .sb-logo{
-  width:38px;height:38px;border-radius:12px;flex:none;display:grid;place-items:center;color:#fff;
+  width:38px;height:38px;border-radius:12px;flex:none;display:grid;place-items:center;color:var(--on-accent);
   background:linear-gradient(145deg,var(--accent),var(--accent-2));
-  box-shadow:0 6px 18px rgba(108,124,255,.35);
+  box-shadow:0 6px 18px var(--accent-glow);
 }
 .sb-brand .bt{min-width:0;overflow:hidden;white-space:nowrap}
 .sb-brand .b1{font-size:15px;font-weight:700;letter-spacing:-.2px}
@@ -198,7 +216,7 @@ body.sb-collapsed .sb-mini{justify-content:center;padding:9px 0}
   transition:background .14s,border-color .14s,filter .14s,transform .1s;white-space:nowrap;
 }
 .btn:active{transform:translateY(1px)}
-.btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 14px rgba(108,124,255,.28)}
+.btn-primary{background:var(--accent);color:var(--on-accent);box-shadow:0 4px 14px var(--accent-glow)}
 .btn-primary:hover{filter:brightness(1.08)}
 .btn-ghost{background:var(--surface);border:1px solid var(--line);color:var(--ink-soft)}
 .btn-ghost:hover{background:var(--surface-2);color:var(--ink);border-color:var(--surface-3)}
@@ -236,7 +254,7 @@ html[data-theme="light"] .seg button.on{background:#fff}
 .chip{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none}
 .chip.a{background:var(--accent-soft);color:var(--accent-ink)}
 .chip.g{background:var(--gold-soft);color:var(--gold)}
-.chip.t{background:var(--teal-soft);color:var(--teal)}
+.chip.t{background:var(--sky-soft);color:var(--sky)}
 .chip.u{background:var(--up-soft);color:var(--up)}
 .chip.d{background:var(--down-soft);color:var(--down)}
 .grid{display:grid;gap:18px}
@@ -693,7 +711,7 @@ tbody tr.clk{cursor:pointer}
 .alert b{color:var(--ink)}
 .alert .ai{width:21px;height:21px;border-radius:7px;display:grid;place-items:center;font-weight:800;
   flex:none;font-size:11.5px;color:#fff;margin-top:1px}
-.a-ok{background:var(--up-soft);border-color:rgba(37,198,133,.28)}
+.a-ok{background:var(--up-soft);border-color:rgba(52,210,123,.28)}
 .a-ok .ai{background:var(--up)}
 .a-warn{background:var(--warn-soft);border-color:rgba(232,163,60,.28)}
 .a-warn .ai{background:var(--warn)}
@@ -1095,6 +1113,22 @@ html[data-theme="light"] .maptbl select{background:#fff}
 .hm-t .rt{font-size:14.5px;font-weight:750;font-variant-numeric:tabular-nums}
 .hm-t .nm{font-size:10px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* ==========================================================================
+   MOVIMENTO RIDOTTO — preferenza di sistema "Riduci movimento"
+   ========================================================================== */
+/* Animazioni e transizioni decorative durano un istante. Resta il giro della
+   freccia di aggiornamento, che dice che qualcosa è in corso, ma più lento:
+   `.spin svg` è più specifico di `*`, e fra due !important vince lui. Lo
+   stesso controllo da JS è reducedMotion(). */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms!important;animation-iteration-count:1!important;
+    transition-duration:.001ms!important;scroll-behavior:auto!important}
+  .spin svg{animation:spin 1.8s linear infinite!important}
+  /* i valori in aggiornamento restano attenuati, fermi */
+  body.is-refreshing .px{animation:none;opacity:.6}
+}
+
 @media print{
   /* la griglia e la legenda restano stampabili: utili in un report annuale */
   .hm-c.has:hover,.hm-c.has:focus-visible{transform:none;box-shadow:none;outline:0}
@@ -1153,7 +1187,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
           <input type="text" id="globalSearch" placeholder="Cerca titolo…">
         </div>
         <div class="tb-pv">
-          <div class="v mask num" id="tbValue">—</div>
+          <div class="v mask num px" id="tbValue">—</div>
           <div class="d" id="tbChange">—</div>
         </div>
         <div class="tb-acts">
@@ -1189,7 +1223,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
               <div class="hero-l">
                 <div style="font-size:12px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Valore del portafoglio</div>
                 <div class="hero-val">
-                  <div class="big num mask" id="heroValue">—</div>
+                  <div class="big num px mask" id="heroValue">—</div>
                   <div class="meta">
                     <span class="pillv flat mask" id="heroChg">—</span>
                     <span style="color:var(--muted);font-weight:550" id="heroChgLbl"></span>
@@ -1381,7 +1415,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
               </div>
               <div style="margin-top:22px">
                 <div class="submetric"><div class="top"><span>Diversificazione (uniformità dei pesi)</span><b id="m1v">0</b></div>
-                  <div class="track"><i id="m1" style="background:var(--teal)"></i></div></div>
+                  <div class="track"><i id="m1" style="background:var(--sky)"></i></div></div>
                 <div class="submetric"><div class="top"><span>Ampiezza (numero di posizioni)</span><b id="m2v">0</b></div>
                   <div class="track"><i id="m2" style="background:var(--gold)"></i></div></div>
                 <div class="submetric"><div class="top"><span>Equilibrio tra categorie</span><b id="m3v">0</b></div>
@@ -2571,6 +2605,13 @@ function fnum(v){
 const nf=(n,d)=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d});
 const money=(n,d)=>'€ '+nf(n,d==null?2:d);
 const money0=n=>'€ '+Math.round(n||0).toLocaleString('it-IT');
+/* intero col segno, "+€ 13.290" / "−€ 59": hero in modalità Rendimento e KPI,
+   e countUp() che li fa salire. Il segno è quello del numero, anche per −0
+   ("−€ 0"): un valore negativo che parte da zero non passa da "+€ 0". */
+function signedEur0(x){
+  if(typeof x!=='number'||!isFinite(x))return '–';
+  return (x>0||Object.is(x,0)?'+':'−')+'€ '+Math.round(Math.abs(x)).toLocaleString('it-IT');
+}
 const moneyAuto=n=>Math.abs(n)>=10000?money0(n):money(n);
 const sgn=n=>(n>=0?'+':'−');
 const pctv=(n,d)=>(n>=0?'+':'−')+nf(Math.abs(n),d==null?2:d)+'%';
@@ -2583,8 +2624,11 @@ function fmtTime(ts){ return new Date(ts).toLocaleTimeString('it-IT',{hour:'2-di
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
 
-/* colore stabile per l'avatar di un titolo */
-const AV=['#6c7cff','#e8b13c','#2bb9c4','#a072f0','#25c685','#f2565b','#4b9bff','#f08a3c','#5ad0a8','#c98ae0'];
+/* colore stabile per l'avatar di un titolo. Le iniziali sono bianche, quindi
+   niente verde acqua (l'accento): l'indaco resta, come colore di categoria, e
+   le tinte vicine all'accento hanno lasciato il posto a rosa, sabbia e un
+   verde più scuro. */
+const AV=['#6c7cff','#e8b13c','#e0679b','#a072f0','#1f9d55','#f2565b','#4b9bff','#f08a3c','#c9a27a','#c98ae0'];
 function avColor(t){ let h=0; const s=String(t||'?'); for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0; return AV[Math.abs(h)%AV.length]; }
 function avInitials(p){ const t=(p.ticker||p.name||'?').replace(/[^A-Za-z0-9]/g,''); return t.slice(0,2).toUpperCase()||'?'; }
 
@@ -2985,7 +3029,8 @@ Chart.fan=function(host,bands,opt){
    grafico lo dice a parole). Serve perché con due soli valori la profondità
    relativa si legge in un colpo d'occhio, cosa che due cifre affiancate non
    comunicano altrettanto in fretta.
-   `series` è [{name, v, color, side}], side 'left' o 'right' per l'etichetta. */
+   `series` è [{name, v, color, side, ink}], side 'left' o 'right' per
+   l'etichetta; ink è il colore del testo dell'etichetta (bianco se manca). */
 Chart.shock=function(host,series,opt){
   opt=opt||{};
   if(!host)return;
@@ -3044,12 +3089,13 @@ Chart.shock=function(host,series,opt){
     const bx=left?padL:(W-padR-bw);
     const by=Math.max(padT+2,Math.min(padT+ih-bh-2,c.ty-bh/2));
     const lx=left?bx+bw:bx;                       /* estremo interno */
+    const ink=c.s.ink?' style="fill:'+c.s.ink+'"':'';
     const lead='<line x1="'+lx.toFixed(1)+'" y1="'+c.ty.toFixed(1)+'" x2="'+c.tx.toFixed(1)+
       '" y2="'+c.ty.toFixed(1)+'" stroke="'+c.s.color+'" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>';
     return lead+
       '<rect x="'+bx+'" y="'+by.toFixed(1)+'" width="'+bw+'" height="'+bh+'" rx="9" fill="'+c.s.color+'"/>'+
-      '<text class="sc-bg-v" x="'+(bx+bw/2)+'" y="'+(by+16).toFixed(1)+'" text-anchor="middle">'+esc(val)+'</text>'+
-      '<text class="sc-bg-n" x="'+(bx+bw/2)+'" y="'+(by+29).toFixed(1)+'" text-anchor="middle">'+esc(nm)+'</text>';
+      '<text class="sc-bg-v" x="'+(bx+bw/2)+'" y="'+(by+16).toFixed(1)+'" text-anchor="middle"'+ink+'>'+esc(val)+'</text>'+
+      '<text class="sc-bg-n" x="'+(bx+bw/2)+'" y="'+(by+29).toFixed(1)+'" text-anchor="middle"'+ink+'>'+esc(nm)+'</text>';
   }
 
   host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" '+
@@ -3091,6 +3137,12 @@ function applyCollapsed(){
   document.body.classList.toggle('sb-collapsed',!!S.settings.collapsed);
   const b=$('#btnCollapse');
   b.querySelector('.ic').innerHTML=ic(S.settings.collapsed?'expand':'collapse',17);
+}
+/* "Riduci movimento" del sistema: niente scorrimenti animati né numeri che
+   salgono. Si legge ogni volta, perché la preferenza può cambiare a pagina
+   aperta. Il CSS fa lo stesso con @media (prefers-reduced-motion:reduce). */
+function reducedMotion(){
+  return typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 /* ==========================================================================
@@ -3145,20 +3197,29 @@ function go(k){
   $$('[data-nav]').forEach(b=>b.classList.toggle('on',b.getAttribute('data-nav')===it.k));
   $('#pgTitle').textContent=it.l; $('#pgSub').textContent=it.sub||'';
   if(location.hash.slice(1)!==it.k) history.replaceState(null,'','#'+it.k);
-  window.scrollTo({top:0,left:0,behavior:'smooth'});
+  window.scrollTo({top:0,left:0,behavior:reducedMotion()?'auto':'smooth'});
   renderPage(it.k);
 }
 
 /* ==========================================================================
    9. DASHBOARD — KPI + grafico performance
    ========================================================================== */
-/* "prezzi aggiornati alle 15:32"; con la data se non è oggi */
-function pricesWhen(ts,now){
+/* "prezzi aggiornati alle 15:32"; con la data se non è oggi. Mentre un
+   aggiornamento dura (busy, vedi refreshSpin) dice che è in corso. */
+function pricesWhen(ts,now,busy){
+  if(busy)return 'aggiornamento prezzi in corso…';
   if(!ts)return 'prezzi non ancora aggiornati';
   const d=new Date(ts), n=new Date(now);
   const day=d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate();
   return 'prezzi aggiornati '+(day?'':'il '+d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',
     year:d.getFullYear()===n.getFullYear()?undefined:'numeric'})+' ')+'alle '+fmtTime(ts);
+}
+/* Sotto il valore dell'hero: quante posizioni e quando sono arrivati i prezzi.
+   La riscrivono renderHero() e refreshSpin(), quando l'aggiornamento diventa
+   "in corso" e quando finisce, anche se fallisce e renderAll() non arriva. */
+function renderHeroMeta(){
+  const el=$('#heroMeta'); if(!el)return;
+  el.textContent=T.n+(T.n===1?' posizione':' posizioni')+' · '+pricesWhen(S.lastUpdate,Date.now(),pxBusy);
 }
 /* Barra in alto: sulla Dashboard il valore del portafoglio è già nell'hero, e
    lassù compare solo quando l'hero esce dallo schermo, cioè finisce sotto la
@@ -3189,10 +3250,41 @@ function rangeCut(series,r){
   const cut=series.filter(p=>p.t>=from);
   return cut.length>=2?cut:series.slice(-2);
 }
+/* Numeri che salgono all'apertura: il valore dell'hero e le prime tre KPI,
+   una volta per caricamento, in 650 ms. Il testo giusto c'è già: l'animazione
+   parte al primo fotogramma, da zero, con lo stesso formattatore, e l'ultimo
+   fotogramma scrive esattamente fmt(to). Ogni disegno successivo dello stesso
+   elemento ferma il ciclo vecchio (countTok), così un valore intermedio non
+   copre mai quello nuovo. Niente animazione con "Riduci movimento", a pagina
+   nascosta, fuori dalla Dashboard o senza posizioni.
+   L'apertura (INTRO) si chiude al primo fotogramma, o subito se l'animazione
+   salta: all'avvio la Dashboard si disegna più volte di fila (go(),
+   renderAll(), i prezzi dalla cache) e i disegni prima del primo fotogramma
+   ripartono da zero invece di spegnerla. */
+function easeOutCubic(t){ return 1-Math.pow(1-t,3); }
+const INTRO={done:false};
+let countTok=0;
+function countUp(el,to,fmt,ms){
+  if(!el)return;
+  const tok=el._ct=++countTok;
+  el.textContent=fmt(to);
+  if(INTRO.done||UI.page!=='dashboard'||!T.n||typeof to!=='number'||!isFinite(to)||to===0)return;
+  if(reducedMotion()||document.hidden||typeof requestAnimationFrame!=='function'){ INTRO.done=true; return; }
+  ms=ms||650;
+  let t0=null;
+  const step=now=>{
+    if(el._ct!==tok||el.isConnected===false)return;
+    INTRO.done=true;
+    if(t0===null)t0=now;
+    const t=Math.min(1,(now-t0)/ms);
+    el.textContent=t<1?fmt(to*easeOutCubic(t)):fmt(to);
+    if(t<1)requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 function renderHero(){
   const mode=UI.heroMode;
-  $('#heroValue').textContent = mode==='value' ? money0(T.value)
-    : (T.pnl>=0?'+':'−')+'€ '+Math.round(Math.abs(T.pnl)).toLocaleString('it-IT');
+  countUp($('#heroValue'),mode==='value'?T.value:T.pnl,mode==='value'?money0:signedEur0);
   const chg=$('#heroChg'), lbl=$('#heroChgLbl');
 
   const H=heroHistSeries();
@@ -3215,20 +3307,20 @@ function renderHero(){
   const flat=!S.positions.length||ref==null||
     ((deltaPct==null||Math.abs(deltaPct)<.005)&&(deltaAbs==null||Math.abs(deltaAbs)<.5));
   const good=ref>=0;
-  chg.className='pillv mask '+(flat?'flat':(good?'up':'down'));
+  chg.className='pillv px mask '+(flat?'flat':(good?'up':'down'));
   chg.innerHTML=(flat?'':(good?'▲':'▼')+' ')+(deltaPct!=null?nf(Math.abs(deltaPct),2)+'%':'')+
     (deltaAbs!=null?'<span style="opacity:.75;font-weight:600;margin-left:2px">('+(flat?'':(good?'+':'−'))+money0(Math.abs(deltaAbs)).replace('€ ','€')+')</span>':'');
   /* variazione di oggi accanto, solo se i prezzi la danno */
   const dy=$('#heroDay');
   if(T.day||T.dayPct){
     const z=Math.abs(T.dayPct)<.005;
-    dy.className='pillv sm mask '+(z?'flat':(T.dayPct>0?'up':'down'));
+    dy.className='pillv sm px mask '+(z?'flat':(T.dayPct>0?'up':'down'));
     dy.textContent='oggi '+(z?nf(0,2)+'%':pctv(T.dayPct));
     dy.hidden=false;
   }else dy.hidden=true;
   /* sotto: quante posizioni e quando sono arrivati i prezzi. Il conteggio
      stava nella card "Valore totale", tolta perché ripeteva l'hero. */
-  $('#heroMeta').textContent=T.n+(T.n===1?' posizione':' posizioni')+' · '+pricesWhen(S.lastUpdate,Date.now());
+  renderHeroMeta();
 
   const pts=series.map(p=>({t:p.t,v:mode==='value'?p.value:(p.cost>0?(p.value/p.cost-1)*100:0),gap:p.gap}));
   const hn=$('#heroNote'); if(hn)hn.innerHTML=H.src==='calc'?histCoverageNote(H.info):'';
@@ -3388,28 +3480,32 @@ function kpiPersonal(){
   if(R.excludedN)tip.push(R.excludedN+(R.excludedN===1?' posizione senza data esclusa':' posizioni senza data escluse')+' dal calcolo.');
   if(use==null)return {l:'Rendimento annuo',v:'–',s:'servono acquisti con data',tip:tip.join('\n'),mask:1};
   const twr=R.twr!=null?' · TWR '+pctv(R.twr*100,1)+(R.twrAnnualized?'':' nel periodo'):'';
-  return {l:'Rendimento annuo',v:pctv(use*100),cls:use>=0?'up':'down',mask:1,tip:tip.join('\n'),
+  return {l:'Rendimento annuo',v:pctv(use*100),cls:use>=0?'up':'down',mask:1,px:1,tip:tip.join('\n'),
     s:R.annual!=null?'tuo, con i versamenti'+twr:'da '+fmtDate(R.firstDate)+' · non annualizzato'};
 }
 /* Il valore totale non c'è: è il numero grande dell'hero, e il conteggio delle
    posizioni sta sotto di lui. */
 function renderKpis(){
   const cards=[
-    {l:'Capitale investito',v:money0(T.cost),s:T.dividends?'+ '+money0(T.dividends)+' dividendi incassati':'costo di carico',mask:1},
-    {l:'Guadagno / Perdita',v:(T.pnl>=0?'+':'−')+'€ '+Math.round(Math.abs(T.pnl)).toLocaleString('it-IT'),
-      s:pctv(T.pnlPct)+(T.realized?' · '+money0(T.realized)+' realizzati':''),cls:T.pnl>=0?'up':'down',mask:1},
-    {l:'Variazione di oggi',v:(T.day>=0?'+':'−')+'€ '+Math.round(Math.abs(T.day)).toLocaleString('it-IT'),
-      s:T.day||T.dayPct?pctv(T.dayPct):'aggiorna i prezzi per vederla',cls:T.day>=0?'up':'down',mask:1},
+    {l:'Capitale investito',v:money0(T.cost),n:T.cost,f:money0,
+      s:T.dividends?'+ '+money0(T.dividends)+' dividendi incassati':'costo di carico',mask:1},
+    {l:'Guadagno / Perdita',v:signedEur0(T.pnl),n:T.pnl,f:signedEur0,
+      s:pctv(T.pnlPct)+(T.realized?' · '+money0(T.realized)+' realizzati':''),cls:T.pnl>=0?'up':'down',mask:1,px:1},
+    {l:'Variazione di oggi',v:signedEur0(T.day),n:T.day,f:signedEur0,
+      s:T.day||T.dayPct?pctv(T.dayPct):'aggiorna i prezzi per vederla',cls:T.day>=0?'up':'down',mask:1,px:1},
     kpiPersonal()
   ];
   $('#kpis').innerHTML=cards.map(c=>
     '<div class="kpi"><div class="l">'+esc(c.l)+
     (c.tip?'<span class="qhelp" title="'+esc(c.tip)+'">?</span>':'')+'</div>'+
-    '<div class="v num '+(c.cls||'')+(c.mask?' mask':'')+'">'+c.v+'</div>'+
-    '<div class="s'+(c.mask?' mask':'')+'">'+c.s+'</div></div>').join('');
+    '<div class="v num '+(c.cls||'')+(c.px?' px':'')+(c.mask?' mask':'')+'">'+c.v+'</div>'+
+    '<div class="s'+(c.px?' px':'')+(c.mask?' mask':'')+'">'+c.s+'</div></div>').join('');
+  /* le card con un numero (n) salgono all'apertura; la KPI personale no */
+  const vs=$$('#kpis .kpi>.v');
+  cards.forEach((c,i)=>{ if(c.f&&vs[i])countUp(vs[i],c.n,c.f); });
   $('#tbValue').textContent=money0(T.value);
   const tc=$('#tbChange');
-  tc.className='d '+(T.pnl>=0?'up':'down');
+  tc.className='d px '+(T.pnl>=0?'up':'down');
   tc.textContent=pctv(T.pnlPct)+' totale';
 }
 /* --------------------------------------------------------------------------
@@ -3598,7 +3694,10 @@ function netOrder(){
 /* 'symbol': Yahoo ha risposto ma il simbolo non esiste, inutile insistere.
    'transport'/'offline': proxy o rete, vale la pena riprovare altrove. */
 function netErr(kind){ const e=new Error(kind); e.kind=kind; return e; }
+/* Richieste partite davvero: le conta netQueue() per decidere la pausa */
+let NETREQ=0;
 function netOnce(url,tr){
+  NETREQ++;
   const ctl=(typeof AbortController!=='undefined')?new AbortController():null;
   let timer=null;
   const stop=()=>{ if(timer){clearTimeout(timer);timer=null;} };
@@ -3648,15 +3747,18 @@ function fetchJSON(url,alts){
   return p;
 }
 /* Coda: al massimo NET.parallel richieste in volo. Un elemento che fallisce
-   non trascina con se' gli altri. */
+   non trascina con se' gli altri. La pausa dopo un elemento c'e' solo se nel
+   frattempo e' partita una richiesta: una quotazione presa dalla cache non
+   tocca la rete, e un aggiornamento tutto dalla cache, come quello
+   all'avvio, finisce subito invece di metterci mezzo secondo. */
 function netQueue(items,worker){
   if(!items.length)return Promise.resolve([]);
   const out=new Array(items.length); let i=0;
   const lane=()=>{
     if(i>=items.length)return Promise.resolve();
-    const k=i++;
+    const k=i++, n0=NETREQ;
     return worker(items[k],k).then(v=>{out[k]=v;},()=>{})
-      .then(()=>new Promise(r=>setTimeout(r,NET.gap))).then(lane);
+      .then(()=>NETREQ===n0?null:new Promise(r=>setTimeout(r,NET.gap))).then(lane);
   };
   const lanes=[];
   for(let j=0;j<Math.min(NET.parallel,items.length);j++)lanes.push(lane());
@@ -3718,9 +3820,23 @@ let refreshing=false;
    posizione): lo stato va riletto a ogni render, non scritto una volta. */
 const refreshingIds=new Set();
 /* il giro di aggiornamento è uno solo: girano la freccia in alto e quella del
-   riquadro Contributo, chiunque dei due l'abbia avviato */
+   riquadro Contributo, chiunque dei due l'abbia avviato. Se dopo PX_DELAY ms è
+   ancora in corso, i valori che dipendono dai prezzi (.px) pulsano e sotto
+   l'hero si legge "aggiornamento prezzi in corso…"; uno dalla cache finisce
+   prima e non fa lampeggiare niente. Avvio, successo ed errore passano tutti
+   da qui, con un solo timer alla volta. */
+const PX_DELAY=250;
+let pxTimer=null, pxBusy=false;
 function refreshSpin(on){
   ['#btnRefresh','#contribRefresh'].forEach(s=>{ const b=$(s); if(b)b.classList[on?'add':'remove']('spin'); });
+  clearTimeout(pxTimer); pxTimer=null;
+  if(on){
+    pxTimer=setTimeout(()=>{ pxTimer=null; pxBusy=true;
+      $('body').classList.add('is-refreshing'); renderHeroMeta(); },PX_DELAY);
+    return;
+  }
+  $('body').classList.remove('is-refreshing');
+  if(pxBusy){ pxBusy=false; renderHeroMeta(); }
 }
 /* onlyPortfolio: solo i titoli in portafoglio (e i cambi), senza la watchlist:
    è l'aggiornamento del riquadro Contributo */
@@ -3835,8 +3951,12 @@ function demoData(){
 /* ==========================================================================
    12b. ALLOCAZIONE, CONTRIBUTO, TABELLA POSIZIONI
    ========================================================================== */
-const PAL=['#6c7cff','#e8b13c','#2bb9c4','#a072f0','#25c685','#f2565b','#4b9bff','#f08a3c',
-           '#5ad0a8','#c98ae0','#8b93ad','#d4c05a'];
+/* Il primo colore è l'accento del tema: la fetta più grande ha il colore
+   dell'app, e nel tema chiaro diventa il verde acqua scuro. Gli altri sono
+   fissi e lontani dall'accento (test-rifinitura.js): rosa e sabbia al posto
+   di ciano e verde menta, il verde e l'azzurro di --up e --sky. */
+const PAL=['var(--accent)','#e8b13c','#e0679b','#a072f0','#34d27b','#f2565b','#4fb0ff','#f08a3c',
+           '#c9a27a','#c98ae0','#8b93ad','#d4c05a'];
 const FACTORS=['Nessuno','Market Beta','Value','Quality','Quality-Growth','Growth','Speculative','Diversifiers','Real Assets / Inflation Hedge'];
 const ACTION_OK=300; /* tolleranza in € entro cui la posizione è considerata a target */
 const ACT={
@@ -3895,8 +4015,9 @@ function fillPlatformSelect(sel,cur){
    il prefisso "Tier" (tooltip, menu "Raggruppa: Tier"). TIER_HEX e tierRgba()
    sono un'altra cosa: le fasce di colore della concentrazione. */
 const PTIERS=['Core','Cash','Hedge','Speculative','Thematic','Recovery','Satellite'];
-/* colori fissi presi da PAL: lo stesso tier ha lo stesso colore in ogni vista */
-const PTIER_COLORS={Core:'#6c7cff',Cash:'#2bb9c4',Hedge:'#25c685',Speculative:'#f2565b',
+/* colori fissi presi da PAL: lo stesso tier ha lo stesso colore in ogni vista.
+   Core è l'accento del tema, Cash l'azzurro, Hedge il verde. */
+const PTIER_COLORS={Core:'var(--accent)',Cash:'#4fb0ff',Hedge:'#34d27b',Speculative:'#f2565b',
   Thematic:'#a072f0',Recovery:'#f08a3c',Satellite:'#e8b13c'};
 const PTIER_NONE='-';                  /* valore del filtro per i titoli senza tier */
 const PTIER_NONE_LBL='Non assegnato';
@@ -4133,8 +4254,8 @@ function renderContrib(){
   const pfLbl=UI.contribPlatform===PF_NONE?'⚪ Senza piattaforma':platformLabel(UI.contribPlatform);
   $('#contribTot').innerHTML='<span class="l">'+(day?'Variazione di oggi':'Guadagno / Perdita')+
     ' · '+esc(pfLbl||'tutte le piattaforme')+'</span>'+
-    '<span class="v mask '+(shown>=0?'up':'down')+'">'+(shown>=0?'+':'−')+money0(Math.abs(shown))+'</span>'+
-    '<span class="p '+(shown>=0?'up':'down')+'">'+pctv(shownPct)+'</span>';
+    '<span class="v px mask '+(shown>=0?'up':'down')+'">'+(shown>=0?'+':'−')+money0(Math.abs(shown))+'</span>'+
+    '<span class="p px '+(shown>=0?'up':'down')+'">'+pctv(shownPct)+'</span>';
   const win=arr.filter(p=>p[k]>0).length, lose=arr.filter(p=>p[k]<0).length, flat=arr.length-win-lose;
   $('#contribSub').textContent=day
     ?win+' in rialzo · '+lose+' in ribasso'+(flat?' · '+flat+(flat===1?' invariato':' invariati'):'')
@@ -4152,9 +4273,9 @@ function renderContrib(){
     const w=up?(maxPos>0?v/maxPos*100:0):(maxNeg>0?-v/maxNeg*100:0);
     return '<div class="cr" data-id="'+p.id+'" style="cursor:pointer">'+
       '<div class="top"><span class="n">'+esc(p.name||p.ticker)+'</span>'+
-      (day?'<span class="pc '+(p._dayPct>=0?'up':'down')+'">'+pctv(p._dayPct)+'</span>':'')+
-      '<span class="a mask '+(up?'up':'down')+'">'+(up?'+':'−')+money0(Math.abs(v))+'</span></div>'+
-      '<div class="track bi"><span class="l" style="width:'+lw.toFixed(2)+'%">'+
+      (day?'<span class="pc px '+(p._dayPct>=0?'up':'down')+'">'+pctv(p._dayPct)+'</span>':'')+
+      '<span class="a px mask '+(up?'up':'down')+'">'+(up?'+':'−')+money0(Math.abs(v))+'</span></div>'+
+      '<div class="track bi px"><span class="l" style="width:'+lw.toFixed(2)+'%">'+
         (up?'':'<i style="width:'+w.toFixed(1)+'%;background:'+col+'"></i>')+'</span>'+
       '<span class="r" style="width:'+rw.toFixed(2)+'%">'+
         (up?'<i style="width:'+w.toFixed(1)+'%;background:'+col+'"></i>':'')+'</span></div></div>';
@@ -4213,13 +4334,13 @@ function renderTable(){
         '<td class="hide-sm"><span class="badge">'+esc(p.cls||'Altro')+'</span></td>'+
         '<td class="num">'+qtyf(p._q)+'</td>'+
         '<td class="num hide-xs">'+locCell(p._avg,p.currency)+'</td>'+
-        '<td class="num">'+locCell(num(p.price),p.currency)+(p._stale?' <span class="stale" title="'+esc(staleMsg(p))+'">●</span>':'')+'</td>'+
-        '<td class="num mask"><b>'+money(p._value)+'</b></td>'+
+        '<td class="num px">'+locCell(num(p.price),p.currency)+(p._stale?' <span class="stale" title="'+esc(staleMsg(p))+'">●</span>':'')+'</td>'+
+        '<td class="num px mask"><b>'+money(p._value)+'</b></td>'+
         '<td class="num hide-xs">'+nf(p._w,1)+'%</td>'+
-        '<td class="num mask '+(up?'up':'down')+'"><b>'+(up?'+':'−')+money(Math.abs(p._pnl))+'</b>'+
+        '<td class="num px mask '+(up?'up':'down')+'"><b>'+(up?'+':'−')+money(Math.abs(p._pnl))+'</b>'+
           '<div class="minibar"><i style="width:'+w+'%;background:'+(up?'var(--up)':'var(--down)')+'"></i></div></td>'+
-        '<td class="num '+(up?'up':'down')+'">'+pctv(p._pnlPct)+'</td>'+
-        '<td class="num hide-sm '+(p._day>=0?'up':'down')+'">'+(p.prevClose?pctv(p._dayPct):'<span class="cellsub">—</span>')+'</td>'+
+        '<td class="num px '+(up?'up':'down')+'">'+pctv(p._pnlPct)+'</td>'+
+        '<td class="num hide-sm px '+(p._day>=0?'up':'down')+'">'+(p.prevClose?pctv(p._dayPct):'<span class="cellsub">—</span>')+'</td>'+
         '<td class="hide-sm"><span class="riskdot" style="background:'+riskColor(rk)+'">'+rk+'</span></td>'+
         '<td><span class="badge '+a.c+'" title="'+esc(a.t)+'">'+a.s+'</span></td>'+
         '<td class="num hide-xs">'+(p.targetWeight!=null&&p.targetWeight!==''?nf(num(p.targetWeight),1)+'%':'<span class="cellsub">–</span>')+'</td>'+
@@ -4745,7 +4866,8 @@ const EXPO_LEVELS=[
   {k:'currency',label:'Valuta',warn:50,bad:65}
 ];
 const EXPO_ORDER=['cat','sector','country','currency'];
-const TIER_HEX={ok:'#25c685',warn:'#e8a33c',bad:'#f2565b'};
+/* verde, ambra e rosso di --up, --warn e --down (tema scuro) */
+const TIER_HEX={ok:'#34d27b',warn:'#e8a33c',bad:'#f2565b'};
 function tierRgba(tier,a){
   const h=parseInt(TIER_HEX[tier].slice(1),16);
   return 'rgba('+((h>>16)&255)+','+((h>>8)&255)+','+(h&255)+','+a.toFixed(2)+')';
@@ -4946,7 +5068,7 @@ function renderExposure(){
    ========================================================================== */
 function corrRgba(v){
   const a=.10+.55*Math.min(1,Math.abs(v));
-  return v>=0?'rgba(37,198,133,'+a.toFixed(2)+')':'rgba(242,86,91,'+a.toFixed(2)+')';
+  return v>=0?'rgba(52,210,123,'+a.toFixed(2)+')':'rgba(242,86,91,'+a.toFixed(2)+')';
 }
 function renderCorrelation(){
   const wrap=$('#corrBody'); if(!wrap)return;
@@ -5051,6 +5173,8 @@ function renderRiskDist(){
   $('#riskNote').innerHTML=distNote('Assegna a ogni titolo un punteggio da <b>3</b> (molto prudente) a '+
     '<b>9</b> (molto aggressivo) nella sua scheda.',d,mode,'risk');
 }
+/* Market Beta tiene l'indaco, che era l'accento e ora è un colore di
+   categoria: col verde acqua sarebbe accanto a due verdi, Value e Quality */
 const FACTOR_COLORS={'Market Beta':'#6c7cff','Value':'#25c685','Quality':'#5cc48d','Quality-Growth':'#b9b23f','Growth':'#e8b13c',
   'Speculative':'#f2565b','Diversifiers':'#a072f0','Real Assets / Inflation Hedge':'#c08552','Nessuno':'#8b93ad'};
 const FACTOR_ORDER=['Market Beta','Value','Quality','Quality-Growth','Growth','Speculative','Diversifiers','Real Assets / Inflation Hedge','Nessuno'];
@@ -5406,7 +5530,7 @@ function renderQuant(){
 function gaugeSvg(score,lbl,col,sub){
   if(sub==null)sub='punteggio su 100';
   const r=64,cx=84,cy=86,frac=Math.max(0,Math.min(1,score/100));
-  col=col||(score>=80?'var(--up)':score>=60?'var(--teal)':score>=40?'var(--warn)':'var(--down)');
+  col=col||(score>=80?'var(--up)':score>=60?'var(--sky)':score>=40?'var(--warn)':'var(--down)');
   const arc=rad=>{ const a=Math.PI+Math.PI*rad;
     return (cx+r*Math.cos(a)).toFixed(1)+' '+(cy+r*Math.sin(a)).toFixed(1); };
   return '<svg width="168" height="104" viewBox="0 0 168 104">'+
@@ -5500,7 +5624,7 @@ function renderHealth(){
   const riskAvg=vsR>0?wsR/vsR:6;
   const riskScore=Math.round(Math.max(0,Math.min(100,(riskAvg-3)/6*100)));
   const riskLbl=riskAvg<5?'Prudente':riskAvg<=7?'Bilanciato':'Aggressivo';
-  const riskCol=riskAvg<5?'var(--teal)':riskAvg<=7?'var(--gold)':'var(--down)';
+  const riskCol=riskAvg<5?'var(--sky)':riskAvg<=7?'var(--gold)':'var(--down)';
   $('#gaugeRisk').innerHTML=gaugeSvg(riskScore,riskLbl,riskCol,'rischio medio '+nf(riskAvg,1)+' su 9');
 
   const curs=groupBy('currency','EUR');
@@ -5846,7 +5970,9 @@ function scModel(){
 }
 
 /* --- rendering ---------------------------------------------------------- */
-const SC_C_PF='#6c7cff', SC_C_BM='#8b93ad';
+/* il portafoglio ha l'accento del tema, col testo dell'etichetta in --on-accent:
+   sul verde acqua il bianco non si leggerebbe */
+const SC_C_PF='var(--accent)', SC_C_PF_INK='var(--on-accent)', SC_C_BM='#8b93ad';
 
 /* Lo scenario mostrato è uno solo: la curva confronta il portafoglio col
    benchmark dentro QUELLA ipotesi. La tabella sotto resta l'elenco completo —
@@ -5878,7 +6004,7 @@ function renderScenarios(){
 
   Chart.shock(host,[
     {name:bk.l,          v:row.bm, color:SC_C_BM, side:'left'},
-    {name:'Portafoglio', v:row.pf, color:SC_C_PF, side:'right'}
+    {name:'Portafoglio', v:row.pf, color:SC_C_PF, ink:SC_C_PF_INK, side:'right'}
   ],{height:300, fmtV:v=>pctv(v,2),
      alt:row.sc.l+': portafoglio '+pctv(row.pf,2)+', '+bk.l+' '+pctv(row.bm,2)});
 
@@ -7509,7 +7635,7 @@ function deleteSnap(){
 const BENCH_LIST=[
   {key:'SPY',label:'S&P 500',color:'#6c7cff'},
   {key:'URTH',label:'MSCI World',color:'#e8b13c'},
-  {key:'FEZ',label:'EuroStoxx 50',color:'#2bb9c4'},
+  {key:'FEZ',label:'EuroStoxx 50',color:'#4fb0ff'},
   {key:'BNDW',label:'Obbligazioni Globali',color:'#8b93ad'},
   {key:'GLD',label:'Oro',color:'#a072f0'}
 ];
@@ -7693,7 +7819,7 @@ function goalStatus(g){
   const start=new Date(g.startDate).getTime(), end=new Date(g.targetDate).getTime(), now=Date.now();
   const expected=(isFinite(start)&&isFinite(end)&&end>start)
     ? Math.max(0,Math.min(100,(now-start)/(end-start)*100)) : 100;
-  if(progress>=expected)return {progress:progress,expected:expected,label:'In linea',color:'var(--teal)',cls:'a'};
+  if(progress>=expected)return {progress:progress,expected:expected,label:'In linea',color:'var(--sky)',cls:'a'};
   return {progress:progress,expected:expected,label:'In ritardo',color:'var(--warn)',cls:'w'};
 }
 function monthsLeft(g){
@@ -8488,7 +8614,8 @@ function goImport(){
   go('impostazioni');
   const card=$('#impCard'), f=$('#csvFile'); if(!card)return;
   requestAnimationFrame(()=>{
-    window.scrollTo({top:Math.max(0,card.getBoundingClientRect().top+window.scrollY-80),behavior:'smooth'});
+    window.scrollTo({top:Math.max(0,card.getBoundingClientRect().top+window.scrollY-80),
+      behavior:reducedMotion()?'auto':'smooth'});
     if(f)f.focus({preventScroll:true});
   });
 }
