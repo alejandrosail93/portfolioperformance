@@ -591,6 +591,7 @@ html[data-theme="light"] .filters select,html[data-theme="light"] .filters input
 .leg-g .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .leg-g .am{color:var(--muted);min-width:62px;text-align:right;font-variant-numeric:tabular-nums}
 .leg-g .pc{min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.leg .tk-av{margin:-2px 0}
 .leg.sub{padding-left:24px}
 .leg.sub .dot{width:6px;height:6px;border-radius:2px}
 
@@ -605,7 +606,8 @@ html[data-theme="light"] .filters select,html[data-theme="light"] .filters input
 .ctot .l{flex:1 0 100%;font-size:12px;font-weight:650;color:var(--muted)}
 .ctot .v{font-size:18px;font-weight:750;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
 .ctot .p{font-size:12.5px;font-weight:650;font-variant-numeric:tabular-nums}
-.cr .top{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;margin-bottom:5px}
+.cr .top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12.5px;margin-bottom:5px}
+.cr .top .who{display:flex;align-items:center;gap:7px;min-width:0}
 .cr .top .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .cr .top .a{font-weight:700;flex:none;font-variant-numeric:tabular-nums}
 .cr .top .pc{font-size:11.5px;font-weight:650;flex:none;margin-left:auto;font-variant-numeric:tabular-nums}
@@ -2837,6 +2839,9 @@ function avatarHTML(o,opt){
     '" data-ini="'+esc(ini)+'" data-bg="'+esc(bg)+'"></div>';
   return '<div class="tk-av" style="'+dim+'background:'+esc(bg)+'">'+esc(ini)+'</div>';
 }
+/* avatar piccolo accanto al ticker nelle legende della Dashboard
+   (Allocazione per titolo, Contributo al risultato) */
+const MINI_AV={size:20,radius:6,font:8};
 /* Un logo che non si carica (PNG corrotto in un backup) torna alle
    iniziali. Un solo ascoltatore, in cattura: l'evento error non risale. */
 function onLogoError(e){
@@ -4340,10 +4345,11 @@ function allocGroups(rows,v){
 }
 function allocList(){
   const rows=allocPositions(), v=UI.allocView;
-  const title=p=>(p.name||'').trim()||(p.ticker||'').trim()||'—';
+  /* un titolo si mostra col ticker (il nome per esteso resta nel suggerimento) */
+  const title=p=>(p.ticker||'').trim()||(p.name||'').trim()||'—';
   if(v!=='pos')return allocGroups(rows,v).map(g=>({name:g.name,value:g.value,c:g.c}));
   if(!UI.allocGroup){
-    return rows.map(p=>({name:title(p),value:p._value,id:p.id}))
+    return rows.map(p=>({name:title(p),full:(p.name||'').trim(),value:p._value,id:p.id,pos:p}))
       .filter(g=>g.value>0).sort((a,b)=>b.value-a.value);
   }
   /* titoli raggruppati: ognuno prende il colore del suo gruppo, i gruppi
@@ -4351,7 +4357,8 @@ function allocList(){
   const out=[];
   allocGroups(rows,UI.allocGroup).forEach(g=>g.rows.filter(p=>p._value>0)
     .sort((a,b)=>b._value-a._value)
-    .forEach(p=>out.push({name:title(p),value:p._value,id:p.id,c:g.c,group:g.name,groupValue:g.value})));
+    .forEach(p=>out.push({name:title(p),full:(p.name||'').trim(),value:p._value,id:p.id,pos:p,
+      c:g.c,group:g.name,groupValue:g.value})));
   return out;
 }
 function renderAlloc(){
@@ -4390,7 +4397,9 @@ function renderAlloc(){
       ?'<div class="leg-g" data-g="'+esc(g.group)+'"><span class="dot" style="background:'+g.c+'"></span>'+
        '<span class="nm">'+esc(g.group)+'</span><span class="am mask">'+money0(g.groupValue)+'</span>'+
        '<span class="pc">'+pct(g.groupValue)+'</span></div>':'')+
-    '<div class="leg'+(grouped?' sub" data-g="'+esc(g.group):'')+'" data-i="'+i+'"><span class="dot" style="background:'+(g.c||PAL[i%PAL.length])+'"></span>'+
+    '<div class="leg'+(grouped?' sub" data-g="'+esc(g.group):'')+'" data-i="'+i+'"'+
+      (g.full&&g.full!==g.name?' title="'+esc(g.full)+'"':'')+'><span class="dot" style="background:'+(g.c||PAL[i%PAL.length])+'"></span>'+
+    (g.pos?avatarHTML(g.pos,MINI_AV):'')+
     '<span class="nm">'+esc(g.name)+'</span><span class="am mask">'+money0(g.value)+'</span>'+
     '<span class="pc">'+pct(g.value)+'</span></div>').join('')
     :'<div class="note" style="margin:0">'+(activeCount()?'Nessun titolo corrisponde ai filtri.'
@@ -4439,8 +4448,8 @@ function renderAlloc(){
 function renderContrib(){
   const day=UI.contribView==='day', k=day?'_day':'_pnl';
   $$('#contribSeg button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-v')===UI.contribView));
-  /* Performance = l'importo in € della barra; Titolo = il nome mostrato */
-  const cs=UI.contribSort, nm=p=>String(p.name||p.ticker||'');
+  /* Performance = l'importo in € della barra; Titolo = il ticker mostrato */
+  const cs=UI.contribSort, nm=p=>String(p.ticker||p.name||'').trim();
   $$('#contribSort button').forEach(b=>{
     const on=b.getAttribute('data-k')===cs.k;
     b.classList.toggle('on',on);
@@ -4488,8 +4497,11 @@ function renderContrib(){
   host.innerHTML=arr.map(p=>{
     const v=p[k], up=v>=0, col=up?'var(--up)':'var(--down)';
     const w=up?(maxPos>0?v/maxPos*100:0):(maxNeg>0?-v/maxNeg*100:0);
-    return '<div class="cr" data-id="'+p.id+'" style="cursor:pointer">'+
-      '<div class="top"><span class="n">'+esc(p.name||p.ticker)+'</span>'+
+    const full=String(p.name||'').trim();
+    return '<div class="cr" data-id="'+p.id+'" style="cursor:pointer"'+
+      (full&&full!==nm(p)?' title="'+esc(full)+'"':'')+'>'+
+      '<div class="top"><span class="who">'+avatarHTML(p,MINI_AV)+
+      '<span class="n">'+esc(nm(p)||'—')+'</span></span>'+
       (day?'<span class="pc px '+(p._dayPct>=0?'up':'down')+'">'+pctv(p._dayPct)+'</span>':'')+
       '<span class="a px mask '+(up?'up':'down')+'">'+(up?'+':'−')+money0(Math.abs(v))+'</span></div>'+
       '<div class="track bi px"><span class="l" style="width:'+lw.toFixed(2)+'%">'+
