@@ -691,7 +691,13 @@ tbody tr.clk{cursor:pointer}
 /* --- treemap --- */
 .tmap{position:relative;width:100%;height:360px;border-radius:12px;overflow:hidden}
 .tile{position:absolute;border-radius:9px;padding:9px 11px;overflow:hidden;cursor:pointer;
-  border:1px solid;transition:filter .14s,transform .14s;display:flex;flex-direction:column;justify-content:flex-end}
+  border:1px solid;transition:filter .14s,transform .14s;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;text-align:center}
+.tile>*{max-width:100%}
+/* il logo del titolo nel dettaglio di una voce: se non si carica sparisce,
+   il ticker e' gia' scritto sotto */
+.tile .tile-logo{width:26px;height:26px;flex:none;object-fit:contain;border-radius:7px;margin-bottom:5px;
+  background:var(--surface-2);box-shadow:0 0 0 1px var(--logo-ring)}
 .tile:hover{filter:brightness(1.3);z-index:2}
 .tile .n{font-size:12.5px;font-weight:700;line-height:1.25;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap;color:var(--ink)}
@@ -699,7 +705,7 @@ tbody tr.clk{cursor:pointer}
 .tile .v{font-size:11px;color:var(--ink-soft);margin-top:1px}
 .tile .s{font-size:11px;color:var(--ink-soft);line-height:1.3;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
-.tile.tiny{padding:5px 7px;justify-content:center}
+.tile.tiny{padding:5px 7px}
 .tile.tiny .p{font-size:12px}
 .tile.micro{padding:0}
 
@@ -2846,7 +2852,10 @@ const MINI_AV={size:20,radius:6,font:8};
    iniziali. Un solo ascoltatore, in cattura: l'evento error non risale. */
 function onLogoError(e){
   const img=e&&e.target;
-  if(!img||img.tagName!=='IMG'||!img.classList.contains('tk-logo'))return;
+  if(!img||img.tagName!=='IMG')return;
+  /* nelle piastrelle dell'Esposizione niente iniziali: il ticker c'e' gia' */
+  if(img.classList.contains('tile-logo')){ img.remove(); return; }
+  if(!img.classList.contains('tk-logo'))return;
   const av=img.parentNode; if(!av)return;
   av.classList.remove('has-logo');
   av.style.background=img.getAttribute('data-bg')||avColor('?');
@@ -5222,7 +5231,7 @@ function expoLeafItems(lvlKey,key){
   activePositions().forEach(p=>{
     expoParts(p,lvlKey).forEach(c=>{
       if(c.name===key&&c.v>0)out.push({name:p.ticker||p.name||'—',
-        full:p.name||'',id:p.id,value:c.v,total:p._value});
+        full:p.name||'',id:p.id,value:c.v,total:p._value,logo:logoSrc(p)});
     });
   });
   return out.sort((a,b)=>b.value-a.value);
@@ -5326,7 +5335,9 @@ function renderExposure(){
     const w=Math.max(0,r.w-G), h=Math.max(0,r.h-G);
     const micro=h<26||w<34;          /* troppo piccola per qualsiasi testo */
     const tiny=!micro&&(w<86||h<52); /* spazio solo per la percentuale */
-    const sub=leaf&&it.full&&it.full!==it.name&&h>=86&&w>=110;
+    /* il logo solo se sopra c'e' posto per lui e per tutte le righe di testo */
+    const logo=leaf&&!micro&&!tiny&&it.logo&&h>=100&&w>=70;
+    const sub=leaf&&it.full&&it.full!==it.name&&h>=(logo?120:86)&&w>=110;
     const tip=leaf
       ? it.name+(it.full?' · '+it.full:'')+' · '+nf(pct,1)+'% di '+leaf.key+
         ' · '+money0(it.value)+' · '+nf(wPort,1)+'% del portafoglio'
@@ -5338,7 +5349,8 @@ function renderExposure(){
       'background:'+tierRgba(tier,alpha)+';border-color:'+TIER_HEX[tier]+'">'+
       (micro?''
         :tiny?'<div class="p">'+nf(pct,0)+'%</div>'
-             :'<div class="n">'+esc(it.name)+'</div>'+
+             :(logo?'<img class="tile-logo" alt="" src="'+esc(it.logo)+'">':'')+
+              '<div class="n">'+esc(it.name)+'</div>'+
               (sub?'<div class="s">'+esc(it.full)+'</div>':'')+
               '<div class="p">'+nf(pct,1)+'%</div>'+
               '<div class="v mask">'+money0(it.value)+'</div>')+
