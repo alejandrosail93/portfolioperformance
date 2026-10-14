@@ -5731,7 +5731,10 @@ function perfSummary(rows){
    non cambia ordine a ogni ridisegno. Chi non ha il volume non può avere
    un'area: va in coda (coda), disegnato a parte da perfTail(). */
 function perfItems(rows,size){
-  const nome=r=>String(r.p.ticker||r.p.name||'');
+  /* a parità di valore (lo stesso titolo su due piattaforme, o lo stesso
+     volume) decide il nome: il confronto riceve {r,v}, non la riga. Prima
+     leggeva a.p, che non c'è, e la mappa andava in errore */
+  const nome=x=>String(x.r.p.ticker||x.r.p.name||'');
   const per=k=>(a,b)=>b[k]-a[k]||nome(a).localeCompare(nome(b));
   const val=rows.map(r=>({r:r,v:r.p._value}));
   if(size!=='volume')return {items:val.sort(per('v')).map(x=>({r:x.r,value:size==='uguale'?1:x.v})),coda:[]};
@@ -9570,12 +9573,17 @@ function goImport(){
     if(f)f.focus({preventScroll:true});
   });
 }
+function cardSafe(fn){
+  try{ fn(); }catch(e){ if(typeof console!=='undefined'&&console.error)console.error('Errore in '+(fn.name||'una card')+':',e); }
+}
 function renderPage(k){
   markEmpty();
   if(k==='dashboard'){
     renderHero(); renderKpis(); renderToday(); populateFilters(); renderAlloc(); renderContrib(); renderTable();
   }
-  else if(k==='analisi'){ renderExposure(); renderPerfMap(); renderCorrelation(); renderRiskDist(); renderFactorDist(); renderEtfList(); }
+  /* card indipendenti: un errore in una non deve lasciare vuote quelle dopo
+     (un errore nella mappa di performance bloccava correlazione e distribuzioni) */
+  else if(k==='analisi'){ [renderExposure,renderPerfMap,renderCorrelation,renderRiskDist,renderFactorDist,renderEtfList].forEach(cardSafe); }
   else if(k==='salute'){ renderHealth(); renderQuant(); }
   else if(k==='scenari'){ renderScenarios(); }
   else if(k==='ribilanciamento'){ renderRebalance(); }
