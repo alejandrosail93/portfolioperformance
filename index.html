@@ -576,11 +576,15 @@ html[data-theme="light"] .filters select,html[data-theme="light"] .filters input
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
 .dcenter .v{font-size:19px;font-weight:750;letter-spacing:-.4px;margin-top:3px}
 .dcenter .s{font-size:11.5px;color:var(--muted);margin-top:1px}
+.dcenter .s .fn{display:block;max-width:100px;margin:0 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .legend{flex:1;min-width:210px;display:flex;flex-direction:column;gap:1px;max-height:260px;overflow-y:auto}
 .leg{display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:8px;font-size:13px;cursor:pointer}
 .leg:hover{background:var(--surface-2)}
 .leg .dot{width:9px;height:9px;border-radius:3px;flex:none}
 .leg .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* logo da 20 px più alto della riga di testo (19 px): con i margini negativi
+   conta 16 px e la riga resta alta come senza logo (anche in Contributo) */
+.leg .tk-av{flex:none;margin:-2px 0}
 .leg .am{color:var(--muted);font-size:12px;min-width:62px;text-align:right;font-variant-numeric:tabular-nums}
 .leg .pc{font-weight:700;min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
 /* titoli raggruppati: intestazione del gruppo col suo totale, titoli rientrati sotto */
@@ -605,8 +609,10 @@ html[data-theme="light"] .filters select,html[data-theme="light"] .filters input
 .ctot .l{flex:1 0 100%;font-size:12px;font-weight:650;color:var(--muted)}
 .ctot .v{font-size:18px;font-weight:750;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
 .ctot .p{font-size:12.5px;font-weight:650;font-variant-numeric:tabular-nums}
-.cr .top{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;margin-bottom:5px}
-.cr .top .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.cr .top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12.5px;margin-bottom:5px}
+.cr .top .n{display:flex;align-items:center;gap:7px;min-width:0;font-weight:600}
+.cr .top .n .nt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr .top .n .tk-av{flex:none;margin:-2px 0}
 .cr .top .a{font-weight:700;flex:none;font-variant-numeric:tabular-nums}
 .cr .top .pc{font-size:11.5px;font-weight:650;flex:none;margin-left:auto;font-variant-numeric:tabular-nums}
 .contrib .note.miss{margin:2px 0 0;font-size:12px}
@@ -689,7 +695,8 @@ tbody tr.clk{cursor:pointer}
 /* --- treemap --- */
 .tmap{position:relative;width:100%;height:360px;border-radius:12px;overflow:hidden}
 .tile{position:absolute;border-radius:9px;padding:9px 11px;overflow:hidden;cursor:pointer;
-  border:1px solid;transition:filter .14s,transform .14s;display:flex;flex-direction:column;justify-content:flex-end}
+  border:1px solid;transition:filter .14s,transform .14s;display:flex;flex-direction:column;
+  align-items:center;text-align:center}
 .tile:hover{filter:brightness(1.3);z-index:2}
 .tile .n{font-size:12.5px;font-weight:700;line-height:1.25;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap;color:var(--ink)}
@@ -697,9 +704,22 @@ tbody tr.clk{cursor:pointer}
 .tile .v{font-size:11px;color:var(--ink-soft);margin-top:1px}
 .tile .s{font-size:11px;color:var(--ink-soft);line-height:1.3;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
-.tile.tiny{padding:5px 7px;justify-content:center}
+/* flex:none: con troppo poco spazio .n e .s (overflow:hidden) si schiacciavano
+   fino a sparire; così il contenuto esce solo dal fondo */
+.tile .n,.tile .s,.tile .p,.tile .v{max-width:100%;flex:none}
+/* centrato in verticale con i margini automatici e non con justify-content:
+   con poco spazio il contenuto parte dall'alto e si taglia solo in fondo.
+   Dopo le regole dei testi: a parità di specificità il margin-top di .p
+   vinceva, e nelle tiny la percentuale (primo figlio) stava in alto */
+.tile>:first-child{margin-top:auto}
+.tile>:last-child{margin-bottom:auto}
+.tile.tiny{padding:5px 7px}
 .tile.tiny .p{font-size:12px}
 .tile.micro{padding:0}
+.tl-logo{display:block;border-radius:6px;flex:none;object-fit:contain;margin-bottom:4px;
+  box-shadow:0 0 0 1px var(--logo-ring)}
+.tile.tiny .tl-logo{margin-bottom:2px}
+.tile.micro .tl-logo{margin-bottom:auto}
 
 /* --- gauge --- */
 .gauges{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -2658,6 +2678,9 @@ const $$=s=>Array.from(document.querySelectorAll(s));
 const AV=['#6c7cff','#e8b13c','#e0679b','#a072f0','#1f9d55','#f2565b','#4b9bff','#f08a3c','#c9a27a','#c98ae0'];
 function avColor(t){ let h=0; const s=String(t||'?'); for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0; return AV[Math.abs(h)%AV.length]; }
 function avInitials(p){ const t=(p.ticker||p.name||'?').replace(/[^A-Za-z0-9]/g,''); return t.slice(0,2).toUpperCase()||'?'; }
+/* Come si chiama un titolo nelle liste (Allocazione, Contributo): il ticker, e
+   il nome solo se manca. Il nome per esteso va nel suggerimento della riga. */
+function tkLabel(o){ o=o||{}; return String(o.ticker||'').trim()||String(o.name||'').trim()||'—'; }
 
 /* Loghi delle aziende e degli emittenti di ETF (cartella Favicon/): SVG già
    ripuliti, con la mappa nomi/ticker → chiave. Il blocco fra i marcatori lo
@@ -2837,10 +2860,18 @@ function avatarHTML(o,opt){
     '" data-ini="'+esc(ini)+'" data-bg="'+esc(bg)+'"></div>';
   return '<div class="tk-av" style="'+dim+'background:'+esc(bg)+'">'+esc(ini)+'</div>';
 }
+/* Il solo logo, per le piastrelle di Esposizione: il ticker è già scritto lì
+   accanto, quindi senza logo non si mette niente (niente iniziali). */
+function logoOnlyHTML(o,size){
+  const src=logoSrc(o); if(!src)return '';
+  return '<img class="tl-logo" alt="" src="'+esc(src)+'" width="'+size+'" height="'+size+'" data-solo="1">';
+}
 /* Un logo che non si carica (PNG corrotto in un backup) torna alle
-   iniziali. Un solo ascoltatore, in cattura: l'evento error non risale. */
+   iniziali; nelle piastrelle, dove le iniziali non servono, sparisce.
+   Un solo ascoltatore, in cattura: l'evento error non risale. */
 function onLogoError(e){
   const img=e&&e.target;
+  if(img&&img.tagName==='IMG'&&img.classList.contains('tl-logo')){ img.remove(); return; }
   if(!img||img.tagName!=='IMG'||!img.classList.contains('tk-logo'))return;
   const av=img.parentNode; if(!av)return;
   av.classList.remove('has-logo');
@@ -4340,10 +4371,10 @@ function allocGroups(rows,v){
 }
 function allocList(){
   const rows=allocPositions(), v=UI.allocView;
-  const title=p=>(p.name||'').trim()||(p.ticker||'').trim()||'—';
+  const title=tkLabel;
   if(v!=='pos')return allocGroups(rows,v).map(g=>({name:g.name,value:g.value,c:g.c}));
   if(!UI.allocGroup){
-    return rows.map(p=>({name:title(p),value:p._value,id:p.id}))
+    return rows.map(p=>({name:title(p),full:p.name,pos:p,value:p._value,id:p.id}))
       .filter(g=>g.value>0).sort((a,b)=>b.value-a.value);
   }
   /* titoli raggruppati: ognuno prende il colore del suo gruppo, i gruppi
@@ -4351,7 +4382,7 @@ function allocList(){
   const out=[];
   allocGroups(rows,UI.allocGroup).forEach(g=>g.rows.filter(p=>p._value>0)
     .sort((a,b)=>b._value-a._value)
-    .forEach(p=>out.push({name:title(p),value:p._value,id:p.id,c:g.c,group:g.name,groupValue:g.value})));
+    .forEach(p=>out.push({name:title(p),full:p.name,pos:p,value:p._value,id:p.id,c:g.c,group:g.name,groupValue:g.value})));
   return out;
 }
 function renderAlloc(){
@@ -4390,7 +4421,8 @@ function renderAlloc(){
       ?'<div class="leg-g" data-g="'+esc(g.group)+'"><span class="dot" style="background:'+g.c+'"></span>'+
        '<span class="nm">'+esc(g.group)+'</span><span class="am mask">'+money0(g.groupValue)+'</span>'+
        '<span class="pc">'+pct(g.groupValue)+'</span></div>':'')+
-    '<div class="leg'+(grouped?' sub" data-g="'+esc(g.group):'')+'" data-i="'+i+'"><span class="dot" style="background:'+(g.c||PAL[i%PAL.length])+'"></span>'+
+    '<div class="leg'+(grouped?' sub" data-g="'+esc(g.group):'')+'" data-i="'+i+'"'+(g.full&&g.full!==g.name?' title="'+esc(g.full)+'"':'')+'><span class="dot" style="background:'+(g.c||PAL[i%PAL.length])+'"></span>'+
+    (g.pos?avatarHTML(g.pos,{size:20,radius:6,font:9}):'')+
     '<span class="nm">'+esc(g.name)+'</span><span class="am mask">'+money0(g.value)+'</span>'+
     '<span class="pc">'+pct(g.value)+'</span></div>').join('')
     :'<div class="note" style="margin:0">'+(activeCount()?'Nessun titolo corrisponde ai filtri.'
@@ -4405,7 +4437,10 @@ function renderAlloc(){
   const hi=i=>{
     const g=arr[i]; if(!g)return;
     mark(e=>e.getAttribute('data-i')===String(i));
-    center(g.name,g.value,(grouped?esc(g.group)+' · ':'')+pct(g.value)+' del totale');
+    /* gruppo o nome per esteso su una riga sua, troncata: accanto alla
+       percentuale andava a capo e i nomi lunghi uscivano dal foro */
+    const sub=grouped?g.group:(g.full&&g.full!==g.name?g.full:'');
+    center(g.name,g.value,(sub?'<span class="fn">'+esc(sub)+'</span>':'')+pct(g.value)+' del totale');
   };
   const hiG=k=>{
     const g=arr.filter(x=>x.group===k)[0]; if(!g)return;
@@ -4440,7 +4475,7 @@ function renderContrib(){
   const day=UI.contribView==='day', k=day?'_day':'_pnl';
   $$('#contribSeg button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-v')===UI.contribView));
   /* Performance = l'importo in € della barra; Titolo = il nome mostrato */
-  const cs=UI.contribSort, nm=p=>String(p.name||p.ticker||'');
+  const cs=UI.contribSort, nm=tkLabel;
   $$('#contribSort button').forEach(b=>{
     const on=b.getAttribute('data-k')===cs.k;
     b.classList.toggle('on',on);
@@ -4488,8 +4523,8 @@ function renderContrib(){
   host.innerHTML=arr.map(p=>{
     const v=p[k], up=v>=0, col=up?'var(--up)':'var(--down)';
     const w=up?(maxPos>0?v/maxPos*100:0):(maxNeg>0?-v/maxNeg*100:0);
-    return '<div class="cr" data-id="'+p.id+'" style="cursor:pointer">'+
-      '<div class="top"><span class="n">'+esc(p.name||p.ticker)+'</span>'+
+    return '<div class="cr" data-id="'+p.id+'" style="cursor:pointer"'+(p.name&&p.name!==tkLabel(p)?' title="'+esc(p.name)+'"':'')+'>'+
+      '<div class="top"><span class="n">'+avatarHTML(p,{size:20,radius:6,font:9})+'<span class="nt">'+esc(tkLabel(p))+'</span></span>'+
       (day?'<span class="pc px '+(p._dayPct>=0?'up':'down')+'">'+pctv(p._dayPct)+'</span>':'')+
       '<span class="a px mask '+(up?'up':'down')+'">'+(up?'+':'−')+money0(Math.abs(v))+'</span></div>'+
       '<div class="track bi px"><span class="l" style="width:'+lw.toFixed(2)+'%">'+
@@ -5210,7 +5245,7 @@ function expoLeafItems(lvlKey,key){
   activePositions().forEach(p=>{
     expoParts(p,lvlKey).forEach(c=>{
       if(c.name===key&&c.v>0)out.push({name:p.ticker||p.name||'—',
-        full:p.name||'',id:p.id,value:c.v,total:p._value});
+        full:p.name||'',id:p.id,pos:p,value:c.v,total:p._value});
     });
   });
   return out.sort((a,b)=>b.value-a.value);
@@ -5270,6 +5305,40 @@ function renderExpoCrumb(){
    Nel dettaglio dentro una voce non si possono usare quelle del livello: una
    voce con due titoli darebbe due piastrelle rosse per costruzione. */
 const EXPO_POS={warn:18,bad:25};
+/* Che cosa entra in una piastrella, in base allo spazio.
+   micro: nessun testo (al più il solo logo); tiny: la percentuale; normale:
+   ticker, percentuale, importo e, nel dettaglio, il nome per esteso.
+   Il logo (solo nel dettaglio dei titoli, e solo se il titolo ne ha uno) non
+   toglie mai la percentuale: prima l'importo, poi il nome per esteso, e solo
+   dopo il logo. Soglie in px: l'altezza che serve, padding e bordo compresi,
+   misurata in pagina. Senza logo: ticker + % 56, con l'importo 73, col nome
+   per esteso 88. Col logo da 24: 84, con l'importo 101, col nome 99 e con
+   nome e importo 116. tiny: logo da 18 + % 47. Fra 52 e 55 px ticker e %
+   usano un po' del padding in fondo, senza essere tagliati. */
+function expoTileLayout(w,h,hasLogo){
+  const micro=h<26||w<34;
+  const tiny=!micro&&(w<86||h<52);
+  if(micro)return {kind:'micro',logo:hasLogo&&Math.min(w,h)>=20?16:0,sub:false,v:false};
+  if(tiny)return {kind:'tiny',logo:hasLogo&&h>=47&&w>=44?18:0,sub:false,v:false};
+  const sub=h>=88&&w>=110;
+  if(hasLogo&&w>=70&&h>=84){
+    const s=sub&&h>=99;
+    return {kind:'norm',logo:24,sub:s,v:h>=(s?116:101)};
+  }
+  return {kind:'norm',logo:0,sub:sub,v:h>=73};
+}
+function expoTileInner(it,pct,w,h,leaf){
+  const L=expoTileLayout(w,h,!!(leaf&&it.pos&&logoSrc(it.pos)));
+  const lg=L.logo?logoOnlyHTML(it.pos,L.logo):'';
+  let html;
+  if(L.kind==='micro')html=lg;
+  else if(L.kind==='tiny')html=lg+'<div class="p">'+nf(pct,0)+'%</div>';
+  else html=lg+'<div class="n">'+esc(it.name)+'</div>'+
+    (L.sub&&leaf&&it.full&&it.full!==it.name?'<div class="s">'+esc(it.full)+'</div>':'')+
+    '<div class="p">'+nf(pct,1)+'%</div>'+
+    (L.v?'<div class="v mask">'+money0(it.value)+'</div>':'');
+  return {kind:L.kind,html:html};
+}
 function renderExposure(){
   const map=$('#expoMap'), hh=$('#hhiLine'); if(!map)return;
   if(!activeCount()||T.value<=0){
@@ -5312,24 +5381,17 @@ function renderExposure(){
     const tier=ref>th.bad?'bad':ref>th.warn?'warn':'ok';
     const alpha=.14+.5*(maxPct>0?pct/maxPct:0);
     const w=Math.max(0,r.w-G), h=Math.max(0,r.h-G);
-    const micro=h<26||w<34;          /* troppo piccola per qualsiasi testo */
-    const tiny=!micro&&(w<86||h<52); /* spazio solo per la percentuale */
-    const sub=leaf&&it.full&&it.full!==it.name&&h>=86&&w>=110;
+    const TL=expoTileInner(it,pct,w,h,leaf);
     const tip=leaf
       ? it.name+(it.full?' · '+it.full:'')+' · '+nf(pct,1)+'% di '+leaf.key+
         ' · '+money0(it.value)+' · '+nf(wPort,1)+'% del portafoglio'
       : it.name+' · '+nf(pct,1)+'% · '+money0(it.value);
-    return '<div class="tile'+(micro?' micro':(tiny?' tiny':''))+'" data-key="'+esc(it.name)+'"'+
+    return '<div class="tile'+(TL.kind==='micro'?' micro':(TL.kind==='tiny'?' tiny':''))+'" data-key="'+esc(it.name)+'"'+
       (leaf?' data-id="'+esc(it.id)+'"':'')+
       ' title="'+esc(tip)+'"'+
       ' style="left:'+r.x.toFixed(1)+'px;top:'+r.y.toFixed(1)+'px;width:'+w.toFixed(1)+'px;height:'+h.toFixed(1)+'px;'+
       'background:'+tierRgba(tier,alpha)+';border-color:'+TIER_HEX[tier]+'">'+
-      (micro?''
-        :tiny?'<div class="p">'+nf(pct,0)+'%</div>'
-             :'<div class="n">'+esc(it.name)+'</div>'+
-              (sub?'<div class="s">'+esc(it.full)+'</div>':'')+
-              '<div class="p">'+nf(pct,1)+'%</div>'+
-              '<div class="v mask">'+money0(it.value)+'</div>')+
+      TL.html+
       '</div>';
   }).join('');
   $$('#expoMap .tile').forEach(t=>t.addEventListener('click',()=>{
