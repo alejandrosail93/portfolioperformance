@@ -720,6 +720,20 @@ tbody tr.clk{cursor:pointer}
   box-shadow:0 0 0 1px var(--logo-ring)}
 .tile.tiny .tl-logo{margin-bottom:2px}
 .tile.micro .tl-logo{margin-bottom:auto}
+/* --- mappa di performance: le stesse piastrelle, colorate dalla variazione
+   del periodo con i colori di heatPal() (come il calendario mensile). Il
+   colore del testo arriva da heatFg(); "n.d." resta grigio e tratteggiato,
+   diverso dallo 0% che è il grigio pieno al centro della scala --- */
+.perf-bd{position:relative}
+.perf-ctl{flex-wrap:wrap}
+.perf-sum{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-bottom:14px}
+.perf-sum b{color:var(--ink);font-weight:650}
+.ptile{border:0;font-variant-numeric:tabular-nums}
+.ptile .n,.ptile .p{color:inherit}
+.ptile.tiny .n{font-size:10.5px;line-height:1.2}
+.ptile.nd,.perf-nd{background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted)}
+.ptile.nd .p{font-size:12.5px;font-weight:650}
+.perf-nd{padding:1px 5px;border-radius:5px}
 
 /* --- gauge --- */
 .gauges{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -1093,6 +1107,11 @@ html[data-theme="light"] .maptbl select{background:#fff}
   /* 9 fattori non stanno in orizzontale: etichette in verticale, dal basso */
   #factorBar{gap:5px;height:230px}
   #factorBar .lv{writing-mode:vertical-rl;transform:rotate(180deg);width:auto;height:64px;text-align:end}
+  /* gli 8 range del grafico (1G…MAX) col padding pieno sono larghi 383 px e
+     sbordavano dalla card: griglia a tutta larghezza, padding solo verticale */
+  .hero-ctl{margin-left:0!important;width:100%}
+  #heroRange{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));width:100%}
+  #heroRange button{padding:6px 0}
   /* le 7 schede dell'allocazione non stanno in una riga: griglia 4+3 a tutta larghezza */
   .card-hd .right.wide-sm{margin-left:0;width:100%}
   #allocSeg{display:grid;grid-template-columns:repeat(4,1fr);width:100%}
@@ -1265,12 +1284,13 @@ html[data-theme="light"] .maptbl select{background:#fff}
                 </div>
                 <div class="hero-sub" id="heroMeta"></div>
               </div>
-              <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <div class="hero-ctl" style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <span class="seg" id="heroMode">
                   <button data-m="value" class="on">Valore</button>
                   <button data-m="pnl">Rendimento</button>
                 </span>
                 <span class="seg" id="heroRange">
+                  <button data-r="1G">1G</button><button data-r="1S">1S</button>
                   <button data-r="1M">1M</button><button data-r="6M">6M</button>
                   <button data-r="YTD">YTD</button><button data-r="1A" class="on">1A</button>
                   <button data-r="3A">3A</button><button data-r="MAX">MAX</button>
@@ -1393,6 +1413,26 @@ html[data-theme="light"] .maptbl select{background:#fff}
             <div class="crumb" id="expoCrumb"></div>
             <div class="tmap" id="expoMap"></div>
             <div class="note mt18">Ogni rettangolo è grande quanto il suo peso, e il colore segnala la concentrazione (verde in linea, ambra da tenere d'occhio, rosso eccessiva). Clicca una voce per vedere i <b>titoli che la compongono</b>, ognuno con il suo nome: lì il colore misura quanto pesa la riga sul portafoglio intero, e cliccando una piastrella si apre la scheda del titolo. Il nome della voce in alto riporta alla mappa raggruppata. Gli ETF con una <b>composizione dichiarata</b> nella loro scheda vengono scomposti per settore e paese secondo i pesi indicati.</div>
+          </div>
+        </div>
+
+        <div class="card mt18" id="perfCard">
+          <div class="card-hd"><h2><span class="chip t" id="chipPerf"></span> Mappa di performance</h2>
+            <div class="right wide-sm perf-ctl">
+              <span class="seg" id="perfSize" aria-label="Dimensione dei riquadri">
+                <button data-s="uguale">Uguale</button><button data-s="peso" class="on">Peso</button><button data-s="volume">Volume</button>
+              </span>
+              <span class="seg" id="perfPer" aria-label="Periodo">
+                <button data-p="1G" class="on">1G</button><button data-p="1S">1S</button><button data-p="1M">1M</button>
+              </span>
+            </div>
+          </div>
+          <div class="card-bd perf-bd">
+            <div class="perf-sum" id="perfSum"></div>
+            <div class="tmap" id="perfMap"></div>
+            <div id="perfLg"></div>
+            <div id="perfNote"></div>
+            <div class="hm-tip" id="perfTip"></div>
           </div>
         </div>
 
@@ -2494,6 +2534,7 @@ const UI={
   sortK:'_value', sortDir:-1,
   editId:null, editTx:[], drawerId:null,
   expo:{level:'cat',leaf:null},
+  perf:{size:'peso',per:'1G'},
   rbMode:'cat', rbOpen:{}, editWatch:null,
   histSrc:'snap', editGoal:null, heatM:null, heatSort:'ret',
   txFilters:{pos:'',type:''}
@@ -3076,6 +3117,18 @@ function timeTicks(t0,t1,maxN){
   if(out.length<2)return [{t:t0,l:tickLabelDay(t0)},{t:t1,l:tickLabelDay(t1)}];
   return out;
 }
+/* Tacche orarie per il grafico della giornata (1G): ore piene, ogni 1, 2, 3,
+   4 o 6 ore, sempre sui multipli ("10:00, 12:00", mai "11:00, 13:00" con
+   passo 2). Le passa opt.ticks: gli altri grafici non cambiano. */
+const TICK_HOURS=[1,2,3,4,6];
+function hourTicks(t0,t1,maxN){
+  maxN=maxN||6;
+  const H=36e5, span=Math.max(1,t1-t0), st=pickStep(TICK_HOURS,span/H,maxN), tol=span*.01, out=[];
+  const d=new Date(t0-tol); d.setMinutes(0,0,0); if(d.getTime()<t0-tol)d.setHours(d.getHours()+1);
+  for(let t=d.getTime();t<=t1+tol;t+=H) if(new Date(t).getHours()%st===0)out.push({t:t,l:fmtTime(t)});
+  if(out.length<2)return [{t:t0,l:fmtTime(t0)},{t:t1,l:fmtTime(t1)}];
+  return out;
+}
 /* i grafici con x non temporale (simulatore, dividendi) passano fmtX: per loro
    le tacche restano quelle dei punti */
 function idxTicks(ts,fmtX,maxN){
@@ -3094,7 +3147,8 @@ function idxTicks(ts,fmtX,maxN){
 const AXIS_TICK_PX=64, AXIS_GAP_PX=44;
 function axisLabels(ts,X,right,H,opt){
   const maxN=Math.min(6,Math.max(2,Math.floor(right/AXIS_TICK_PX)));
-  const marks=(opt&&opt.fmtX)?idxTicks(ts,opt.fmtX,maxN):timeTicks(ts[0],ts[ts.length-1],maxN);
+  const marks=(opt&&opt.ticks)?opt.ticks(ts[0],ts[ts.length-1],maxN)
+    :(opt&&opt.fmtX)?idxTicks(ts,opt.fmtX,maxN):timeTicks(ts[0],ts[ts.length-1],maxN);
   let prev=-Infinity;
   return marks.map(m=>{
     const x=X(m.t);
@@ -3446,6 +3500,7 @@ function go(k){
   $('#pgTitle').textContent=it.l; $('#pgSub').textContent=it.sub||'';
   if(location.hash.slice(1)!==it.k) history.replaceState(null,'','#'+it.k);
   window.scrollTo({top:0,left:0,behavior:reducedMotion()?'auto':'smooth'});
+  if(it.k==='dashboard'&&UI.heroRange==='1G')loadHeroIntraday();
   renderPage(it.k);
 }
 
@@ -3535,16 +3590,21 @@ function renderHero(){
   countUp($('#heroValue'),mode==='value'?T.value:T.pnl,mode==='value'?money0:signedEur0);
   const chg=$('#heroChg'), lbl=$('#heroChgLbl');
 
-  const H=heroHistSeries();
-  const full=H.pts;
-  const series=rangeCut(full,UI.heroRange);
+  /* 1G e 1S dalla serie giornaliera; 1M anche, appena ci sono le chiusure
+     giornaliere (con la serie mensile un mese sono due punti); gli altri dalla
+     serie storica tagliata con rangeCut, come prima */
+  const r=UI.heroRange;
+  const D=(r==='1G'||r==='1S'||r==='1M')?heroDailySeries(r):null;
+  const H=(D||r==='1G'||r==='1S')?null:heroHistSeries();
+  const series=D?D.pts:(H?rangeCut(H.pts,r):[]);
   let deltaPct=null,deltaAbs=null;
   if(series.length>=2){
     const a=series[0],b=series[series.length-1];
     if(mode==='value'){ deltaAbs=b.value-a.value; deltaPct=a.value>0?(b.value/a.value-1)*100:null; }
     else { const ra=a.cost>0?(a.value/a.cost-1)*100:0, rb=b.cost>0?(b.value/b.cost-1)*100:0;
            deltaPct=rb-ra; deltaAbs=(b.value-b.cost)-(a.value-a.cost); }
-    lbl.textContent='nel periodo · da '+fmtDate(new Date(a.t).toISOString());
+    lbl.textContent=D&&D.info.range==='1G'?'nella seduta di '+D.info.label
+      :'nel periodo · da '+fmtDate(new Date(a.t).toISOString());
   }else{
     deltaAbs=T.pnl; deltaPct=T.pnlPct; lbl.textContent='rendimento complessivo';
   }
@@ -3571,8 +3631,8 @@ function renderHero(){
   renderHeroMeta();
 
   const pts=series.map(p=>({t:p.t,v:mode==='value'?p.value:(p.cost>0?(p.value/p.cost-1)*100:0),gap:p.gap}));
-  const hn=$('#heroNote'); if(hn)hn.innerHTML=H.src==='calc'?histCoverageNote(H.info):'';
-  Chart.area($('#heroChart'),pts,{
+  const hn=$('#heroNote'); if(hn)hn.innerHTML=D?dailyNote(D.info):(H&&H.src==='calc'?histCoverageNote(H.info):'');
+  const opt={
     height:250,
     color:mode==='value'?'var(--accent)':(pts.length&&pts[pts.length-1].v>=0?'var(--up)':'var(--down)'),
     zeroLine:mode!=='value',
@@ -3581,7 +3641,68 @@ function renderHero(){
     emptyTitle:activeCount()?'Nessuna serie storica':'Nessun dato ancora',
     emptyText:activeCount()?'Salva uno snapshot in Storico, oppure scarica lo storico dei prezzi da Salute per ricostruire il grafico automaticamente.'
       :'Aggiungi una posizione o carica i dati di esempio dalle Impostazioni.'
-  });
+  };
+  if(D)Object.assign(opt,heroDailyAxis(r,pts,mode));
+  else if((r==='1G'||r==='1S')&&activeCount()){
+    opt.emptyTitle='Nessuna variazione scaricata';
+    opt.emptyText='Premi Aggiorna prezzi per scaricare le variazioni dell\'ultimo mese.';
+  }
+  Chart.area($('#heroChart'),pts,opt);
+}
+/* Asse e suggerimenti dei grafici giornalieri: ore per 1G, giorni ("lun 12
+   ott") per 1S e 1M, mai mesi. Le etichette dell'asse Y hanno i decimali che
+   servono: in una giornata il valore si muove dell'1%, e "47k" su tutte e
+   quattro le righe non direbbe niente. Per lo stesso motivo in Rendimento la
+   scala non parte da zero, se la linea non lo attraversa: da 0 a +72% una
+   settimana di +0,9 punti era una retta. */
+function heroDailyAxis(r,pts,mode){
+  const vs=pts.map(p=>p.v), lo=vs.length?Math.min.apply(null,vs):0, hi=vs.length?Math.max.apply(null,vs):0, span=hi-lo;
+  const first=pts.length?pts[0].t:null, last=pts.length?pts[pts.length-1].t:null;
+  const o={
+    zeroLine:mode!=='value'&&lo<0&&hi>0,
+    fmtY:mode==='value'
+      ?(span>=4000?v=>Math.round(v/1000)+'k':span>=400?v=>nf(v/1000,1)+'k':v=>nf(v,0))
+      :(span>=1?v=>nf(v,1)+'%':v=>nf(v,2)+'%')
+  };
+  if(r==='1G'){
+    o.ticks=hourTicks;
+    o.fmtTipX=t=>t===first?'chiusura precedente':fmtTime(t);
+  }else{
+    if(r==='1S')o.fmtX=dayLabel;
+    o.fmtTipX=t=>t===last?'adesso · '+fmtTime(t):dayLabel(t);
+  }
+  return o;
+}
+/* Nota sotto il grafico giornaliero, nello stile di histCoverageNote(). */
+function dailyNote(info){
+  if(!info)return '';
+  const nomi=l=>l.slice(0,6).map(p=>esc(p.ticker)).join(', ')+(l.length>6?' e altri '+(l.length-6):'');
+  let h='';
+  if(info.range==='1G'){
+    if(info.fallback)h=info.loading?'Scarico l\'andamento della giornata…'
+      :'Andamento nella giornata non disponibile: la linea unisce la chiusura precedente al valore attuale.';
+    else{
+      if(info.miss.length)h+='Andamento nella giornata calcolato sul <b>'+nf(info.coveragePct,0)+'%</b> del capitale: '+
+        nomi(info.miss)+(info.miss.length===1?' resta fermo':' restano fermi')+' al prezzo noto. ';
+      const uno=info.ferme.length===1;
+      if(info.ferme.length)h+=nomi(info.ferme)+(info.oggi
+        ?(uno?' non ha':' non hanno')+' ancora aperto oggi: la variazione della seduta precedente è nel primo tratto. '
+        :(uno?' ha':' hanno')+' l\'ultima seduta prima di questa: la sua variazione è nel primo tratto. ');
+      if(info.fuori.length)h+=nomi(info.fuori)+(info.fuori.length===1?' quota':' quotano')+
+        ' anche fuori dagli orari di borsa: qui '+(info.fuori.length===1?'resta fermo':'restano fermi')+' al prezzo attuale.';
+    }
+  }else if(info.coveragePct<70){
+    h='Calcolato sul <b>'+nf(info.coveragePct,0)+'%</b> del capitale'+
+      (info.miss.length?': mancano le chiusure giornaliere di '+nomi(info.miss):'')+
+      '. <span style="color:var(--gold)">Premi <b>Aggiorna prezzi</b> per completare.</span>';
+  }
+  return h?'<div class="note" style="margin-top:10px">'+h.trim()+'</div>':'';
+}
+/* L'andamento della giornata si scarica solo con 1G: al clic, all'apertura
+   della Dashboard e nel giro di refreshPrices(). Arrivato, si ridisegna. */
+function loadHeroIntraday(){
+  if(UI.heroRange!=='1G'||!activeCount())return;
+  refreshIntraday(false).then(n=>{ if(n&&UI.heroRange==='1G'&&UI.page==='dashboard')renderHero(); });
 }
 /* Il grafico ricostruito usa solo le posizioni per cui esiste uno storico
    mensile scaricato. Se lo storico e' vecchio o incompleto la linea descrive
@@ -3610,22 +3731,24 @@ function histCoverageNote(info){
    solo: e' una cache, e finche' i proxy fanno i capricci riscaricarla non e'
    scontato. */
 function orphanHist(){
-  const live={};
+  const live={}, out={};
   (S.positions||[]).forEach(p=>{ if(p&&p.ticker)live[p.ticker]=1; });
   (S.watchlist||[]).forEach(p=>{ if(p&&p.ticker)live[p.ticker]=1; });
-  return Object.keys(MHIST).filter(t=>!live[t]);
+  /* anche le chiusure giornaliere della mappa di performance */
+  Object.keys(MHIST).concat(Object.keys(DHIST)).forEach(t=>{ if(!live[t])out[t]=1; });
+  return Object.keys(out);
 }
 function dropOrphanHist(){
   const o=orphanHist(); if(!o.length)return;
-  o.forEach(t=>{ delete MHIST[t]; });
-  saveMHist(); renderPage(UI.page);
+  o.forEach(t=>{ delete MHIST[t]; delete DHIST[t]; });
+  saveMHist(); saveDHist(); renderPage(UI.page);
   toast('Rimosso lo storico di '+o.length+(o.length===1?' titolo':' titoli'),'ok');
 }
 function renderOrphanRow(){
   const el=$('#histOrphans'); if(!el)return;
   const o=orphanHist();
   if(!o.length){ el.innerHTML=''; return; }
-  el.innerHTML='Storico mensile di <b>'+o.length+'</b> '+(o.length===1?'titolo non più in portafoglio':'titoli non più in portafoglio')+' ('+
+  el.innerHTML='Storico prezzi di <b>'+o.length+'</b> '+(o.length===1?'titolo non più in portafoglio':'titoli non più in portafoglio')+' ('+
     o.slice(0,6).map(esc).join(', ')+(o.length>6?' e altri '+(o.length-6):'')+
     ') · <button class="btn btn-ghost btn-sm" id="btnDropOrph">Rimuovi</button>';
   const b=$('#btnDropOrph'); if(b)b.addEventListener('click',dropOrphanHist);
@@ -4023,6 +4146,15 @@ function ySearchURL(host,q){
   return 'https://'+host+'.finance.yahoo.com/v1/finance/search?q='+encodeURIComponent(q)+
     '&quotesCount=6&newsCount=0';
 }
+/* Volume del giorno in numero di titoli, null se Yahoo non lo dà (molti ETF).
+   Per le criptovalute Yahoo lo dà già in valuta (BTC-EUR: miliardi di euro):
+   si riporta a quantità, così volume × prezzo vale per tutti. */
+function yVolume(m){
+  const v=m&&m.regularMarketVolume, px=m&&m.regularMarketPrice;
+  if(!(typeof v==='number'&&isFinite(v)&&v>0))return null;
+  if(m.instrumentType==='CRYPTOCURRENCY')return px>0?v/px:null;
+  return v;
+}
 function yQuote(sym,force){
   /* range=1d, non 5d: chartPreviousClose e' la chiusura che precede la prima
      barra del grafico, quindi con 5d era quella di cinque sedute prima e la
@@ -4031,7 +4163,10 @@ function yQuote(sym,force){
      seduta, come sul sito. Le barre giornaliere non sono un'alternativa: Yahoo
      ci lascia buchi (close null) proprio sulle sedute recenti.
      La voce di cache ricorda la richiesta che l'ha prodotta: quelle nate con
-     un'altra non valgono, nemmeno come ultimo prezzo noto a rete giu'. */
+     un'altra non valgono, nemmeno come ultimo prezzo noto a rete giu'.
+     Il volume del giorno (in numero di titoli, non in euro) arriva nella
+     stessa risposta: le voci salvate prima non l'hanno e restano senza fino
+     al prossimo aggiornamento. */
   const qs='?interval=1d&range=1d', c=QCACHE[sym]&&QCACHE[sym].qs===qs?QCACHE[sym]:null;
   if(!force&&c&&Date.now()-c.at<NET.ttl)return Promise.resolve(c.q);
   return fetchJSON(yURL('query1',sym,qs),[yURL('query2',sym,qs)]).then(d=>{
@@ -4039,7 +4174,8 @@ function yQuote(sym,force){
     if(!m||m.regularMarketPrice==null)throw netErr('symbol');
     const q={price:m.regularMarketPrice,
       prevClose:m.chartPreviousClose!=null?m.chartPreviousClose:m.previousClose,
-      currency:m.currency};
+      currency:m.currency,
+      vol:yVolume(m)};
     QCACHE[sym]={q:q,at:Date.now(),qs:qs};
     return q;
   },e=>{
@@ -4060,6 +4196,88 @@ function ySearch(q){
       exchange:String(x.exchDisp||x.exchange||''),
       name:String(x.longname||x.shortname||'')
     })));
+}
+/* Barre di una risposta chart: [{t,v}] in ordine, con v = close. Le barre
+   con close vuoto (Yahoo ne lascia proprio sulle sedute recenti), a zero o
+   non numerico si scartano. */
+function yBars(r){
+  const ts=(r&&r.timestamp)||[], q=r&&r.indicators&&r.indicators.quote&&r.indicators.quote[0];
+  const cl=(q&&q.close)||[], pts=[];
+  for(let i=0;i<ts.length;i++){
+    const v=cl[i], t=ts[i]*1000;
+    if(typeof v==='number'&&isFinite(v)&&v>0&&isFinite(t))pts.push({t:t,v:v});
+  }
+  return pts.sort((a,b)=>a.t-b.t);
+}
+/* Chiusure giornaliere degli ultimi due mesi: servono alle variazioni a 1S e
+   1M e al grafico della settimana. Due mesi coprono "un mese fa" anche con
+   festività e buchi. Il valore è close e non adjclose: la variazione deve
+   essere quella del prezzo, come quella di oggi che viene da prevClose, e
+   adjclose sposta le chiusure passate a ogni dividendo. */
+function yDaily(sym){
+  const qs='?interval=1d&range=2mo';
+  return fetchJSON(yURL('query1',sym,qs),[yURL('query2',sym,qs)]).then(d=>{
+    const r=d&&d.chart&&d.chart.result&&d.chart.result[0];
+    if(!r||!r.timestamp)throw netErr('nodata');
+    const pts=yBars(r);
+    if(pts.length<2)throw netErr('nodata');
+    return pts;
+  });
+}
+/* Cache locale delle chiusure giornaliere, come MHIST: {ticker:{pts,at}}.
+   Non entra nel backup. Si riscarica dopo 6 ore, o a ogni aggiornamento
+   manuale. */
+const DKEY='pf_v2_dhist', DAILY_TTL=6*3600e3;
+let DHIST={};
+function loadDHist(){ try{ DHIST=JSON.parse(localStorage.getItem(DKEY))||{}; }catch(e){ DHIST={}; } }
+function saveDHist(){ try{ localStorage.setItem(DKEY,JSON.stringify(DHIST)); }catch(e){} }
+/* Una richiesta per titolo in portafoglio, dentro il giro di refreshPrices():
+   un titolo che non risponde resta senza dato (la mappa lo dice), senza
+   avvisi e senza far fallire l'aggiornamento dei prezzi. */
+function refreshDaily(force){
+  const now=Date.now(), seen={};
+  const list=activePositions().map(p=>p.ticker).filter(t=>{
+    if(!t||seen[t])return false; seen[t]=1;
+    const c=DHIST[t]; return !!force||!c||!(now-c.at<DAILY_TTL);
+  });
+  if(!list.length)return Promise.resolve();
+  return netQueue(list,t=>yDaily(t).then(pts=>{ DHIST[t]={pts:pts,at:Date.now()}; }))
+    .then(()=>saveDHist(),()=>{});
+}
+/* Andamento dentro la giornata, a barre di 15 minuti: serve solo al grafico
+   1G, quindi si chiede solo quando 1G è il range scelto. prev è la chiusura
+   precedente della stessa risposta: con range=1d è la stessa che dà yQuote
+   (verificato il 14/10/2026 a borsa europea aperta), e serve a riconoscere
+   barre di una seduta diversa da quella del prezzo. */
+function yIntraday(sym){
+  const qs='?interval=15m&range=1d';
+  return fetchJSON(yURL('query1',sym,qs),[yURL('query2',sym,qs)]).then(d=>{
+    const r=d&&d.chart&&d.chart.result&&d.chart.result[0];
+    if(!r||!r.timestamp)throw netErr('nodata');
+    const pts=yBars(r);
+    if(pts.length<2)throw netErr('nodata');
+    const m=r.meta||{}, pc=m.chartPreviousClose!=null?m.chartPreviousClose:m.previousClose;
+    /* h24: le criptovalute quotano sempre (barre da mezzanotte UTC, anche
+       di sabato): non decidono quale seduta mostrare */
+    return {pts:pts,prev:typeof pc==='number'&&isFinite(pc)&&pc>0?pc:null,h24:m.instrumentType==='CRYPTOCURRENCY'};
+  });
+}
+/* Solo in memoria e valida NET.ttl: l'andamento di ieri non serve a nessuno.
+   Anche un titolo che non ha risposto lascia la sua voce (pts:null), così
+   un altro clic su 1G nei dieci minuti non lo richiede. Una corsa alla volta. */
+let IDAY={}, idayRun=null;
+function refreshIntraday(force){
+  if(idayRun)return idayRun;
+  const now=Date.now(), seen={};
+  const list=activePositions().map(p=>p.ticker).filter(t=>{
+    if(!t||seen[t])return false; seen[t]=1;
+    const c=IDAY[t]; return !!force||!c||!(now-c.at<NET.ttl);
+  });
+  if(!list.length)return Promise.resolve(0);
+  idayRun=netQueue(list,t=>yIntraday(t).then(r=>{ IDAY[t]={pts:r.pts,prev:r.prev,h24:r.h24,at:Date.now()}; },
+      ()=>{ IDAY[t]={pts:null,prev:null,at:Date.now()}; }))
+    .then(()=>{ idayRun=null; return list.length; },()=>{ idayRun=null; return 0; });
+  return idayRun;
 }
 let refreshing=false;
 /* Posizioni con un aggiornamento singolo gia' in volo. Sta in un Set e non
@@ -4102,14 +4320,19 @@ function refreshPrices(silent,onlyPortfolio){
       const o=t.o;
       /* prezzo e chiusura precedente vanno in coppia: una chiusura rimasta da
          un aggiornamento vecchio accanto al prezzo nuovo darebbe la variazione
-         di piu' sedute, meglio nessuna */
-      o.price=r.price; o.prevClose=r.prevClose||null;
+         di piu' sedute, meglio nessuna. Lo stesso per il volume del giorno */
+      o.price=r.price; o.prevClose=r.prevClose||null; o.vol=r.vol||null;
       if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)o.currency=r.currency;
       o._stale=!!r.stale; o._errKind=null; o._lastCheck=Date.now();
     },e=>{
       if(t.pos){ t.o._stale=true; t.o._lastCheck=Date.now();
         t.o._errKind=(e&&e.kind==='symbol')?'not_found':'network'; }
-    })).then(()=>refreshFx(force)).then(()=>{
+    }))
+    /* chiusure dell'ultimo mese (mappa di performance, grafico 1S) e, solo se
+       il grafico è su 1G, l'andamento della giornata */
+    .then(()=>refreshDaily(force))
+    .then(()=>UI.heroRange==='1G'?refreshIntraday(force):null)
+    .then(()=>refreshFx(force)).then(()=>{
     saveQCache();
     S.lastUpdate=Date.now(); refreshing=false; refreshSpin(false);
     save(); renderAll();
@@ -4136,7 +4359,7 @@ function refreshFx(force){
 function demoData(){
   const mk=(t,n,cls,sec,ctry,cur,qty,avg,price,y,risk,fac,tw,dm)=>({
     id:uid(),ticker:t,name:n,cls:cls,sector:sec,country:ctry,currency:cur,qty:qty,avg:avg,
-    price:price,prevClose:price*(1+(Math.random()-.45)/100),yield:y,risk:risk,factor:fac,targetWeight:tw,
+    price:price,yield:y,risk:risk,factor:fac,targetWeight:tw,
     divMonths:dm||'',tx:[]
   });
   const P=[
@@ -4150,6 +4373,38 @@ function demoData(){
     mk('BTC-EUR','Bitcoin','Crypto','Crypto-asset','World','EUR',.12,31500,58200,0,9,'Speculative',5),
     mk('GLD','SPDR Gold Shares','Commodities','Commodity','World','USD',25,168,246.4,0,4,'Value',5)
   ];
+  /* Chiusura di ieri, volume del giorno e chiusure delle ultime 45 sedute,
+     così mappa di performance e grafici 1S e 1M si vedono subito. Generatore
+     deterministico con il seme dal ticker: il demo è sempre lo stesso. Tre
+     ETF senza volume e il Bitcoin senza chiusure mostrano gli stati "n.d.".
+     at:0 = da riscaricare al primo aggiornamento: prezzi veri accanto a
+     chiusure inventate darebbero variazioni senza senso. */
+  const VOL={'AAPL':52e6,'MSFT':21e6,'ASML.AS':9e5,'ENI.MI':12e6,'BTC-EUR':3.2e5,'GLD':8e6};
+  const SIG={ETF:.009,Stocks:.016,Bonds:.003,Crypto:.03,Commodities:.01};
+  const seeded=s=>{
+    let a=2166136261; for(let i=0;i<s.length;i++)a=Math.imul(a^s.charCodeAt(i),16777619);
+    return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a);
+      t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+  };
+  const sedute=[], oggi=new Date(); oggi.setHours(0,0,0,0);
+  for(let k=1;sedute.length<45;k++){
+    const d=new Date(oggi); d.setDate(oggi.getDate()-k); if(d.getDay()%6)sedute.unshift(d);
+  }
+  P.forEach(p=>{
+    const r=seeded(p.ticker), sg=SIG[p.cls]||.012, usa=p.currency==='USD';
+    const passo=()=>(r()+r()+r()-1.5)*2*sg;          /* deviazione standard ≈ sg */
+    p.prevClose=+(p.price/(1+passo()*.6)).toPrecision(6);
+    p.vol=VOL[p.ticker]?Math.round(VOL[p.ticker]*(.8+.4*r())):null;
+    if(p.ticker==='BTC-EUR'){ delete DHIST[p.ticker]; return; }
+    const pts=[]; let v=p.prevClose;
+    for(let i=sedute.length-1;i>=0;i--){
+      const t=new Date(sedute[i]); t.setHours(usa?15:9,usa?30:0,0,0);
+      pts.unshift({t:t.getTime(),v:+v.toPrecision(6)});
+      v=v/(1+passo());
+    }
+    DHIST[p.ticker]={pts:pts,at:0};
+  });
+  saveDHist();
   /* date di ingresso sfalsate: mostrano lo storico che parte da quando il
      titolo è entrato davvero in portafoglio */
   const ago=m=>{ const d=new Date(); d.setMonth(d.getMonth()-m); return d.toISOString().slice(0,10); };
@@ -5004,7 +5259,7 @@ function refreshOne(p){
   const done=()=>{ refreshingIds.delete(p.id); p._lastCheck=Date.now(); };
   yQuote(p.ticker,true).then(r=>{
     done();
-    p.price=r.price; p.prevClose=r.prevClose||null;   /* in coppia: vedi refreshPrices() */
+    p.price=r.price; p.prevClose=r.prevClose||null; p.vol=r.vol||null;   /* in coppia: vedi refreshPrices() */
     if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)p.currency=r.currency;
     p._stale=!!r.stale; p._errKind=null; saveQCache();
     S.lastUpdate=Date.now(); save(); renderAll();
@@ -5401,6 +5656,228 @@ function renderExposure(){
     UI.expo.leaf={k:UI.expo.level,key:key};
     renderExposure();
   }));
+}
+
+/* ==========================================================================
+   12f-bis. MAPPA DI PERFORMANCE — variazione dei titoli a 1G, 1S e 1M
+   ========================================================================== */
+/* Data di riferimento: per 1S sette giorni di calendario fa, per 1M la stessa
+   data del mese prima, come rangeCut, ma all'ultimo giorno del mese quando
+   quel giorno non c'è: il 31 marzo guarda al 28 febbraio, non al 3 marzo. */
+function perfTarget(per,now){
+  if(per==='1S')return now-7*DAY_MS;
+  if(per!=='1M')return null;
+  const d=new Date(now), y=d.getFullYear(), m=d.getMonth()-1;
+  const last=new Date(y,m+1,0).getDate();
+  return new Date(y,m,Math.min(d.getDate(),last),d.getHours(),d.getMinutes(),
+    d.getSeconds(),d.getMilliseconds()).getTime();
+}
+/* La chiusura da cui si misura: l'ultima con t ≤ target. Se le chiusure
+   cominciano dopo (titolo quotato da poco) vale la prima, ma solo entro 4
+   giorni: oltre, meglio "n.d." che una variazione su un periodo più corto.
+   Se l'ultima chiusura prima della data è di oltre 6 giorni prima (più di
+   qualsiasi ponte di festività), le chiusure non sono aggiornate: niente. */
+const PERF_LATE=4*DAY_MS, PERF_OLD=6*DAY_MS;
+function dailyRef(pts,target){
+  if(!pts||!pts.length||target==null||!isFinite(target))return null;
+  let ref=null;
+  for(let i=0;i<pts.length;i++){ if(pts[i].t<=target)ref=pts[i]; else break; }
+  if(!ref)ref=pts[0].t-target<=PERF_LATE?pts[0]:null;
+  else if(target-ref.t>PERF_OLD)ref=null;
+  return ref&&ref.v>0&&isFinite(ref.v)?ref:null;
+}
+/* Variazione di periodo di un titolo, come frazione, o null.
+   1G: dal prezzo di chiusura precedente, gli stessi numeri di p._dayPct.
+   1S e 1M: dalla chiusura di riferimento in DHIST al prezzo ATTUALE, non
+   all'ultima barra, che Yahoo lascia spesso vuota sulle sedute recenti. */
+function perfPeriod(p,per,now){
+  const price=num(p&&p.price);
+  if(!(price>0))return null;
+  let base=null;
+  if(per==='1G')base=num(p.prevClose);
+  else{
+    const h=p.ticker&&DHIST[p.ticker];
+    const ref=h?dailyRef(h.pts,perfTarget(per,now==null?Date.now():now)):null;
+    base=ref?ref.v:null;
+  }
+  if(!(base>0))return null;
+  const r=price/base-1;
+  return isFinite(r)?r:null;
+}
+/* Estremi fissi della scala, per periodo: in una giornata +3% è già tanto,
+   in un mese no. Oltre, il colore resta pieno e il numero si legge per
+   intero. */
+const PERF_CAP={'1G':3,'1S':6,'1M':12};
+const PERF_LBL={'1G':'oggi','1S':'nell\'ultima settimana','1M':'nell\'ultimo mese'};
+/* Le posizioni della mappa: attive e con un valore. ret è la variazione del
+   periodo (null = n.d.), vol il controvalore scambiato oggi in valuta base:
+   volume (in numero di titoli) × prezzo × cambio, null se Yahoo non lo dà. */
+function perfRows(per,now){
+  return activePositions().filter(p=>p._value>0).map(p=>{
+    const v=num(p.vol), px=num(p.price);
+    return {p:p,ret:perfPeriod(p,per,now),vol:v>0&&px>0?v*px*fxRate(p.currency):null};
+  });
+}
+/* Rendimento del portafoglio nel periodo, sui soli titoli con il dato:
+   quanto valgono adesso le quantità di oggi e quanto valevano all'inizio.
+   A 1G, con tutti i dati, è T.dayPct. */
+function perfSummary(rows){
+  let ora=0,prima=0,n=0;
+  rows.forEach(r=>{ if(r.ret==null)return; ora+=r.p._value; prima+=r.p._value/(1+r.ret); n++; });
+  return {ret:prima>0?ora/prima-1:null,abs:ora-prima,n:n,miss:rows.length-n};
+}
+/* Le aree. Uguale: tutte uguali; Peso: il valore; Volume: il controvalore
+   scambiato oggi. Ordine dal più grande; con Uguale per peso, così la mappa
+   non cambia ordine a ogni ridisegno. Chi non ha il volume non può avere
+   un'area: va in coda (coda), disegnato a parte da perfTail(). */
+function perfItems(rows,size){
+  const nome=r=>String(r.p.ticker||r.p.name||'');
+  const per=k=>(a,b)=>b[k]-a[k]||nome(a).localeCompare(nome(b));
+  const val=rows.map(r=>({r:r,v:r.p._value}));
+  if(size!=='volume')return {items:val.sort(per('v')).map(x=>({r:x.r,value:size==='uguale'?1:x.v})),coda:[]};
+  const con=rows.filter(r=>r.vol>0).map(r=>({r:r,v:r.vol})).sort(per('v'));
+  return {items:con.map(x=>({r:x.r,value:x.v})),coda:val.filter(x=>!(x.r.vol>0)).sort(per('v')).map(x=>x.r)};
+}
+/* I titoli senza volume, in coda: una striscia in fondo alla mappa con
+   piastrelle grigie tutte uguali, della misura minima in cui "n.d." si legge
+   (con la soglia tiny di perfTileLayout). Lasciate a squarify, con un'area
+   piccola a piacere, su un telefono finivano sotto la soglia e perdevano la
+   scritta. La striscia prende al più il 40% dell'altezza: oltre, le
+   piastrelle si abbassano. Ritorna la sua altezza e i rettangoli. */
+const PERF_TAIL={w:72,h:38,maxW:120};
+function perfTail(n,W,H,G){
+  if(!n)return {h:0,rects:[]};
+  const cols=Math.max(1,Math.floor((W+G)/(PERF_TAIL.w+G))), k=Math.min(cols,n), rows=Math.ceil(n/cols);
+  const tw=Math.min(PERF_TAIL.maxW,(W+G)/k-G);
+  const th=Math.max(12,Math.min(PERF_TAIL.h,(H*.4)/rows-G)), sh=rows*(th+G);
+  const rects=[];
+  for(let i=0;i<n;i++)rects.push({x:(i%cols)*(tw+G),y:H-sh+Math.floor(i/cols)*(th+G),w:tw,h:th});
+  return {h:sh,rects:rects};
+}
+/* Che cosa entra in una piastrella, in base allo spazio. micro: solo il
+   colore; tiny: ticker e variazione in piccolo; normale: ticker e variazione
+   e, se il titolo ha un logo e c'è posto, il logo da 24. La variazione non
+   sparisce mai prima del logo. Soglie in px, misurate in pagina (WebKit,
+   14/10/2026) con la variazione più larga che capita davvero, "−12,3%", e il
+   ticker che può troncarsi con i puntini: tiny 54×33, normale 77×45, col
+   logo 77×73. Sotto, la percentuale usciva dal riquadro e veniva tagliata. */
+const PERF_TILE={microW:54,microH:33,normW:77,normH:45,logoW:77,logoH:73};
+function perfTileLayout(w,h,hasLogo){
+  const T0=PERF_TILE;
+  if(w<T0.microW||h<T0.microH)return {kind:'micro',logo:0};
+  if(w<T0.normW||h<T0.normH)return {kind:'tiny',logo:0};
+  return {kind:'norm',logo:hasLogo&&w>=T0.logoW&&h>=T0.logoH?24:0};
+}
+/* euro in forma breve per i volumi: "€ 13,5 mld", "€ 245,1 mln" */
+function moneyShort(v){
+  v=num(v);
+  if(Math.abs(v)>=1e9)return '€ '+nf(v/1e9,1)+' mld';
+  if(Math.abs(v)>=1e6)return '€ '+nf(v/1e6,1)+' mln';
+  return money0(v);
+}
+/* "0,0%" e non "−0,0%" per una variazione che arrotondata è zero */
+const perfPct=r=>r==null?'n.d.':(Math.round(Math.abs(r)*1000)===0?nf(0,1)+'%':pctIt(r));
+function renderPerfMap(){
+  const map=$('#perfMap'); if(!map)return;
+  const sum=$('#perfSum'), lg=$('#perfLg'), note=$('#perfNote'), tip=$('#perfTip');
+  const st=UI.perf, per=st.per, cap=PERF_CAP[per]||3;
+  $$('#perfSize button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-s')===st.size));
+  $$('#perfPer button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-p')===per));
+  if(tip)tip.classList.remove('on');
+  const vuoto=(big,sm,btn)=>{
+    map.innerHTML='<div class="empty" style="padding:'+(btn?70:120)+'px 20px">'+
+      (big?'<div class="ic">'+ic('grid',22)+'</div><div class="big">'+big+'</div>':'')+'<div class="sm">'+sm+'</div>'+
+      (btn?'<button class="btn btn-ghost btn-sm" id="perfRefresh" style="margin-top:14px">'+ic('refresh',15)+' Aggiorna prezzi</button>':'')+'</div>';
+    const b=$('#perfRefresh'); if(b)b.addEventListener('click',()=>refreshPrices(false));
+  };
+  const rows=perfRows(per,Date.now());
+  if(!rows.length||T.value<=0){
+    sum.innerHTML=''; lg.innerHTML=''; note.innerHTML='';
+    vuoto('','Aggiungi posizioni per vedere la mappa.'); return;
+  }
+  const R=perfSummary(rows);
+  const z=R.ret==null||Math.abs(R.ret)<.00005;
+  sum.innerHTML=(R.ret==null?'':'<span class="pillv sm '+(z?'flat':(R.ret>0?'up':'down'))+'">'+
+      (z?nf(0,2)+'%':pctv(R.ret*100))+'</span>')+
+    '<span>rendimento del portafoglio <b>'+PERF_LBL[per]+'</b> · su '+R.n+(R.n===1?' titolo':' titoli')+
+    (R.miss?' · '+R.miss+' senza dato':'')+'</span>';
+  if(!R.n){
+    sum.innerHTML=''; lg.innerHTML=''; note.innerHTML='';
+    vuoto(per==='1G'?'Nessuna variazione di oggi':'Nessuna chiusura dell\'ultimo mese',
+      per==='1G'?'Aggiorna i prezzi per vedere la variazione di oggi.'
+                :'Premi Aggiorna prezzi: servono le chiusure dell\'ultimo mese.',true);
+    return;
+  }
+  const L=perfItems(rows,st.size);
+  L.nd=L.coda.length;
+  if(!L.items.length){
+    lg.innerHTML=''; note.innerHTML='';
+    vuoto('Nessun volume disponibile','Yahoo non dà il volume di scambio di nessuno di questi titoli (succede con molti ETF): '+
+      'scegli <b>Peso</b> o <b>Uguale</b>, oppure aggiorna i prezzi.',true);
+    return;
+  }
+  const W=Math.max(240,map.clientWidth||map.getBoundingClientRect().width||600);
+  const H=map.clientHeight||360;
+  const pal=heatPal(), G=3; /* distanza fra le piastrelle, come in Esposizione */
+  const priv=!!(S.settings&&S.settings.privacy);
+  const coda=perfTail(L.coda.length,W,H,G);
+  const tutti=squarify(L.items,W,H-coda.h).map(rc=>({it:rc.item,x:rc.x,y:rc.y,w:rc.w-G,h:rc.h-G}))
+    .concat(coda.rects.map((rc,i)=>({it:{r:L.coda[i],nd:true},x:rc.x,y:rc.y,w:rc.w,h:rc.h})));
+  map.innerHTML=tutti.map(rc=>{
+    const it=rc.it, r=it.r, p=r.p;
+    const w=Math.max(0,rc.w), h=Math.max(0,rc.h);
+    const c=it.nd?null:heatCell(r.ret,cap,pal);
+    const TL=perfTileLayout(w,h,!!logoSrc(p));
+    const title=[p.name&&p.name!==p.ticker?p.name:'',tkLabel(p),perfPct(r.ret)+' '+PERF_LBL[per],
+      'peso '+nf(p._w,1)+'%',priv?'':'valore '+money0(p._value),
+      priv?'':(r.vol?'volume di oggi '+moneyShort(r.vol):'volume n.d.')].filter(Boolean).join(' · ');
+    return '<div class="tile ptile'+(TL.kind==='micro'?' micro':(TL.kind==='tiny'?' tiny':''))+(c?'':' nd')+'"'+
+      ' data-id="'+esc(p.id)+'" title="'+esc(title)+'"'+
+      ' style="left:'+rc.x.toFixed(1)+'px;top:'+rc.y.toFixed(1)+'px;width:'+w.toFixed(1)+'px;height:'+h.toFixed(1)+'px'+
+      (c?';background:'+rgbCss(c.bg)+';color:'+heatFg(c.fg):'')+'">'+
+      (TL.kind==='micro'?'':(TL.logo?logoOnlyHTML(p,TL.logo):'')+
+        '<div class="n">'+esc(tkLabel(p))+'</div><div class="p">'+(it.nd?'n.d.':esc(perfPct(r.ret)))+'</div>')+
+      '</div>';
+  }).join('');
+  /* legenda: la scala del periodo, con gli estremi fissi */
+  lg.innerHTML='<div class="hm-lg">'+
+    '<span>−'+nf(cap,0)+'%</span>'+
+    '<span class="hm-bar" style="background:linear-gradient(90deg,'+rgbCss(pal.down)+' 0%,'+rgbCss(pal.neutral)+' 50%,'+rgbCss(pal.up)+' 100%)"></span>'+
+    '<span>+'+nf(cap,0)+'%</span>'+
+    '<span style="margin-left:auto">0% al centro · oltre gli estremi il colore resta pieno · '+
+      '<span class="perf-nd">n.d.</span> = nessun dato</span></div>';
+  const righe=[];
+  righe.push(per==='1G'?'Variazione dalla chiusura precedente al prezzo attuale.'
+    :'Variazione dalla chiusura di '+(per==='1S'?'7 giorni':'un mese')+' fa al prezzo attuale.');
+  if(st.size==='volume'){
+    righe.push('La dimensione è il controvalore scambiato <b>oggi</b> (volume × prezzo, in euro), qualunque sia il periodo dei colori.');
+    if(L.nd)righe.push('<b>'+L.nd+'</b> '+(L.nd===1?'titolo senza volume':'titoli senza volume')+' su Yahoo (es. molti ETF): in coda, in grigio.');
+  }
+  const stale=rows.filter(r=>r.p._stale).length;
+  if(stale)righe.push('<span style="color:var(--gold)"><b>'+stale+'</b> '+(stale===1?'titolo con prezzo non aggiornato':'titoli con prezzo non aggiornato')+'.</span>');
+  righe.push('Clicca un riquadro per aprire la scheda del titolo.');
+  note.innerHTML='<div class="note mt18">'+righe.join('<br>')+'</div>';
+
+  /* suggerimento al passaggio; il title resta per il tocco */
+  const byId={}; rows.forEach(r=>{ byId[r.p.id]=r; });
+  const show=el=>{
+    const r=byId[el.getAttribute('data-id')]; if(!r||!tip)return;
+    const p=r.p;
+    tip.innerHTML='<div class="d">'+esc(p.name||tkLabel(p))+'</div>'+
+      '<div class="v">'+esc(tkLabel(p))+' · '+esc(perfPct(r.ret))+' <span style="font-weight:500;color:var(--muted)">'+PERF_LBL[per]+'</span></div>'+
+      '<div class="d">peso '+nf(p._w,1)+'% · valore <span class="mask">'+money0(p._value)+'</span></div>'+
+      '<div class="d">'+(r.vol?'volume di oggi <span class="mask">'+moneyShort(r.vol)+'</span>':'volume n.d.')+'</div>';
+    const hr=tip.parentNode.getBoundingClientRect(), b=el.getBoundingClientRect();
+    tip.style.left=Math.max(90,Math.min(hr.width-90,b.left-hr.left+b.width/2))+'px';
+    tip.style.top=(b.top-hr.top+Math.min(b.height/2,24))+'px';
+    tip.classList.add('on');
+  };
+  const hide=()=>{ if(tip)tip.classList.remove('on'); };
+  $$('#perfMap .ptile').forEach(t=>{
+    t.addEventListener('pointerenter',()=>show(t));
+    t.addEventListener('pointerleave',hide);
+    t.addEventListener('click',()=>{ hide(); const id=t.getAttribute('data-id'); if(id)openDrawer(id); });
+  });
 }
 
 /* ==========================================================================
@@ -6862,7 +7339,7 @@ function watchToPortfolio(){
 function refreshWatchOne(w){
   if(!w.ticker)return;
   yQuote(w.ticker,true).then(r=>{
-    w.price=r.price; w.prevClose=r.prevClose||null;   /* in coppia: vedi refreshPrices() */
+    w.price=r.price; w.prevClose=r.prevClose||null; w.vol=r.vol||null;   /* in coppia: vedi refreshPrices() */
     if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)w.currency=r.currency;
     save(); if(UI.page==='watchlist')renderWatchlist();
   }).catch(()=>{});
@@ -7509,6 +7986,141 @@ function heroHistSeries(){
   if(!r)return H;
   const t0=p=>p.length?p[0].t:Infinity;
   return t0(r.pts)<t0(H.pts)-31*864e5?{pts:r.pts,src:'calc',info:r}:H;
+}
+
+/* --------------------------------------------------------------------------
+   Grafico principale a 1G e 1S (e a 1M quando ci sono le chiusure
+   giornaliere: la serie mensile a un mese ha due punti). Stessa forma delle
+   altre serie, [{t,value,cost}], più le informazioni per la nota.
+   -------------------------------------------------------------------------- */
+const dayKeyOf=t=>{ const d=new Date(t); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); };
+const dayEnd=t=>{ const d=new Date(t); d.setHours(23,59,59,999); return d.getTime(); };
+function heroDailySeries(range,now){
+  now=now==null?Date.now():now;
+  if(!activeCount()||T.value<=0)return null;
+  if(range==='1G')return heroIntradaySeries(now);
+  const target=perfTarget(range,now); if(target==null)return null;
+  const has=p=>!!(p&&p.ticker&&DHIST[p.ticker]&&(DHIST[p.ticker].pts||[]).length>=2);
+  /* anche le chiuse: una posizione venduta a metà finestra c'è fino al giorno
+     della vendita (qtyAt), come in reconstructedSeries() */
+  const rows=S.positions.filter(has);
+  if(!rows.length)return null;
+  /* un punto per ogni giorno, dopo quello di partenza e prima di oggi, in cui
+     almeno un titolo ha una chiusura; oggi è il punto dal vivo */
+  const today=dayKeyOf(now), k0=dayKeyOf(target), days={};
+  rows.forEach(p=>DHIST[p.ticker].pts.forEach(q=>{
+    const k=dayKeyOf(q.t); if(k>k0&&k<today)days[k]=Math.max(days[k]||0,q.t);
+  }));
+  /* Ogni titolo vale l'ultima chiusura nota fino a quel momento: un giorno
+     di festa su una sola borsa, o un close vuoto, non lo azzera. La regola è
+     quella di perfPeriod() (dailyRef), per la partenza e per ogni giorno: un
+     titolo senza chiusure fino a lì (nemmeno entro 4 giorni dopo) resta fuori
+     dal punto insieme al suo costo, senza buchi a zero. */
+  const point=(t,tau)=>{
+    let value=0,cost=0,n=0;
+    rows.forEach(p=>{
+      const ref=dailyRef(DHIST[p.ticker].pts,tau), px=ref&&ref.v;
+      if(!(px>0))return;
+      const at=qtyAt(p,tau); if(!(at.qty>EPS_QTY))return;
+      const fx=fxRate(p.currency);
+      value+=at.qty*px*fx; cost+=at.cost*fx; n++;
+    });
+    return n?{t:t,value:value,cost:cost}:null;
+  };
+  const out=[], p0=point(target,target);
+  if(p0)out.push(p0);
+  Object.keys(days).map(Number).sort((a,b)=>a-b).forEach(k=>{
+    const pt=point(days[k],dayEnd(days[k])); if(pt)out.push(pt);
+  });
+  /* l'ultimo punto è dal vivo: i prezzi di adesso delle posizioni coperte */
+  let value=0,cost=0,covered=0; const miss=[];
+  activePositions().forEach(p=>{
+    if(has(p)){ value+=p._value; cost+=p._cost; covered+=p._value; }
+    else if(p.ticker)miss.push(p);
+  });
+  out.push({t:now,value:value,cost:cost});
+  return {pts:out,info:{range:range,coveragePct:T.value>0?covered/T.value*100:0,miss:miss}};
+}
+/* 1G: l'andamento della giornata dalle barre di 15 minuti (IDAY).
+   Asse dei tempi = l'unione degli orari di fine barra di tutti i titoli. A
+   ogni istante un titolo vale l'ultimo prezzo noto fino a lì; prima che il
+   suo mercato apra, la chiusura precedente. Così un titolo americano resta
+   fermo finché Wall Street non apre e uno europeo dopo la sua chiusura, senza
+   buchi a zero. Il primo punto è la chiusura precedente (T.value − T.day),
+   l'ultimo il valore dal vivo (T.value): la variazione fra i due è quella
+   della pillola "oggi". Quantità di oggi (p._q: qtyAt va a giorni interi).
+   Non hanno curva i titoli senza barre e quelli con barre di un'altra seduta
+   rispetto al prezzo (la chiusura precedente delle barre non è prevClose):
+   restano fermi al prezzo noto e la nota li elenca. Prima dell'apertura di
+   Wall Street Yahoo dà ancora la seduta di ieri: quei titoli restano fermi e
+   la loro variazione, già nella pillola, sta nel primo tratto.
+   La seduta mostrata è la più recente fra quelle dei titoli di borsa: le
+   criptovalute (h24) hanno sempre le barre di oggi, e di sabato o alle otto
+   di mattina avrebbero lasciato fermo tutto il resto. Seguono la seduta
+   mostrata nei suoi orari (la notte finisce nel primo tratto) o, se non
+   hanno barre di quel giorno, restano ferme al prezzo attuale. */
+const IDAY_STEP=15*60e3;
+function heroIntradaySeries(now){
+  const act=activePositions(), start=T.value-T.day;
+  const curve=[], miss=[], ferme=[], fuori=[];
+  act.forEach(p=>{
+    if(!p.ticker)return;
+    const c=IDAY[p.ticker];
+    if(!c||!c.pts||c.pts.length<2){ miss.push(p); return; }
+    const pc=num(p.prevClose), prev=num(c.prev);
+    if(pc>0&&prev>0&&Math.abs(prev/pc-1)>.001){ miss.push(p); return; }
+    curve.push({p:p,pts:c.pts,h24:!!c.h24,start:pc>0?pc:(prev>0?prev:c.pts[0].v)});
+  });
+  let covered=0;
+  const info={range:'1G',miss:miss,ferme:ferme,fuori:fuori,loading:!!idayRun,fallback:false,sess:now};
+  if(!curve.length){
+    /* nessuna curva (rete giù o ancora in arrivo): chiusura precedente → ora */
+    const nove=new Date(now); nove.setHours(9,0,0,0);
+    info.fallback=true; info.coveragePct=0;
+    info.label='oggi';
+    return {pts:[{t:Math.min(now-30*60e3,nove.getTime()),value:start,cost:T.cost},
+                 {t:now,value:T.value,cost:T.cost}],info:info};
+  }
+  /* la seduta mostrata è la più recente fra quelle dei titoli di borsa; i
+     titoli con barre più vecchie (mercato non ancora aperto oggi) restano
+     fermi; l'apertura è la prima barra di quella seduta */
+  const borsa=curve.filter(r=>!r.h24), guida=borsa.length?borsa:curve;
+  const last=r=>dayKeyOf(r.pts[r.pts.length-1].t);
+  const sess=Math.max.apply(null,guida.map(last));
+  const bars=r=>r.pts.filter(q=>dayKeyOf(q.t)===sess);
+  const open=Math.min.apply(null,guida.filter(r=>last(r)===sess).map(r=>bars(r)[0].t));
+  const byId={}, times={};
+  curve.forEach(r=>{
+    const b=bars(r).filter(q=>!r.h24||q.t>=open);
+    if(!r.h24&&last(r)!==sess){ ferme.push(r.p); return; }
+    if(!b.length){ fuori.push(r.p); return; }
+    r.bars=b.map(q=>({t:Math.min(q.t+IDAY_STEP,now),v:q.v}));
+    r.bars.forEach(q=>{ times[q.t]=1; });
+    byId[r.p.id]=r; covered+=r.p._value;
+  });
+  const U=Object.keys(times).map(Number).sort((a,b)=>a-b);
+  const valueAt=tau=>{
+    let v=0;
+    act.forEach(p=>{
+      const r=byId[p.id];
+      let px=num(p.price);
+      if(r){ px=r.start; for(let i=0;i<r.bars.length&&r.bars[i].t<=tau;i++)px=r.bars[i].v; }
+      v+=num(p._q)*px*fxRate(p.currency);
+    });
+    return v;
+  };
+  const out=[{t:open,value:start,cost:T.cost}];
+  U.forEach(tau=>out.push({t:tau,value:valueAt(tau),cost:T.cost}));
+  info.oggi=sess===dayKeyOf(now);
+  out[out.length-1].value=T.value;
+  info.sess=U[U.length-1];
+  info.label=dayKeyOf(info.sess)===dayKeyOf(now)?'oggi':dayLabel(info.sess);
+  info.coveragePct=T.value>0?covered/T.value*100:0;
+  return {pts:out,info:info};
+}
+/* "lun 12 ott": asse e suggerimenti dei grafici giornalieri */
+function dayLabel(t){
+  return new Date(t).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'}).replace(/\./g,'');
 }
 
 /* Posizioni per cui non sappiamo da quando sono in portafoglio: senza questa
@@ -8963,7 +9575,7 @@ function renderPage(k){
   if(k==='dashboard'){
     renderHero(); renderKpis(); renderToday(); populateFilters(); renderAlloc(); renderContrib(); renderTable();
   }
-  else if(k==='analisi'){ renderExposure(); renderCorrelation(); renderRiskDist(); renderFactorDist(); renderEtfList(); }
+  else if(k==='analisi'){ renderExposure(); renderPerfMap(); renderCorrelation(); renderRiskDist(); renderFactorDist(); renderEtfList(); }
   else if(k==='salute'){ renderHealth(); renderQuant(); }
   else if(k==='scenari'){ renderScenarios(); }
   else if(k==='ribilanciamento'){ renderRebalance(); }
@@ -9002,8 +9614,8 @@ function wire(){
   });
   $('#btnPrivacy').addEventListener('click',()=>{
     S.settings.privacy=!S.settings.privacy; applyPrivacy(); save();
-    /* i tooltip delle distribuzioni contengono importi: vanno riscritti */
-    if(UI.page==='analisi'){ renderRiskDist(); renderFactorDist(); }
+    /* i tooltip delle distribuzioni e della mappa contengono importi: vanno riscritti */
+    if(UI.page==='analisi'){ renderRiskDist(); renderFactorDist(); renderPerfMap(); }
   });
   $('#btnRefresh').addEventListener('click',()=>refreshPrices(false));
   $('#btnAdd').addEventListener('click',()=>openPos(null));
@@ -9021,7 +9633,7 @@ function wire(){
   });
   $$('#heroRange button').forEach(b=>b.addEventListener('click',()=>{
     $$('#heroRange button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
-    UI.heroRange=b.getAttribute('data-r'); renderHero();
+    UI.heroRange=b.getAttribute('data-r'); loadHeroIntraday(); renderHero();
   }));
   $$('#heroMode button').forEach(b=>b.addEventListener('click',()=>{
     $$('#heroMode button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
@@ -9144,6 +9756,13 @@ function wire(){
     UI.expo.level=b.getAttribute('data-lvl');
     UI.expo.leaf=null;
     renderExposure();
+  }));
+  /* --- mappa di performance: dimensione e periodo indipendenti --- */
+  $$('#perfSize button').forEach(b=>b.addEventListener('click',()=>{
+    UI.perf.size=b.getAttribute('data-s'); renderPerfMap();
+  }));
+  $$('#perfPer button').forEach(b=>b.addEventListener('click',()=>{
+    UI.perf.per=b.getAttribute('data-p'); renderPerfMap();
   }));
 
   /* --- distribuzioni: una sola scelta per le due card, così restano confrontabili --- */
@@ -9377,6 +9996,7 @@ $('#chipHist').innerHTML=ic('clock',17);
 $('#chipBench').innerHTML=ic('balance',17);
 $('#chipSnap').innerHTML=ic('db',17);
 $('#chipHeat').innerHTML=ic('grid',17);
+$('#chipPerf').innerHTML=ic('grid',17);
 $('#chipClosed').innerHTML=ic('inbox',17);
 $('#chipTxAll').innerHTML=ic('fx',17);
 $('#btnSnap').querySelector('.ic').innerHTML=ic('plus',15);
@@ -9389,7 +10009,7 @@ $('#chipCloud').innerHTML=ic('refresh',17);
 $('#btnAddWatch').querySelector('.ic').innerHTML=ic('plus',15);
 $('#btnHist').querySelector('.ic').innerHTML=ic('refresh',15);
 $$('.modal .x[data-close]').forEach(b=>b.innerHTML=ic('x',16));
-loadSync(); load(); loadPHist(); loadMHist(); loadBHist(); buildNav(); initPosForm(); initWatchForm(); syncTxLabels(); wire();
+loadSync(); load(); loadPHist(); loadMHist(); loadDHist(); loadBHist(); buildNav(); initPosForm(); initWatchForm(); syncTxLabels(); wire();
 applyTheme(); applyPrivacy(); applyCollapsed();
 enrich();
 go(location.hash.slice(1)||'dashboard');
