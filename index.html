@@ -578,6 +578,14 @@ html[data-theme="light"] .filters select,html[data-theme="light"] .filters input
 .dcenter .s{font-size:11.5px;color:var(--muted);margin-top:1px}
 .dcenter .s .fn{display:block;max-width:100px;margin:0 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .legend{flex:1;min-width:210px;display:flex;flex-direction:column;gap:1px;max-height:260px;overflow-y:auto}
+/* in dashboard la legenda arriva in fondo alla scheda, alta quanto la riga
+   (che la detta il Contributo): contain:size toglie il suo contenuto dal
+   calcolo dell'altezza, e la catena card → card-bd → alloc la stira. Mai sotto
+   i 260px, anche quando la griglia va su una colonna o la ciambella va sopra. */
+.alloc-card{display:flex;flex-direction:column}
+.alloc-card>.card-bd{flex:1;min-height:0;display:flex}
+.alloc-card .alloc{flex:1}
+.alloc-card .legend{align-self:stretch;max-height:none;min-height:260px;contain:size}
 .leg{display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:8px;font-size:13px;cursor:pointer}
 .leg:hover{background:var(--surface-2)}
 .leg .dot{width:9px;height:9px;border-radius:3px;flex:none}
@@ -1306,7 +1314,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
         <div class="today mt18" id="todayCards"></div>
 
         <div class="grid g2-dash mt18">
-          <div class="card">
+          <div class="card alloc-card">
             <div class="card-hd">
               <h2><span class="chip a" id="chipAlloc"></span> Allocazione</h2>
               <div class="right wide-sm">
