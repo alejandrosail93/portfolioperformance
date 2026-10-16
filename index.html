@@ -667,6 +667,8 @@ tbody tr.clk{cursor:pointer}
 .txadd{display:grid;grid-template-columns:1.1fr 1.2fr 1fr 1fr .8fr auto;gap:8px;align-items:end;
   padding:14px;border-radius:12px;background:var(--surface-2);margin-top:6px}
 .txadd .field{margin:0}
+.txadd.dep{grid-template-columns:1.1fr 1.2fr 1.4fr auto}
+.txhint{font-size:11.5px;color:var(--muted);margin-top:12px}
 .txadd .field label{font-size:11px;margin-bottom:4px}
 .txadd .field input,.txadd .field select{padding:8px 9px;font-size:13px;background:var(--surface)}
 .derived{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:10px;
@@ -1075,7 +1077,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .field input,.field select,.field textarea,.inp{font-size:16px}
   .hide-xs{display:none!important}
   .alloc{gap:16px}
-  .txadd{grid-template-columns:1fr 1fr;gap:9px}
+  .txadd,.txadd.dep{grid-template-columns:1fr 1fr;gap:9px}
   .txadd button{grid-column:span 2}
   .dw-ft{padding:12px 16px}
   .dw-hd,.dw-bd{padding-left:16px;padding-right:16px}
@@ -2152,8 +2154,11 @@ html[data-theme="light"] .maptbl select{background:#fff}
     </div>
 
     <div id="tabDet">
+      <div class="field" id="pfKind"><label>Tipo</label><select id="fKind">
+        <option value="">Titolo</option><option value="deposit">Conto deposito</option></select>
+        <div class="hint">Un conto deposito ha prezzo fisso 1: il saldo cambia con versamenti, prelievi e interessi.</div></div>
       <div id="derivedNote"></div>
-      <div class="frow">
+      <div class="frow" id="pfTickerRow">
         <div class="field"><label>Ticker / Simbolo</label><input id="fTicker" placeholder="es. AAPL"></div>
         <div class="field"><label>ISIN</label>
           <div class="inrow"><input id="fIsin" placeholder="es. IE00B4L5Y983" autocomplete="off" spellcheck="false">
@@ -2164,14 +2169,14 @@ html[data-theme="light"] .maptbl select{background:#fff}
       <div class="isin-res" id="isinResults"></div>
       <div class="field"><label>Nome</label>
         <div class="inrow"><div class="logo-prev" id="fLogoPrev"></div><input id="fName" placeholder="es. Apple Inc."></div>
-        <div class="logo-act"><span class="lbl">Logo</span>
+        <div class="logo-act" id="pfLogoAct"><span class="lbl">Logo</span>
           <button type="button" class="btn btn-soft btn-sm" id="fLogoUp">Carica immagine…</button>
           <button type="button" class="btn btn-ghost btn-sm" id="fLogoAuto" title="Il logo dell'azienda o dell'emittente, se c'è">Automatico</button>
           <button type="button" class="btn btn-ghost btn-sm" id="fLogoNone">Solo iniziali</button>
           <input type="file" id="fLogoFile" accept="image/*" hidden><input type="hidden" id="fLogo"></div>
-        <div class="hint">Resta sul tuo computer. PNG, JPG o SVG, anche non quadrato.</div></div>
+        <div class="hint" id="pfLogoHint">Resta sul tuo computer. PNG, JPG o SVG, anche non quadrato.</div></div>
       <div class="frow">
-        <div class="field"><label>Categoria</label><select id="fCls"></select></div>
+        <div class="field" id="pfCls"><label>Categoria</label><select id="fCls"></select></div>
         <div class="field"><label>Valuta</label><select id="fCur"></select></div>
       </div>
       <div class="frow">
@@ -2179,25 +2184,28 @@ html[data-theme="light"] .maptbl select{background:#fff}
         <div class="field"><label>Paese / Area</label><input id="fCountry" list="ctrList" placeholder="es. USA"></div>
       </div>
       <div class="frow">
-        <div class="field"><label>Quantità</label><input id="fQty" type="text" inputmode="decimal"></div>
-        <div class="field"><label>Prezzo medio di carico</label><input id="fAvg" type="text" inputmode="decimal"></div>
+        <div class="field"><label id="fQtyLbl">Quantità</label><input id="fQty" type="text" inputmode="decimal"></div>
+        <div class="field" id="pfAvg"><label>Prezzo medio di carico</label><input id="fAvg" type="text" inputmode="decimal"></div>
+        <div class="field" id="pfRate" style="display:none"><label>Tasso annuo lordo %</label>
+          <input id="fRate" type="text" inputmode="decimal" placeholder="es. 3">
+          <div class="hint">Facoltativo: serve solo alla stima della rendita annua.</div></div>
       </div>
       <div class="frow">
         <div class="field"><label>In portafoglio dal</label><input id="fDateAdded" type="date">
           <div class="hint" id="fDateAddedHint">Da quando possiedi il titolo: lo storico ricostruito parte da qui.</div></div>
-        <div class="field"><label>Prezzo attuale</label><input id="fPrice" type="text" inputmode="decimal"></div>
+        <div class="field" id="pfPrice"><label>Prezzo attuale</label><input id="fPrice" type="text" inputmode="decimal"></div>
       </div>
       <div class="frow">
         <div class="field"><label>Peso previsto (%)</label><input id="fTarget" type="text" inputmode="decimal" placeholder="es. 15"></div>
-        <div class="field"><label>Rischio 3–9</label><input id="fRisk" type="number" min="3" max="9" step="1" placeholder="6"></div>
+        <div class="field" id="pfRisk"><label>Rischio 3–9</label><input id="fRisk" type="number" min="3" max="9" step="1" placeholder="6"></div>
       </div>
-      <div class="frow">
+      <div class="frow" id="pfYieldRow">
         <div class="field"><label>Yield dividendo %</label><input id="fYield" type="text" inputmode="decimal"></div>
         <div class="field"><label>TER / costi annui %</label><input id="fTer" type="text" inputmode="decimal" placeholder="es. 0,20">
           <div class="hint">Per ETF e fondi; lascia vuoto per le azioni.</div></div>
       </div>
       <div class="frow">
-        <div class="field"><label>Fattore</label><select id="fFactor"></select></div>
+        <div class="field" id="pfFactor"><label>Fattore</label><select id="fFactor"></select></div>
         <div class="field"><label>Tier</label><select id="fTier"></select></div>
       </div>
       <div class="frow">
@@ -2205,7 +2213,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
         <div class="field"><label>Fondo emergenza</label><select id="fEmergency">
           <option value="">—</option><option value="1">Sì</option></select></div>
       </div>
-      <div class="field"><label>Mesi di stacco dividendi</label>
+      <div class="field" id="pfDivMonths"><label>Mesi di stacco dividendi</label>
         <input id="fDivMonths" placeholder="es. 3, 6, 9, 12">
         <div class="hint">Facoltativo: serve al calendario dividendi. Se registri i dividendi come transazioni non serve, i mesi vengono dedotti da lì.</div>
       </div>
@@ -2223,16 +2231,17 @@ html[data-theme="light"] .maptbl select{background:#fff}
     </div>
 
     <div id="tabTx" style="display:none">
-      <div class="note" style="margin-bottom:14px">Se registri le transazioni, <b>quantità e prezzo di carico</b> vengono calcolati automaticamente a costo medio, e si sbloccano <b>plusvalenze realizzate</b> e <b>dividendi incassati</b>. Puoi anche non usarle: in quel caso valgono i valori inseriti nella scheda Dettagli.</div>
+      <div class="note" id="txNote" style="margin-bottom:14px"></div>
       <div id="txList"></div>
-      <div class="txadd">
+      <div class="txhint" id="txHint" style="display:none">Gli interessi si registrano al netto di ritenuta. Per bollo o imposte addebitate usa un importo negativo.</div>
+      <div class="txadd" id="txAddRow">
         <div class="field"><label>Tipo</label><select id="txType">
           <option value="buy">Acquisto</option><option value="sell">Vendita</option>
           <option value="div">Dividendo</option><option value="fee">Commissione</option></select></div>
         <div class="field"><label>Data</label><input id="txDate" type="date"></div>
-        <div class="field"><label id="txQtyLbl">Quantità</label><input id="txQty" type="text" inputmode="decimal"></div>
+        <div class="field" id="txQtyF"><label id="txQtyLbl">Quantità</label><input id="txQty" type="text" inputmode="decimal"></div>
         <div class="field"><label id="txPriceLbl">Prezzo</label><input id="txPrice" type="text" inputmode="decimal"></div>
-        <div class="field"><label>Comm.</label><input id="txFee" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="field" id="txFeeF"><label>Comm.</label><input id="txFee" type="text" inputmode="decimal" placeholder="0"></div>
         <button class="btn btn-soft" id="txAdd" style="height:36px">＋</button>
       </div>
     </div>
@@ -2540,7 +2549,7 @@ const UI={
   allocView:'pos', allocGroup:'', contribView:'total', contribSort:{k:'perf',dir:-1}, contribPlatform:'', allocFilters:{cls:'',sector:'',country:''},
   filters:{search:'',platform:'',cls:'',sector:'',country:'',tier:'',action:''},
   sortK:'_value', sortDir:-1,
-  editId:null, editTx:[], drawerId:null,
+  editId:null, editTx:[], posKind:'', drawerId:null,
   expo:{level:'cat',leaf:null},
   perf:{size:'peso',per:'1G'},
   rbMode:'cat', rbOpen:{}, editWatch:null,
@@ -2942,21 +2951,30 @@ function ensureFx(){ usedCurrencies().forEach(c=>{ if(S.fx[c]==null)S.fx[c]=DEFA
    5. MOTORE — transazioni opzionali + arricchimento posizioni
    --------------------------------------------------------------------------
    Ogni posizione può avere un registro `tx`:
-     {id,type:'buy'|'sell'|'div'|'fee', date:'YYYY-MM-DD', qty, price, amount, fee, note}
-   Se il registro esiste, quantità e prezzo di carico sono DERIVATI da lì
+     {id,type:'buy'|'sell'|'div'|'fee'|'int', date:'YYYY-MM-DD', qty, price, amount, fee, note}
+   'int' sono gli interessi di un conto deposito (vedi isDeposit). Se il registro esiste, quantità e prezzo di carico sono DERIVATI da lì
    (costo medio mobile) e si sbloccano plusvalenze realizzate e dividendi
    incassati. Se non esiste, valgono i campi manuali qty/avg.
    ========================================================================== */
 function derive(p){
   const tx=(p.tx||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
-  const out={qty:num(p.qty),avg:num(p.avg),invested:0,realized:0,divCash:0,fees:0,usesTx:false,
+  const out={qty:num(p.qty),avg:num(p.avg),invested:0,realized:0,divCash:0,fees:0,interest:0,usesTx:false,
              txCount:tx.length,firstDate:null,lastDate:null,soldQty:0};
   if(!tx.length){ out.invested=out.qty*out.avg; return out; }
   out.usesTx=true; out.firstDate=tx[0].date; out.lastDate=tx[tx.length-1].date;
   let q=0,cost=0;
+  const dep=isDeposit(p);
   for(const t of tx){
     const fee=num(t.fee);
-    if(t.type==='sell'){
+    if(t.type==='sell'&&dep){
+      /* prelievo da un conto deposito: restituisce prima il capitale
+         versato, così il G/P resta uguale agli interessi netti. Gli interessi
+         (o un addebito che li ha superati) si realizzano quando il capitale
+         finisce o il saldo si azzera */
+      const useQ=Math.min(num(t.qty),q), back=q-useQ<1e-9?cost:Math.min(useQ,cost);
+      out.realized+=useQ*num(t.price)-back-fee; out.soldQty+=useQ;
+      cost-=back; q-=useQ; if(q<1e-9){q=0;cost=0;}
+    }else if(t.type==='sell'){
       const unit=q>0?cost/q:0, useQ=Math.min(num(t.qty),q);
       out.realized+=useQ*(num(t.price)-unit)-fee; out.soldQty+=useQ;
       cost-=useQ*unit; q-=useQ; if(q<1e-9){q=0;cost=0;}
@@ -2964,6 +2982,12 @@ function derive(p){
       out.divCash+=(t.amount!=null?num(t.amount):num(t.qty)*num(t.price))-fee;
     }else if(t.type==='fee'){
       out.fees+=num(t.amount)+fee;
+    }else if(t.type==='int'){
+      /* interessi netti di un conto deposito: muovono il saldo, non il
+         capitale versato. Un addebito (bollo, imposte) è un importo negativo
+         e non porta il saldo sotto zero */
+      const a=num(t.amount);
+      q=Math.max(0,q+a); out.interest+=a;
     }else{ // buy
       q+=num(t.qty); cost+=num(t.qty)*num(t.price)+fee;
     }
@@ -2985,6 +3009,10 @@ let T={value:0,cost:0,pnl:0,pnlPct:0,day:0,dayPct:0,realized:0,dividends:0,n:0,b
    ========================================================================== */
 const EPS_QTY=1e-9;
 const isClosed=p=>!!(p&&p.closed);
+/* Conto deposito: una posizione come le altre, con prezzo fisso 1 e il saldo
+   come quantità. Versamenti e prelievi sono buy/sell a prezzo 1, gli
+   interessi transazioni 'int'. */
+const isDeposit=p=>!!(p&&p.kind==='deposit');
 /* "in portafoglio" è una questione di quantità, non di flag: una posizione con
    registrate solo commissioni o dividendi non è mai stata aperta davvero, e non
    deve comparire fra le attive — pur restando nei totali di realizzato e
@@ -3015,6 +3043,22 @@ function syncClosed(p){
   }
   return was!==!!p.closed||wasDate!==(p.closedDate||null);
 }
+/* Riporta un conto deposito ai suoi valori fissi, qualunque strada abbiano
+   preso i dati (backup, un ticker scritto a mano, un prezzo scaricato): niente
+   ticker né ISIN, prezzo 1 senza variazione del giorno, categoria Cash,
+   rischio 3. Settore, tier, fondo emergenza e tasso restano quelli scelti.
+   Ritorna true se ha cambiato qualcosa. */
+function fixDeposit(p){
+  if(!isDeposit(p))return false;
+  const want={cls:'Cash',ticker:'',isin:'',price:1,prevClose:null,vol:null,risk:3,
+    currency:p.currency||'EUR'};
+  if(!(p.tx||[]).length)want.avg=1;
+  let changed=false;
+  Object.keys(want).forEach(k=>{ if(p[k]!==want[k]){ p[k]=want[k]; changed=true; } });
+  /* un avviso di prezzo rimasto da un ticker spurio non vale per un conto */
+  if(p._stale||p._errKind){ delete p._stale; delete p._errKind; changed=true; }
+  return changed;
+}
 /* Riepilogo economico di una posizione chiusa, in valuta di base. */
 function closedSummary(p){
   const tx=(p.tx||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
@@ -3024,6 +3068,7 @@ function closedSummary(p){
     if(t.type==='buy')bought+=num(t.qty)*num(t.price)+fee;
     else if(t.type==='sell')sold+=num(t.qty)*num(t.price)-fee;
     else if(t.type==='div')div+=(t.amount!=null?num(t.amount):num(t.qty)*num(t.price))-fee;
+    /* gli interessi di un conto ('int') non sono né acquisti né vendite */
   });
   const rate=fxRate(p.currency);
   return {from:tx.length?String(tx[0].date).slice(0,10):null,
@@ -3038,6 +3083,7 @@ function enrich(){
   S.positions.forEach(p=>{
     /* rete di sicurezza: qualsiasi dato entrato per altre vie viene letto normalizzato */
     p.cls=normCls(p.cls); p.sector=normSector(p.sector); p.country=normCountry(p.country);
+    fixDeposit(p);
     const d=derive(p), rate=fxRate(p.currency);
     p._q=d.qty; p._avg=d.avg; p._usesTx=d.usesTx; p._txCount=d.txCount;
     p._value=d.qty*num(p.price)*rate;
@@ -4316,7 +4362,7 @@ function refreshSpin(on){
    è l'aggiornamento del riquadro Contributo */
 function refreshPrices(silent,onlyPortfolio){
   if(refreshing)return Promise.resolve();
-  const list=activePositions().filter(p=>p.ticker);
+  const list=activePositions().filter(p=>p.ticker&&!isDeposit(p));
   const wl=onlyPortfolio?[]:(S.watchlist||[]).filter(w=>w.ticker);
   if(!list.length&&!wl.length){ if(!silent)toast('Nessuna posizione con un ticker da aggiornare'); return Promise.resolve(); }
   refreshing=true; refreshSpin(true);
@@ -4782,7 +4828,8 @@ function renderContrib(){
   const maxNeg=Math.max.apply(null,[0].concat(arr.map(p=>Math.max(0,-p[k]))));
   const tot=maxPos+maxNeg||1;
   const lw=maxNeg/tot*100, rw=maxPos/tot*100;
-  const miss=day?act.length-arr.length:0;
+  /* un conto deposito non ha mai la chiusura di ieri: non è un titolo che manca */
+  const miss=day?act.filter(p=>!isDeposit(p)).length-arr.length:0;
   host.innerHTML=arr.map(p=>{
     const v=p[k], up=v>=0, col=up?'var(--up)':'var(--down)';
     const w=up?(maxPos>0?v/maxPos*100:0):(maxNeg>0?-v/maxNeg*100:0);
@@ -4842,14 +4889,18 @@ function renderTable(){
       const up=p._pnl>=0, w=Math.min(100,Math.abs(p._pnl)/maxAbs*100);
       const rk=Math.max(3,Math.min(9,Math.round(num(p.risk))||6));
       const a=ACT[p._action]||ACT.Ok;
+      /* un conto deposito: il nome al posto del ticker, il saldo come
+         quantità (è denaro: mascherato), niente prezzi */
+      const dep=isDeposit(p), dash='<span class="cellsub">—</span>';
       return '<tr class="clk" data-id="'+p.id+'">'+
         '<td><div class="tk">'+avatarHTML(p)+
-          '<div class="tk-tx"><div class="t1">'+esc(p.ticker||'—')+(p._usesTx?' <span class="cellsub" title="quantità e prezzo di carico derivati dalle transazioni">⇄</span>':'')+'</div>'+
-          '<div class="t2">'+esc(p.name||p.cls||'')+'</div></div></div></td>'+
+          '<div class="tk-tx"><div class="t1">'+esc(dep?tkLabel(p):(p.ticker||'—'))+(p._usesTx?' <span class="cellsub" title="'+
+            (dep?'saldo derivato dai movimenti':'quantità e prezzo di carico derivati dalle transazioni')+'">⇄</span>':'')+'</div>'+
+          '<div class="t2">'+esc(dep?'Conto deposito':(p.name||p.cls||''))+'</div></div></div></td>'+
         '<td class="hide-sm"><span class="badge">'+esc(p.cls||'Altro')+'</span></td>'+
-        '<td class="num">'+qtyf(p._q)+'</td>'+
-        '<td class="num hide-xs">'+locCell(p._avg,p.currency)+'</td>'+
-        '<td class="num px">'+locCell(num(p.price),p.currency)+(p._stale?' <span class="stale" title="'+esc(staleMsg(p))+'">●</span>':'')+'</td>'+
+        '<td class="num'+(dep?' mask':'')+'">'+qtyf(p._q)+'</td>'+
+        '<td class="num hide-xs">'+(dep?dash:locCell(p._avg,p.currency))+'</td>'+
+        '<td class="num px">'+(dep?dash:locCell(num(p.price),p.currency)+(p._stale?' <span class="stale" title="'+esc(staleMsg(p))+'">●</span>':''))+'</td>'+
         '<td class="num px mask"><b>'+money(p._value)+'</b></td>'+
         '<td class="num hide-xs">'+nf(p._w,1)+'%</td>'+
         '<td class="num px mask '+(up?'up':'down')+'"><b>'+(up?'+':'−')+money(Math.abs(p._pnl))+'</b>'+
@@ -4882,13 +4933,29 @@ const TXT={
   buy:{l:'Acquisto',c:'buy',s:'＋'},
   sell:{l:'Vendita',c:'sell',s:'−'},
   div:{l:'Dividendo',c:'div',s:'◎'},
-  fee:{l:'Commissione',c:'fee',s:'⌁'}
+  fee:{l:'Commissione',c:'fee',s:'⌁'},
+  int:{l:'Interessi',c:'div',s:'％'}
 };
+/* Flusso di cassa della transazione: negativo se il denaro esce dalle tue
+   tasche, positivo se ci torna. Gli interessi restano sul conto, quindi
+   valgono 0 (per l'XIRR il loro effetto è già nel saldo finale). */
 function txAmount(t){
+  if(t.type==='int')return 0;
   if(t.type==='fee')return -(num(t.amount)+num(t.fee));
   if(t.type==='div')return (t.amount!=null?num(t.amount):num(t.qty)*num(t.price))-num(t.fee);
   if(t.type==='sell')return num(t.qty)*num(t.price)-num(t.fee);
   return -(num(t.qty)*num(t.price)+num(t.fee));
+}
+/* Importo mostrato negli elenchi e nell'export: per gli interessi quello
+   accreditato (o addebitato), per il resto il flusso di cassa. */
+const txShown=t=>t.type==='int'?num(t.amount):txAmount(t);
+/* Il dettaglio di una riga di interessi, al posto di quantità × prezzo */
+const txIntNote=t=>num(t.amount)<0?'addebito (bollo o imposte)':'accredito netto';
+/* Su un conto deposito acquisto e vendita sono un versamento e un prelievo. */
+function txLabel(t,p){
+  if(isDeposit(p)&&t.type==='buy')return 'Versamento';
+  if(isDeposit(p)&&t.type==='sell')return 'Prelievo';
+  return (TXT[t.type]||TXT.buy).l;
 }
 /* menu a tendina comuni alla scheda posizione ('f') e a quella watchlist ('fw') */
 function initDescSelects(pre){
@@ -5104,23 +5171,129 @@ function isinFind(pre){
     $(id.res).innerHTML=isinResultsHTML(isin,list);
   });
 }
+/* ---------- tipo di posizione: titolo o conto deposito ----------
+   Il tipo si sceglie solo creando la posizione; in modifica si legge da
+   p.kind. UI.posKind è quello della scheda aperta: '' titolo, 'deposit'. */
+/* Quali campi della scheda valgono per un tipo (true = da mostrare). Pura.
+   Un conto non ha ticker, ISIN, logo, categoria (è sempre Cash), prezzi,
+   rendimenti, fattore, rischio né composizione; ha il tasso annuo. */
+const POS_SECURITY_ONLY=['ticker','isin','logo','cls','price','avg','risk','yield','ter','factor','divMonths','comp'];
+const POS_DEPOSIT_ONLY=['rate'];
+const POS_COMMON=['name','qty','currency','dateAdded','sector','country','tier','emergency','target','platform','note'];
+function posFormFields(kind){
+  const dep=kind==='deposit', out={};
+  POS_COMMON.forEach(k=>{ out[k]=true; });
+  POS_SECURITY_ONLY.forEach(k=>{ out[k]=!dep; });
+  POS_DEPOSIT_ONLY.forEach(k=>{ out[k]=dep; });
+  return out;
+}
+/* gli elementi della scheda dei campi che dipendono dal tipo (la
+   composizione la governa toggleComp, solo per gli ETF) */
+const POS_FIELD_IDS={ticker:['pfTickerRow'],isin:['pfTickerRow','isinResults'],
+  logo:['fLogoPrev','pfLogoAct','pfLogoHint'],cls:['pfCls'],price:['pfPrice'],avg:['pfAvg'],
+  risk:['pfRisk'],yield:['pfYieldRow'],ter:['pfYieldRow'],factor:['pfFactor'],
+  divMonths:['pfDivMonths'],rate:['pfRate']};
+/* Valori iniziali di un conto nuovo, per id del campo: si possono cambiare
+   (un conto che non è il fondo emergenza: settore Cash, flag vuoto). */
+const DEPOSIT_DEFAULTS={Sector:'Emergency fund',Tier:'Cash',Emergency:'1',Cur:'EUR'};
+/* I movimenti che la scheda Transazioni offre per un tipo */
+function txTypeKeys(kind){ return kind==='deposit'?['buy','sell','int']:['buy','sell','div','fee']; }
+const TX_TYPE_LBL={'':{buy:'Acquisto',sell:'Vendita',div:'Dividendo',fee:'Commissione'},
+  deposit:{buy:'Versamento',sell:'Prelievo',int:'Interessi'}};
+const TX_NOTE={'':'Se registri le transazioni, <b>quantità e prezzo di carico</b> vengono calcolati '+
+  'automaticamente a costo medio, e si sbloccano <b>plusvalenze realizzate</b> e <b>dividendi incassati</b>. '+
+  'Puoi anche non usarle: in quel caso valgono i valori inseriti nella scheda Dettagli.',
+  deposit:'Registra <b>versamenti</b>, <b>prelievi</b> e <b>interessi</b>: il <b>saldo</b> si calcola da qui, '+
+  'e il guadagno del conto sono gli interessi netti. Puoi anche non usarli: in quel caso vale il saldo '+
+  'inserito nella scheda Dettagli, che al primo movimento diventa il versamento iniziale.'};
+/* Un conto deposito dalla scheda. Pura: o sono i campi descrittivi
+   (descFromForm), rate il testo del tasso. Ritorna i campi da salvare, già
+   riportati ai valori fissi del conto, o {err} se manca il nome. */
+function depositFromForm(o,rate){
+  const name=String(o&&o.name||'').trim();
+  if(!name)return {err:'Dai un nome al conto deposito, ad esempio "Conto deposito"'};
+  const r=String(rate==null?'':rate).trim();
+  const p=Object.assign({},o,{name:name,kind:'deposit',rate:r===''?null:num(r)});
+  fixDeposit(p);
+  return p;
+}
+/* Un movimento di un conto: basta l'importo. Versamento e prelievo sono
+   buy/sell a prezzo 1; gli interessi ('int') possono essere negativi (bollo,
+   imposte addebitate). Pura salvo l'id; {err} se l'importo non va. */
+function depositTx(type,date,amount,id){
+  const a=num(String(amount==null?'':amount).replace(/\u2212/g,'-'));
+  if(type==='int'){
+    if(!a)return {err:'Inserisci l\'importo degli interessi (negativo per bollo o imposte)'};
+    return {id:id,type:'int',date:date,amount:a,fee:0};
+  }
+  if(type!=='buy'&&type!=='sell')return {err:'Movimento non previsto per un conto deposito'};
+  if(!(a>0))return {err:'Inserisci un importo maggiore di zero'};
+  return {id:id,type:type,date:date,qty:a,price:1,fee:0};
+}
+/* La scheda secondo UI.posKind: campi, etichette, testi e movimenti. */
+function applyPosKind(){
+  const kind=UI.posKind==='deposit'?'deposit':'', dep=!!kind, F=posFormFields(kind);
+  Object.keys(POS_FIELD_IDS).forEach(k=>POS_FIELD_IDS[k].forEach(id=>{ $('#'+id).style.display=F[k]?'':'none'; }));
+  if(F.comp)toggleComp('f');
+  else { $('#fCompWrap').style.display='none'; $('#fCompWrap2').style.display='none'; }
+  $('#pfKind').style.display=UI.editId?'none':'';
+  $('#posTitle').textContent=UI.editId?(dep?'Modifica conto deposito':'Modifica posizione'):'Aggiungi posizione';
+  $('#fQtyLbl').textContent=dep?'Saldo':'Quantità';
+  $('#fName').placeholder=dep?'es. Conto deposito':'es. Apple Inc.';
+  $('#fDateAddedHint').textContent=dep
+    ?'Da quando hai il conto: al primo movimento il saldo diventa un versamento con questa data.'
+    :'Da quando possiedi il titolo: lo storico ricostruito parte da qui.';
+  $('#txNote').innerHTML=TX_NOTE[kind];
+  $('#txHint').style.display=dep?'':'none';
+  const tt=$('#txType'), prev=tt.value, keys=txTypeKeys(kind);
+  tt.innerHTML=keys.map(k=>'<option value="'+k+'">'+TX_TYPE_LBL[kind][k]+'</option>').join('');
+  tt.value=keys.indexOf(prev)>-1?prev:'buy';
+  $('#txAddRow').classList[dep?'add':'remove']('dep');
+  syncTxLabels();
+}
+/* Cambio di tipo in una scheda nuova: i valori iniziali del conto vanno nei
+   campi vuoti; tornando a Titolo si tolgono quelli rimasti come li avevo messi. */
+function setPosKind(kind){
+  if(UI.editId)return;
+  const dep=kind==='deposit';
+  if(dep===(UI.posKind==='deposit'))return;
+  UI.posKind=dep?'deposit':'';
+  Object.keys(DEPOSIT_DEFAULTS).forEach(k=>{
+    const el=$('#f'+k), v=DEPOSIT_DEFAULTS[k];
+    if(dep&&!el.value)el.value=v;
+    else if(!dep&&k!=='Cur'&&el.value===v)el.value='';
+  });
+  applyPosKind();
+}
+/* Un conto chiede solo l'importo: quantità e commissione spariscono. */
+function syncTxLabels(){
+  const t=$('#txType').value, dep=UI.posKind==='deposit';
+  $('#txQtyF').style.display=dep?'none':'';
+  $('#txFeeF').style.display=dep?'none':'';
+  $('#txQtyLbl').textContent=t==='fee'?'—':'Quantità';
+  $('#txPriceLbl').textContent=dep||t==='fee'?'Importo':(t==='div'?'Div. per azione':'Prezzo');
+  $('#txQty').disabled=(t==='fee');
+  $('#txPrice').placeholder=dep&&t==='int'?'es. 12,50 o -2,00':'';
+}
 function openPos(id){
   const p=id?S.positions.filter(x=>x.id===id)[0]:null;
   buildCountryList(); buildSectorList();
   UI.editId=p?p.id:null;
   UI.editTx=p&&p.tx?JSON.parse(JSON.stringify(p.tx)):[];
-  $('#posTitle').textContent=p?'Modifica posizione':'Aggiungi posizione';
+  UI.posKind=isDeposit(p)?'deposit':'';
+  $('#fKind').value=UI.posKind; $('#fKind').disabled=false;
   descToForm('f',p); logoPreview('f');
   isinSeq++; $('#isinResults').innerHTML='';
   $('#fDateAdded').value=p?(p.dateAdded||''):todayISO();
   $('#fQty').value=fnum(p&&p.qty!=null?p.qty:'');
   $('#fAvg').value=fnum(p&&p.avg!=null?p.avg:'');
   $('#fPrice').value=fnum(p&&p.price!=null?p.price:'');
+  $('#fRate').value=fnum(p&&p.rate!=null?p.rate:'');
   $('#fId').value=p?p.id:'';
   $('#posDelete').style.display=p?'':'none';
   $('#txDate').value=todayISO();
   $('#txQty').value=''; $('#txPrice').value=''; $('#txFee').value='';
-  setPosTab('det'); toggleComp('f'); renderTxList();
+  setPosTab('det'); toggleComp('f'); applyPosKind(); renderTxList();
   if(!tickerToIsin('f'))syncIsinUI(true,'f');
   $('#ovPos').classList.add('on');
   setTimeout(()=>{ if(!p)$('#fTicker').focus(); },90);
@@ -5129,39 +5302,58 @@ function renderTxList(){
   const cur=$('#fCur').value||'EUR';
   const list=UI.editTx.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   $('#txCountLbl').textContent=UI.editTx.length?'('+UI.editTx.length+')':'';
+  const dep=UI.posKind==='deposit', kp={kind:UI.posKind};
   $('#txList').innerHTML=list.length?list.map(t=>{
-    const k=TXT[t.type]||TXT.buy, amt=txAmount(t);
-    const det=t.type==='fee'?money(num(t.amount),2)
+    const k=TXT[t.type]||TXT.buy, amt=txShown(t);
+    /* su un conto l'importo dice già tutto: niente "quantità × 1" */
+    const det=t.type==='fee'?money(num(t.amount),2):t.type==='int'?txIntNote(t):dep?''
       :qtyf(num(t.qty))+' × '+nf(num(t.price),4)+(num(t.fee)?' · comm. '+nf(num(t.fee),2):'');
     return '<div class="txr"><div class="ty '+k.c+'">'+k.s+'</div>'+
-      '<div class="tx-m"><div class="d1">'+esc(k.l)+'</div><div class="d2">'+fmtDate(t.date)+' · '+det+'</div></div>'+
+      '<div class="tx-m"><div class="d1">'+esc(txLabel(t,kp))+'</div><div class="d2">'+fmtDate(t.date)+(det?' · '+det:'')+'</div></div>'+
       '<div class="am '+(amt>=0?'up':'down')+'">'+(amt>=0?'+':'−')+nf(Math.abs(amt),2)+' <span class="cellsub">'+esc(cur)+'</span></div>'+
       '<button class="rowbtn" data-txdel="'+t.id+'" title="Elimina">×</button></div>';
   }).join('')
-  :'<div class="empty" style="padding:24px 16px"><div class="sm">Nessuna transazione registrata. Aggiungine una qui sotto per calcolare automaticamente carico, plusvalenze realizzate e dividendi.</div></div>';
+  :'<div class="empty" style="padding:24px 16px"><div class="sm">'+(dep
+    ?'Nessun movimento registrato. Aggiungi qui sotto versamenti, prelievi e interessi: il saldo si calcola da qui.'
+    :'Nessuna transazione registrata. Aggiungine una qui sotto per calcolare automaticamente carico, plusvalenze realizzate e dividendi.')+'</div></div>';
   $$('#txList [data-txdel]').forEach(b=>b.addEventListener('click',()=>{
     UI.editTx=UI.editTx.filter(x=>x.id!==b.getAttribute('data-txdel')); renderTxList();
   }));
-  const d=derive({tx:UI.editTx,qty:0,avg:0});
+  const d=derive({tx:UI.editTx,qty:0,avg:0,kind:UI.posKind});
+  /* il tipo si sceglie prima dei movimenti: dopo, resta quello */
+  if(!UI.editId)$('#fKind').disabled=UI.editTx.length>0;
   if(UI.editTx.length){
-    $('#derivedNote').innerHTML='<div class="derived">⇄ Quantità e prezzo di carico sono calcolati dalle '+
-      UI.editTx.length+' transazioni registrate'+
-      (d.realized?' · realizzato '+(d.realized>=0?'+':'−')+nf(Math.abs(d.realized),2)+' '+esc(cur):'')+
-      (d.divCash?' · dividendi '+nf(d.divCash,2)+' '+esc(cur):'')+'.</div>';
+    const sg=v=>(v>=0?'+':'−')+nf(Math.abs(v),2)+' '+esc(cur);
+    $('#derivedNote').innerHTML='<div class="derived">'+(dep
+      ?'⇄ Il saldo è calcolato dai '+UI.editTx.length+' movimenti registrati'+
+        (d.interest?' · interessi netti '+sg(d.interest):'')
+      :'⇄ Quantità e prezzo di carico sono calcolati dalle '+UI.editTx.length+' transazioni registrate'+
+        (d.realized?' · realizzato '+sg(d.realized):'')+
+        (d.divCash?' · dividendi '+nf(d.divCash,2)+' '+esc(cur):''))+'.</div>';
     $('#fQty').value=fnum(+d.qty.toFixed(6)); $('#fQty').disabled=true;
     $('#fAvg').value=fnum(+d.avg.toFixed(4)); $('#fAvg').disabled=true;
   }else{
     $('#derivedNote').innerHTML=''; $('#fQty').disabled=false; $('#fAvg').disabled=false;
   }
 }
-function syncTxLabels(){
-  const t=$('#txType').value;
-  $('#txQtyLbl').textContent=t==='fee'?'—':'Quantità';
-  $('#txPriceLbl').textContent=t==='div'?'Div. per azione':(t==='fee'?'Importo':'Prezzo');
-  $('#txQty').disabled=(t==='fee');
-}
 function addTx(){
   const type=$('#txType').value, date=$('#txDate').value||todayISO();
+  if(UI.posKind==='deposit'){
+    const t=depositTx(type,date,$('#txPrice').value,uid());
+    if(t.err){ toast(t.err,'err'); return; }
+    /* il primo movimento: il saldo scritto nei Dettagli diventa il versamento
+       iniziale, alla data "In portafoglio dal" */
+    const s0=UI.editTx.length?0:num($('#fQty').value);
+    if(s0>0){
+      const d0=$('#fDateAdded').value||date;
+      UI.editTx.push({id:uid(),type:'buy',date:d0,qty:s0,price:1,fee:0});
+      toast('Il saldo inserito è diventato il versamento iniziale del '+fmtDate(d0),'ok');
+    }
+    UI.editTx.push(t);
+    $('#txPrice').value='';
+    renderTxList();
+    return;
+  }
   const qty=num($('#txQty').value), price=num($('#txPrice').value), fee=num($('#txFee').value);
   if(type==='fee'){
     if(!price){toast('Inserisci l\'importo della commissione','err');return;}
@@ -5174,11 +5366,17 @@ function addTx(){
   renderTxList();
 }
 function savePos(){
-  tickerToIsin('f');
-  const t=$('#fTicker').value.trim(), n=$('#fName').value.trim(), isin=normIsin($('#fIsin').value);
-  if(!t&&!n&&!isin){ toast('Inserisci almeno un ticker, un nome o un ISIN','err'); setPosTab('det'); $('#fTicker').focus(); return; }
-  if(isin&&!isinValid(isin)){
-    toast(ISIN_BAD,'err'); setPosTab('det'); syncIsinUI(true,'f'); $('#fIsin').focus(); return;
+  const dep=UI.posKind==='deposit';
+  if(dep){
+    const chk=depositFromForm(descFromForm('f'),$('#fRate').value);
+    if(chk.err){ toast(chk.err,'err'); setPosTab('det'); $('#fName').focus(); return; }
+  }else{
+    tickerToIsin('f');
+    const t=$('#fTicker').value.trim(), n=$('#fName').value.trim(), isin=normIsin($('#fIsin').value);
+    if(!t&&!n&&!isin){ toast('Inserisci almeno un ticker, un nome o un ISIN','err'); setPosTab('det'); $('#fTicker').focus(); return; }
+    if(isin&&!isinValid(isin)){
+      toast(ISIN_BAD,'err'); setPosTab('det'); syncIsinUI(true,'f'); $('#fIsin').focus(); return;
+    }
   }
   const isNew=!UI.editId;
   const p=isNew?{id:uid()}:S.positions.filter(x=>x.id===UI.editId)[0];
@@ -5192,8 +5390,11 @@ function savePos(){
   else if(isNew)p.dateAdded=todayISO();
   else delete p.dateAdded;
   p.tx=UI.editTx.slice();
+  /* un conto: kind, tasso e valori fissi prima di derive(), che ne dipende */
+  if(dep)Object.assign(p,depositFromForm(p,$('#fRate').value));
   if(p.tx.length){ const d=derive(p); p.qty=d.qty; p.avg=d.avg; }
   else { p.qty=num($('#fQty').value); p.avg=num($('#fAvg').value); }
+  if(dep)fixDeposit(p);
   const eraChiusa=isClosed(p);
   syncClosed(p);
   if(isNew)S.positions.push(p);
@@ -5202,7 +5403,7 @@ function savePos(){
     toast('Posizione chiusa il '+fmtDate(p.closedDate)+' · resta in "Posizioni chiuse" con il suo realizzato','ok');
   else if(eraChiusa&&!isClosed(p))
     toast('Posizione riaperta: torna fra quelle attive','ok');
-  else toast(isNew?'Posizione aggiunta':'Posizione aggiornata','ok');
+  else toast(dep?(isNew?'Conto deposito aggiunto':'Conto deposito aggiornato'):(isNew?'Posizione aggiunta':'Posizione aggiornata'),'ok');
   if(UI.drawerId===p.id)openDrawer(p.id);
   if(p.ticker&&!num(p.price))refreshOne(p);
 }
@@ -5223,8 +5424,13 @@ function openSellAll(id){
   const q=num(p._q!=null?p._q:p.qty);
   if(q<=EPS_QTY){ toast('La quantità è già a zero: non c\'è nulla da vendere','err'); return; }
   closeDrawer(); openPos(id); setPosTab('tx');
-  $('#txType').value='sell';
+  $('#txType').value='sell'; syncTxLabels();
   $('#txDate').value=todayISO();
+  if(isDeposit(p)){
+    $('#txPrice').value=fnum(+q.toFixed(2));
+    toast('Prelievo precompilato: controlla importo e data, premi Aggiungi e poi Salva');
+    return;
+  }
   $('#txQty').value=fnum(+q.toFixed(8));
   $('#txPrice').value=fnum(num(p.price));
   $('#txFee').value='';
@@ -5251,6 +5457,8 @@ const yLookupURL=t=>'https://finance.yahoo.com/lookup?s='+encodeURIComponent(t);
    da refreshingIds a ogni render, quindi sopravvive a un re-render provocato
    da un'altra posizione mentre questa richiesta e' ancora in volo. */
 function refreshBtn(p){
+  if(isDeposit(p))return '<button class="rowbtn" disabled title="Conto deposito: il saldo si aggiorna con i movimenti">'+
+    ic('refresh',15)+'</button>';
   if(!p.ticker)return '<button class="rowbtn" disabled title="Nessun ticker impostato — '+
     'inserisci un simbolo per l\'aggiornamento automatico">'+ic('refresh',15)+'</button>';
   const busy=refreshingIds.has(p.id);
@@ -5259,7 +5467,7 @@ function refreshBtn(p){
     ic('refresh',15)+'</button>';
 }
 function refreshOne(p){
-  if(!p.ticker)return;
+  if(!p.ticker||isDeposit(p))return;   /* un conto non ha un prezzo da scaricare */
   if(refreshingIds.has(p.id))return;  /* click ripetuto: una richiesta basta */
   refreshingIds.add(p.id); renderTable();
   toast('Cerco '+p.ticker+'…');
@@ -5318,10 +5526,23 @@ function closeDrawer(){
 function openDrawer(id){
   const p=S.positions.filter(x=>x.id===id)[0]; if(!p)return;
   UI.drawerId=id;
-  const d=derive(p), cur=p.currency||BASE, up=p._pnl>=0;
+  const d=derive(p), cur=p.currency||BASE, up=p._pnl>=0, dep=isDeposit(p);
   const rk=Math.max(3,Math.min(9,Math.round(num(p.risk))||6));
   const a=ACT[p._action]||ACT.Ok;
-  const stats=[
+  const hasRate=p.rate!=null&&p.rate!=='', rate=num(p.rate), interest=d.interest*fxRate(p.currency);
+  /* un conto: saldo, capitale versato e interessi netti (saldo = versato +
+     interessi), il tasso e la rendita che ne viene; niente prezzi */
+  const depStats=[
+    ['Saldo',nf(p._q,2)+' '+esc(cur),1],
+    ['Capitale versato',money(p._cost),1],
+    ['Interessi netti',(interest>=0?'+':'−')+money(Math.abs(interest)),1,interest>=0?'up':'down'],
+    ['Peso nel portafoglio',nf(p._w,1)+'%',0],
+    ['Tasso annuo lordo',hasRate?nf(rate,2)+'%':'—',0],
+    ['Rendita annua stimata',hasRate?money(p._value*rate/100):'—',1],
+    Math.abs(p._realized)>=.005?['G/P realizzato',(p._realized>=0?'+':'−')+money(Math.abs(p._realized)),1,p._realized>=0?'up':'down']:null,
+    ['Fondo emergenza',p.emergency?'Sì':'No',0]
+  ];
+  const stats=(dep?depStats:[
     ['Quantità',qtyf(p._q),0],
     ['Prezzo di carico',nf(p._avg,2)+' '+cur,0],
     ['Prezzo attuale',nf(num(p.price),2)+' '+cur,0],
@@ -5332,18 +5553,19 @@ function openDrawer(id){
     d.usesTx?['Dividendi incassati',money(p._div),1]:null,
     ['Yield dividendo',p.yield!=null&&p.yield!==''?nf(num(p.yield),2)+'%':'—',0],
     ['Rendita annua stimata',p.yield?money(p._value*num(p.yield)/100):'—',1],
-    ['TER / costi annui',p.ter!=null&&p.ter!==''?nf(num(p.ter),2)+'%':'—',0],
+    ['TER / costi annui',p.ter!=null&&p.ter!==''?nf(num(p.ter),2)+'%':'—',0]
+  ]).concat([
     ['Piattaforma',esc(platformLabel(p.platform)||'—'),0],
     ['Categoria',esc(p.cls||'—'),0],
     ['Settore',esc(p.sector||'—'),0],
     ['Paese / Area',esc(p.country||'—'),0],
-    ['Fattore',esc(normFactor(p.factor)),0],
+    dep?null:['Fattore',esc(normFactor(p.factor)),0],
     ['Tier',esc(normPTier(p.tier)||'—'),0],
     ['In portafoglio dal',p.dateAdded?fmtDate(p.dateAdded):'—',0],
     ['Peso previsto',p.targetWeight!=null&&p.targetWeight!==''?nf(num(p.targetWeight),1)+'%':'—',0],
     ['Da operare',p._tDiff!=null?(p._tDiff>=0?'+':'−')+money0(Math.abs(p._tDiff)):'—',1,
       p._tDiff!=null?(p._tDiff>=0?'up':'down'):'']
-  ].filter(Boolean);
+  ]).filter(Boolean);
 
   const txs=(p.tx||[]).slice().sort((x,y)=>String(y.date).localeCompare(String(x.date))).slice(0,8);
 
@@ -5352,7 +5574,8 @@ function openDrawer(id){
       avatarHTML(p,{size:40,radius:12,font:14})+
       '<div style="flex:1;min-width:0">'+
         '<div style="font-size:16.5px;font-weight:730;letter-spacing:-.2px">'+esc(p.ticker||p.name||'—')+'</div>'+
-        '<div style="font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name||'')+'</div>'+
+        '<div style="font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
+          esc(dep?'Conto deposito'+(hasRate?' · tasso lordo '+nf(rate,2)+'%':''):(p.name||''))+'</div>'+
         (p.isin?'<div id="dwIsin" style="font-size:11px;color:var(--muted);letter-spacing:.3px;margin-top:2px">ISIN '+esc(p.isin)+'</div>':'')+
       '</div>'+
       '<span class="badge '+a.c+'" title="'+esc(a.t)+'">'+a.s+' '+esc(p._action)+'</span>'+
@@ -5365,7 +5588,8 @@ function openDrawer(id){
         '<span class="mask" style="font-size:13.5px;font-weight:650;color:var(--muted)">'+(up?'+':'−')+money(Math.abs(p._pnl))+'</span>'+
       '</div>'+
       '<div style="font-size:12px;color:var(--muted);margin-bottom:16px">'+
-        (d.usesTx?'⇄ derivato da '+d.txCount+' transazioni':'inserito manualmente')+
+        (dep?(d.usesTx?'⇄ saldo da '+d.txCount+(d.txCount===1?' movimento':' movimenti'):'saldo inserito a mano')
+          :(d.usesTx?'⇄ derivato da '+d.txCount+' transazioni':'inserito manualmente'))+
         ' · '+esc(String(p._w.toFixed(1)).replace('.',','))+'% del portafoglio</div>'+
       (p._stale?'<div class="note warn" style="margin-bottom:14px">'+
         '<b>Prezzo non aggiornato</b><br>'+esc(priceErrText(p))+
@@ -5380,10 +5604,10 @@ function openDrawer(id){
         '<div class="s"><div class="l">'+esc(s[0])+'</div>'+
         '<div class="v'+(s[1]==='—'?' ':' num')+(s[3]?' '+s[3]:'')+(s[2]?' mask':'')+'">'+s[1]+'</div></div>').join('')+'</div>'+
       (txs.length?'<div class="sec-t">Transazioni'+((p.tx||[]).length>8?' · ultime 8 di '+p.tx.length:'')+'</div>'+
-        txs.map(t=>{ const k=TXT[t.type]||TXT.buy, amt=txAmount(t);
-          const det=t.type==='fee'?nf(num(t.amount),2):qtyf(num(t.qty))+' × '+nf(num(t.price),4);
+        txs.map(t=>{ const k=TXT[t.type]||TXT.buy, amt=txShown(t);
+          const det=t.type==='fee'?nf(num(t.amount),2):t.type==='int'?txIntNote(t):dep?'':qtyf(num(t.qty))+' × '+nf(num(t.price),4);
           return '<div class="txr"><div class="ty '+k.c+'">'+k.s+'</div>'+
-            '<div class="tx-m"><div class="d1">'+esc(k.l)+'</div><div class="d2">'+fmtDate(t.date)+' · '+det+'</div></div>'+
+            '<div class="tx-m"><div class="d1">'+esc(txLabel(t,p))+'</div><div class="d2">'+fmtDate(t.date)+(det?' · '+det:'')+'</div></div>'+
             '<div class="am mask '+(amt>=0?'up':'down')+'">'+(amt>=0?'+':'−')+nf(Math.abs(amt),2)+'</div></div>';
         }).join(''):'')+
       (p.compSector||p.compCountry?'<div class="sec-t">Composizione dichiarata</div><div class="note">'+
@@ -5395,16 +5619,19 @@ function openDrawer(id){
     '</div>'+
     '<div class="dw-ft">'+
       '<button class="btn btn-primary btn-sm" id="dwEdit">'+ic('edit',15)+' Modifica</button>'+
-      '<button class="btn btn-ghost btn-sm" id="dwRefresh">'+ic('refresh',15)+' Aggiorna prezzo</button>'+
-      (isClosed(p)?'':'<button class="btn btn-ghost btn-sm" id="dwSell" title="Registra la vendita totale invece di eliminare la posizione">'+
-        ic('balance',15)+' Vendi tutto</button>')+
+      (dep?'':'<button class="btn btn-ghost btn-sm" id="dwRefresh">'+ic('refresh',15)+' Aggiorna prezzo</button>')+
+      (isClosed(p)?'':dep
+        ?'<button class="btn btn-ghost btn-sm" id="dwSell" title="Registra il prelievo di tutto il saldo invece di eliminare il conto">'+
+          ic('balance',15)+' Preleva tutto</button>'
+        :'<button class="btn btn-ghost btn-sm" id="dwSell" title="Registra la vendita totale invece di eliminare la posizione">'+
+          ic('balance',15)+' Vendi tutto</button>')+
       '<button class="btn btn-danger btn-sm" id="dwDel" style="margin-left:auto" '+
         'title="Cancella la posizione e tutto il suo storico">'+ic('trash',15)+'</button>'+
     '</div>';
 
   $('#dwClose').addEventListener('click',closeDrawer);
   $('#dwEdit').addEventListener('click',()=>{ closeDrawer(); openPos(p.id); });
-  $('#dwRefresh').addEventListener('click',()=>refreshOne(p));
+  if($('#dwRefresh'))$('#dwRefresh').addEventListener('click',()=>refreshOne(p));
   if($('#dwSell'))$('#dwSell').addEventListener('click',()=>openSellAll(p.id));
   $('#dwDel').addEventListener('click',()=>deletePos(p.id));
   $('#drawer').classList.add('on'); $('#drawerOv').classList.add('on');
@@ -5420,6 +5647,7 @@ function drawerChart(p){
       fmtY:v=>nf(v,v>=1000?0:(v>=10?1:2)),
       fmtTip:q=>nf(q.v,4)+' '+cur});
   };
+  if(isDeposit(p)){ host.innerHTML='<div class="note">Conto deposito: il saldo cambia con versamenti, prelievi e interessi.</div>'; return; }
   if(!p.ticker){ host.innerHTML='<div class="note">Aggiungi un ticker per scaricare lo storico del titolo.</div>'; return; }
   const c=PHIST[p.ticker];
   if(c&&c.pts&&c.pts.length&&Date.now()-c.at<6*3600e3){ paint(c.pts); return; }
@@ -5721,7 +5949,8 @@ const PERF_LBL={'1G':'oggi','1S':'nell\'ultima settimana','1M':'nell\'ultimo mes
    periodo (null = n.d.), vol il controvalore scambiato oggi in valuta base:
    volume (in numero di titoli) × prezzo × cambio, null se Yahoo non lo dà. */
 function perfRows(per,now){
-  return activePositions().filter(p=>p._value>0).map(p=>{
+  /* i conti deposito non hanno un prezzo di mercato: restano fuori dalla mappa */
+  return activePositions().filter(p=>p._value>0&&!isDeposit(p)).map(p=>{
     const v=num(p.vol), px=num(p.price);
     return {p:p,ret:perfPeriod(p,per,now),vol:v>0&&px>0?v*px*fxRate(p.currency):null};
   });
@@ -6122,7 +6351,10 @@ function portfolioSeries(){
        sia la volatilità di tutto il periodo iniziale. */
     if(wUsed>0)monthly.push({m:qr.grid[i+1],ret:sum/wUsed,cov:wUsed});
   }
-  return {monthly:monthly,coveragePct:T.value>0?totW/T.value*100:0,
+  /* i conti deposito non hanno storico prezzi e restano fuori dalle
+     metriche: non abbassano la copertura, la nota lo dice a parte */
+  const conti=activePositions().filter(isDeposit).reduce((a,p)=>a+p._value,0), inv=T.value-conti;
+  return {monthly:monthly,coveragePct:inv>0?totW/inv*100:0,conti:conti,
     nUsed:rows.length,nTotal:activePositions().filter(p=>p.ticker).length};
 }
 /* Volatilità annua del portafoglio: deviazione standard dei rendimenti mensili
@@ -6349,7 +6581,8 @@ function renderQuant(){
       'Mesi serviti per tornare al picco dopo il calo massimo. Il drawdown più lungo va dal picco al recupero, o fino a oggi se è ancora in corso.')+
   '</div>'+
   '<div class="statusline">Calcolato su '+res.monthly.length+' mesi di storico'+
-    (res.coveragePct<99.5?' · copertura '+nf(res.coveragePct,0)+'% del capitale ('+res.nUsed+'/'+res.nTotal+' posizioni)':'')+'.</div>';
+    (res.coveragePct<99.5?' · copertura '+nf(res.coveragePct,0)+'% del capitale in titoli ('+res.nUsed+'/'+res.nTotal+' posizioni)':'')+
+    (res.conti>0?' · conti deposito esclusi':'')+'.</div>';
 }
 
 /* ==========================================================================
@@ -7875,31 +8108,46 @@ function qtyAt(p,ts){
     if(iso0&&iso0<from)return {qty:0,cost:0,exact:false};
     return flat;
   }
-  const iso=isoOf(ts);
+  const iso=isoOf(ts), dep=isDeposit(p);
   let q=0,cost=0;
   tx.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(t=>{
     if(String(t.date)>iso)return;
-    if(t.type==='sell'){
+    if(t.type==='sell'&&dep){   /* come in derive(): prima il capitale */
+      const useQ=Math.min(num(t.qty),q);
+      cost-=q-useQ<1e-9?cost:Math.min(useQ,cost); q-=useQ; if(q<1e-9){q=0;cost=0;}
+    }else if(t.type==='sell'){
       const unit=q>0?cost/q:0, useQ=Math.min(num(t.qty),q);
       cost-=useQ*unit; q-=useQ; if(q<1e-9){q=0;cost=0;}
     }else if(t.type==='buy'){ q+=num(t.qty); cost+=num(t.qty)*num(t.price)+num(t.fee); }
+    else if(t.type==='int')q=Math.max(0,q+num(t.amount));   /* come in derive() */
   });
   return {qty:q,cost:cost,exact:true};
 }
 function reconstructedSeries(){
-  const rows=S.positions.filter(p=>p.ticker&&MHIST[p.ticker]&&MHIST[p.ticker].pts&&MHIST[p.ticker].pts.length>=2);
-  if(!rows.length)return null;
+  const titoli=S.positions.filter(p=>!isDeposit(p)&&p.ticker&&MHIST[p.ticker]&&MHIST[p.ticker].pts&&MHIST[p.ticker].pts.length>=2);
+  if(!titoli.length)return null;
   const months={};
-  rows.forEach(p=>{
+  titoli.forEach(p=>{
     (MHIST[p.ticker].pts||[]).forEach(q=>{ months[monthIdx(q.t)]=q.t; });
   });
   const keys=Object.keys(months).map(Number).sort((a,b)=>a-b);
   if(keys.length<2)return null;
+  /* I conti deposito non hanno storico prezzi: valgono 1 in ogni mese dei
+     titoli, così la serie conta il saldo come lo conta T.value. I mesi li
+     danno solo i titoli: senza, nessuna serie, anche con dei conti. */
+  const conti=S.positions.filter(isDeposit), rows=titoli.concat(conti);
+  const hk=p=>isDeposit(p)?p.id:p.ticker;
   const priceMap={};
-  rows.forEach(p=>{
+  titoli.forEach(p=>{
     const m={}; (MHIST[p.ticker].pts||[]).forEach(q=>{ m[monthIdx(q.t)]=q.v; });
     priceMap[p.ticker]=m;
   });
+  conti.forEach(p=>{ const m={}; keys.forEach(k=>{ m[k]=1; }); priceMap[p.id]=m; });
+  /* interessi accreditati in (da, a]: sono rendimento, non versamento */
+  const interest=(p,da,a)=>(p.tx||[]).reduce((s,t)=>{
+    const d=String(t.date||'').slice(0,10);
+    return t.type==='int'&&d>da&&d<=a?s+num(t.amount):s;
+  },0);
   let exactAll=true, covered=0;
   rows.forEach(p=>{ if(!(p.tx||[]).length)exactAll=false; covered+=p._value; });
   /* Un mese senza dati non e' un valore: prima veniva saltato in silenzio e
@@ -7912,13 +8160,13 @@ function reconstructedSeries(){
     let value=0,cost=0,any=false;
     const hold=[];
     rows.forEach(p=>{
-      const price=priceMap[p.ticker][k]; if(price==null)return;
+      const price=priceMap[hk(p)][k]; if(price==null)return;
       const at=qtyAt(p,months[k]);
       if(at.qty<=0)return;
       const fx=fxRate(p.currency);
       value+=at.qty*price*fx;
       cost+=at.cost*fx;
-      hold.push({tk:p.ticker,qty:at.qty,price:price,fx:fx});
+      hold.push({tk:hk(p),qty:at.qty,price:price,fx:fx,p:p});
       any=true;
     });
     if(any){
@@ -7931,9 +8179,13 @@ function reconstructedSeries(){
          percentuali a quattro cifre senza aver reso niente. */
       if(prevHold){
         let v0=0,v1=0;
+        const da=isoOf(months[prevK]), a=isoOf(months[k]);
         prevHold.forEach(h=>{
           const pk=priceMap[h.tk][k]; if(pk==null)return;
-          v0+=h.qty*h.price*h.fx; v1+=h.qty*pk*h.fx;
+          /* un conto rende solo con gli interessi del periodo: il saldo di
+             inizio periodo più quelli, al prezzo fisso 1 */
+          const q1=isDeposit(h.p)?Math.max(0,h.qty+interest(h.p,da,a)):h.qty;
+          v0+=h.qty*h.price*h.fx; v1+=q1*pk*h.fx;
         });
         if(v0>0)chain*=v1/v0;
       }
@@ -7948,7 +8200,7 @@ function reconstructedSeries(){
     }
   });
   if(out.length<2)return null;
-  return {pts:out,exact:exactAll,nUsed:rows.length,nTotal:S.positions.filter(p=>p.ticker).length,
+  return {pts:out,exact:exactAll,nUsed:rows.length,nTotal:S.positions.filter(p=>p.ticker||isDeposit(p)).length,
     coveragePct:T.value>0?covered/T.value*100:0};
 }
 /* Rendimento time-weighted per gli snapshot manuali. Qui i singoli movimenti
@@ -8011,15 +8263,18 @@ function heroDailySeries(range,now){
   if(!activeCount()||T.value<=0)return null;
   if(range==='1G')return heroIntradaySeries(now);
   const target=perfTarget(range,now); if(target==null)return null;
-  const has=p=>!!(p&&p.ticker&&DHIST[p.ticker]&&(DHIST[p.ticker].pts||[]).length>=2);
+  const daily=p=>!!(p&&!isDeposit(p)&&p.ticker&&DHIST[p.ticker]&&(DHIST[p.ticker].pts||[]).length>=2);
+  /* i conti deposito valgono 1 a ogni data, come in reconstructedSeries():
+     ci sono sempre, ma i giorni li danno solo i titoli */
+  const has=p=>isDeposit(p)||daily(p);
   /* anche le chiuse: una posizione venduta a metà finestra c'è fino al giorno
      della vendita (qtyAt), come in reconstructedSeries() */
   const rows=S.positions.filter(has);
-  if(!rows.length)return null;
+  if(!rows.some(daily))return null;
   /* un punto per ogni giorno, dopo quello di partenza e prima di oggi, in cui
      almeno un titolo ha una chiusura; oggi è il punto dal vivo */
   const today=dayKeyOf(now), k0=dayKeyOf(target), days={};
-  rows.forEach(p=>DHIST[p.ticker].pts.forEach(q=>{
+  rows.filter(daily).forEach(p=>DHIST[p.ticker].pts.forEach(q=>{
     const k=dayKeyOf(q.t); if(k>k0&&k<today)days[k]=Math.max(days[k]||0,q.t);
   }));
   /* Ogni titolo vale l'ultima chiusura nota fino a quel momento: un giorno
@@ -8030,7 +8285,7 @@ function heroDailySeries(range,now){
   const point=(t,tau)=>{
     let value=0,cost=0,n=0;
     rows.forEach(p=>{
-      const ref=dailyRef(DHIST[p.ticker].pts,tau), px=ref&&ref.v;
+      const ref=isDeposit(p)?null:dailyRef(DHIST[p.ticker].pts,tau), px=isDeposit(p)?1:ref&&ref.v;
       if(!(px>0))return;
       const at=qtyAt(p,tau); if(!(at.qty>EPS_QTY))return;
       const fx=fxRate(p.currency);
@@ -8074,7 +8329,9 @@ const IDAY_STEP=15*60e3;
 function heroIntradaySeries(now){
   const act=activePositions(), start=T.value-T.day;
   const curve=[], miss=[], ferme=[], fuori=[];
+  let conti=0;   /* un conto deposito è fermo per davvero: la sua curva è esatta */
   act.forEach(p=>{
+    if(isDeposit(p)){ conti+=p._value; return; }
     if(!p.ticker)return;
     const c=IDAY[p.ticker];
     if(!c||!c.pts||c.pts.length<2){ miss.push(p); return; }
@@ -8082,7 +8339,7 @@ function heroIntradaySeries(now){
     if(pc>0&&prev>0&&Math.abs(prev/pc-1)>.001){ miss.push(p); return; }
     curve.push({p:p,pts:c.pts,h24:!!c.h24,start:pc>0?pc:(prev>0?prev:c.pts[0].v)});
   });
-  let covered=0;
+  let covered=conti;
   const info={range:'1G',miss:miss,ferme:ferme,fuori:fuori,loading:!!idayRun,fallback:false,sess:now};
   if(!curve.length){
     /* nessuna curva (rete giù o ancora in arrivo): chiusura precedente → ora */
@@ -8452,7 +8709,7 @@ function allTxRows(){
   return rows.sort((a,b)=>String(b.t.date).localeCompare(String(a.t.date))||
     String(a.p.ticker||'').localeCompare(String(b.p.ticker||''),'en'));
 }
-const TX_BADGE={buy:'u',sell:'d',div:'g',fee:''};
+const TX_BADGE={buy:'u',sell:'d',div:'g',fee:'',int:'g'};
 function populateTxFilters(all){
   const sp=$('#txFltPos'), st=$('#txFltType'); if(!sp||!st)return;
   const seen={},opts=[];
@@ -8462,8 +8719,12 @@ function populateTxFilters(all){
   sp.innerHTML='<option value="">Titolo: tutti</option>'+opts.map(p=>
     '<option value="'+esc(p.id)+'"'+(UI.txFilters.pos===p.id?' selected':'')+'>'+
     esc(p.ticker||p.name||'—')+'</option>').join('');
-  st.innerHTML='<option value="">Tipo: tutti</option>'+Object.keys(TXT).map(k=>
-    '<option value="'+k+'"'+(UI.txFilters.type===k?' selected':'')+'>'+esc(TXT[k].l)+'</option>').join('');
+  /* con un conto deposito acquisti e vendite comprendono versamenti e
+     prelievi, e compaiono gli interessi; senza, il menu resta quello di sempre */
+  const dep=all.some(({p,t})=>isDeposit(p)||t.type==='int');
+  const lbl={buy:'Acquisto o versamento',sell:'Vendita o prelievo'};
+  st.innerHTML='<option value="">Tipo: tutti</option>'+Object.keys(TXT).filter(k=>dep||k!=='int').map(k=>
+    '<option value="'+k+'"'+(UI.txFilters.type===k?' selected':'')+'>'+esc(dep&&lbl[k]||TXT[k].l)+'</option>').join('');
 }
 function renderTxAll(){
   const body=$('#txAllBody'); if(!body)return;
@@ -8492,15 +8753,17 @@ function renderTxAll(){
     '<th class="hide-sm">Commissioni</th><th>Importo</th>'+
     '</tr></thead><tbody>'+
     rows.map(({p,t})=>{
-      const k=TXT[t.type]||TXT.buy, amt=txAmount(t), cur=p.currency||BASE, fee=num(t.fee);
-      const hasQty=t.type==='buy'||t.type==='sell';
+      const k=TXT[t.type]||TXT.buy, amt=txShown(t), cur=p.currency||BASE, fee=num(t.fee);
+      /* su un conto quantità e prezzo (importo × 1) ripeterebbero l'importo, e
+         fuori dalla colonna mascherata */
+      const hasQty=!isDeposit(p)&&(t.type==='buy'||t.type==='sell');
       /* il dividendo registrato come importo unico non ha un prezzo unitario */
       const hasPrice=hasQty||(t.type==='div'&&t.amount==null);
       const dash='<span class="cellsub">–</span>';
       return '<tr class="clk" data-txpos="'+esc(p.id)+'">'+
         '<td><div style="font-weight:650">'+esc(p.ticker||p.name||'—')+'</div>'+
           (p.name&&p.ticker?'<div class="cellsub">'+esc(p.name)+'</div>':'')+'</td>'+
-        '<td><span class="badge '+(TX_BADGE[t.type]||'')+'">'+k.s+' '+esc(k.l)+'</span></td>'+
+        '<td><span class="badge '+(TX_BADGE[t.type]||'')+'">'+k.s+' '+esc(txLabel(t,p))+'</span></td>'+
         '<td class="num">'+(t.date?fmtDate(t.date):dash)+'</td>'+
         '<td class="num">'+(hasQty?qtyf(num(t.qty)):dash)+'</td>'+
         '<td class="num">'+(hasPrice?locCell(num(t.price),cur):dash)+'</td>'+
@@ -9359,9 +9622,10 @@ function exportTx(){
   const lines=[['Ticker','ISIN','Tipo','Data','Quantità','Prezzo','Commissioni','Importo','Valuta'].join(',')];
   rows.sort((a,b)=>String(a.t.date).localeCompare(String(b.t.date)));
   rows.forEach(({p,t})=>lines.push([
-    p.ticker,p.isin||'',(TXT[t.type]||TXT.buy).l,t.date,
-    t.type==='fee'?'':num(t.qty), t.type==='fee'?num(t.amount):num(t.price),
-    num(t.fee), txAmount(t).toFixed(2), p.currency||'EUR'
+    p.ticker,p.isin||'',txLabel(t,p),t.date,
+    t.type==='fee'||t.type==='int'?'':num(t.qty),
+    t.type==='fee'?num(t.amount):t.type==='int'?'':num(t.price),
+    num(t.fee), txShown(t).toFixed(2), p.currency||'EUR'
   ].map(csvField).join(',')));
   download('transazioni_'+stamp()+'.csv','﻿'+lines.join('\n'),'text/csv;charset=utf-8');
   toast('Transazioni esportate','ok');
@@ -9735,6 +9999,7 @@ function wire(){
   /* --- scheda posizione --- */
   $$('#posTabs button').forEach(b=>b.addEventListener('click',()=>setPosTab(b.getAttribute('data-t'))));
   $('#fCur').addEventListener('change',renderTxList);
+  $('#fKind').addEventListener('change',()=>setPosKind($('#fKind').value));
   $('#txType').addEventListener('change',syncTxLabels);
   $('#txAdd').addEventListener('click',addTx);
   $('#posSave').addEventListener('click',savePos);
