@@ -2326,7 +2326,7 @@ const SECTORS=['Technology','Financials','Healthcare','Energy','Consumer Discret
 const BASE_COUNTRIES=['Italy','USA','Germany','France','UK','Switzerland','Netherlands',
   'Sweden','Denmark','Norway','Finland','Spain','Ireland','Belgium','Austria',
   'Japan','China','India','Canada','Australia','South Korea','Taiwan','Brazil',
-  'Europe','Eurozone','North America','Asia-Pacific','Emerging Markets','World'];
+  'Europe','North America','Asia-Pacific','Emerging Markets','World'];
 
 /* ---- alias: canonico -> varianti riconosciute (it/en, sing./plur., sigle) ---- */
 const CLS_ALIAS={
@@ -2416,8 +2416,9 @@ const CTR_ALIAS={
   'South Korea':['Corea del Sud','Corea','South Korea','Korea','KOR'],
   'Taiwan':['Taiwan','TWN'],
   'Brazil':['Brasile','Brazil','BRA'],
-  'Europe':['Europa','Europe','Europeo','Europea'],
-  'Eurozone':['Eurozona','Zona Euro','Area Euro','Eurozone','Euro Area','EMU'],
+  /* l'Eurozona non è una voce a sé: confluisce in Europe */
+  'Europe':['Europa','Europe','Europeo','Europea',
+            'Eurozona','Zona Euro','Area Euro','Eurozone','Euro Area','EMU'],
   'North America':['Nord America','Nordamerica','Nord-America','North America'],
   'Asia-Pacific':['Asia-Pacifico','Asia Pacifico','Asia-Pacific','Asia Pacific','APAC','Pacifico','Pacific'],
   'Emerging Markets':['Mercati Emergenti','Mercati emergenti','Emergenti','Paesi emergenti',
@@ -2723,8 +2724,6 @@ const pctv=(n,d)=>(n>=0?'+':'−')+nf(Math.abs(n),d==null?2:d)+'%';
 const qtyf=n=>Number(n||0).toLocaleString('it-IT',{maximumFractionDigits:6});
 const todayISO=()=>new Date().toISOString().slice(0,10);
 function fmtDate(iso){ if(!iso)return '—'; const p=String(iso).slice(0,10).split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
-function fmtDateShort(iso){ const d=new Date(iso);
-  return d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'}); }
 function fmtTime(ts){ return new Date(ts).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}); }
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -3338,12 +3337,12 @@ Chart.area=function(host,pts,opt){
       dots+
       '<circle cx="'+last.x.toFixed(1)+'" cy="'+last.y.toFixed(1)+'" r="3.6" fill="'+col+'"/>'+
       '<circle cx="'+last.x.toFixed(1)+'" cy="'+last.y.toFixed(1)+'" r="7" fill="'+col+'" opacity=".22"/>'+
-      '<g id="cur" opacity="0"><line class="ct-cursor" x1="0" y1="'+padT+'" x2="0" y2="'+(padT+ih)+'"/>'+
+      '<g class="ct-cur" opacity="0"><line class="ct-cursor" x1="0" y1="'+padT+'" x2="0" y2="'+(padT+ih)+'"/>'+
         '<circle r="4.5" fill="'+col+'" stroke="var(--surface)" stroke-width="2"/></g>'+
-      '<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="transparent" id="hit"/>'+
-    '</svg><div class="ct-tip" id="tip"></div>';
+      '<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="transparent"/>'+
+    '</svg><div class="ct-tip"></div>';
 
-  const svg=host.querySelector('svg'), cur=host.querySelector('#cur'), tip=host.querySelector('#tip');
+  const svg=host.querySelector('svg'), cur=host.querySelector('.ct-cur'), tip=host.querySelector('.ct-tip');
   function move(ev){
     const r=svg.getBoundingClientRect();
     const cx=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;
@@ -5676,15 +5675,21 @@ function tierRgba(tier,a){
   const h=parseInt(TIER_HEX[tier].slice(1),16);
   return 'rgba('+((h>>16)&255)+','+((h>>8)&255)+','+(h&255)+','+a.toFixed(2)+')';
 }
+/* Due righe che dopo la normalizzazione hanno lo stesso nome ("Stati Uniti" e
+   "USA", "Europa" ed "Eurozona") diventano una voce sola con la somma delle
+   quote, al posto della prima: altrimenti il dettaglio di una piastrella
+   mostrerebbe lo stesso ETF due volte e l'elenco ETF conterebbe un paese in più. */
 function parseComposition(text,norm){
   if(!text)return [];
-  const out=[];
+  const out=[],at={};
   String(text).split(/\r?\n/).forEach(line=>{
     line=line.trim(); if(!line)return;
     const m=line.match(/^(.+?)[:;\t,]\s*([\d.,]+)\s*%?\s*$/);
     if(!m)return;
     const name=norm?norm(m[1].trim()):m[1].trim(), p=num(m[2].replace(',','.'));
-    if(name&&p>0)out.push({name:name,pct:p});
+    if(!name||!(p>0))return;
+    if(at[name]!=null)out[at[name]].pct+=p;
+    else{ at[name]=out.length; out.push({name:name,pct:p}); }
   });
   return out;
 }
@@ -6799,7 +6804,7 @@ const SC_REGION={
 const SC_CTR2REG={
   'Italy':'Eurozone','France':'Eurozone','Germany':'Eurozone','Netherlands':'Eurozone',
   'Spain':'Eurozone','Ireland':'Eurozone','Belgium':'Eurozone','Austria':'Eurozone',
-  'Finland':'Eurozone','Eurozone':'Eurozone',
+  'Finland':'Eurozone',
   'UK':'Europe ex-EZ','Switzerland':'Europe ex-EZ','Sweden':'Europe ex-EZ',
   'Denmark':'Europe ex-EZ','Norway':'Europe ex-EZ','Europe':'Europe ex-EZ',
   'USA':'North America','Canada':'North America','North America':'North America',
@@ -8052,9 +8057,9 @@ Chart.lines=function(host,seriesList,opt){
       'stroke-linejoin="round" stroke-linecap="round"'+(s.main?'':' opacity=".8"')+'/>':'';
   }).join('');
   host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'">'+grid+xl+paths+
-    '<g id="cur" opacity="0"><line class="ct-cursor" x1="0" y1="'+padT+'" x2="0" y2="'+(padT+ih)+'"/></g>'+
-    '<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="transparent"/></svg><div class="ct-tip" id="tip"></div>';
-  const svg=host.querySelector('svg'), cur=host.querySelector('#cur'), tip=host.querySelector('#tip');
+    '<g class="ct-cur" opacity="0"><line class="ct-cursor" x1="0" y1="'+padT+'" x2="0" y2="'+(padT+ih)+'"/></g>'+
+    '<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="transparent"/></svg><div class="ct-tip"></div>';
+  const svg=host.querySelector('svg'), cur=host.querySelector('.ct-cur'), tip=host.querySelector('.ct-tip');
   svg.addEventListener('pointermove',ev=>{
     const r=svg.getBoundingClientRect();
     const x=(ev.clientX-r.left)/r.width*W;
