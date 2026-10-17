@@ -16,8 +16,13 @@
    perché il turchese su bianco avrebbe 1,5:1, e lì --on-accent torna bianco.
    --up sta a 24° di tonalità dall'accento: guadagni e perdite non si
    confondono con la linea del grafico. --sky ha preso il posto di --teal, che
-   col verde acqua quasi coincideva. Contrasti e distanze: test-rifinitura.js. */
-:root{
+   col verde acqua quasi coincideva. Contrasti e distanze: test-rifinitura.js.
+   Temi: scuro (default, :root), chiaro, Martin pescatore e Terra e argilla.
+   I campioni del menu dei temi (.thm-sw) portano un proprio data-theme e
+   prendono i colori dal blocco del loro tema, per questo ogni blocco vale anche
+   per .thm-sw. Il selettore del campione sta davanti: i test cercano
+   ":root{" e 'html[data-theme="…"]{' così come sono scritti. */
+.thm-sw[data-theme="dark"],:root{
   color-scheme:dark;
   --bg:#0a0d12;
   --bg-2:#0e131a;
@@ -53,7 +58,7 @@
   --r:16px; --r-sm:11px; --r-lg:22px;
   --sb-w:250px;
 }
-html[data-theme="light"]{
+.thm-sw[data-theme="light"],html[data-theme="light"]{
   color-scheme:light;
   --bg:#f3f5f9;
   --bg-2:#e9edf4;
@@ -86,6 +91,81 @@ html[data-theme="light"]{
   --shadow:0 1px 2px rgba(15,20,28,.05),0 12px 30px rgba(15,20,28,.08);
   --shadow-sm:0 1px 3px rgba(15,20,28,.07);
   --logo-ring:rgba(15,20,28,.12);
+}
+/* Martin pescatore e Terra e argilla: accento e guadagno sono lo stesso
+   colore (turchese, salvia). Linea del grafico e pillole ▲ si distinguono per
+   forma e segno, non per tinta. I token di categoria (--gold, --sky, --warn)
+   vengono dal tema scuro o chiaro, tranne --sky e --warn in Martin pescatore:
+   più azzurro il primo, per staccarsi dal turchese, più giallo il secondo,
+   per non confondersi con l'arancio della perdita. Su --surface-3 (hover e
+   riempimenti) niente testo piccolo in --up o --down. Soglie: test-temi.js. */
+.thm-sw[data-theme="martin"],html[data-theme="martin"]{
+  color-scheme:dark;
+  --bg:#0b1a1e;
+  --bg-2:#0e1f24;
+  --surface:#12262b;
+  --surface-2:#1a333a;
+  --surface-3:#234049;
+  --line:#25444c;
+  --line-soft:#1b343b;
+  --ink:#e8f3f4;
+  --ink-soft:#9fb8bc;
+  --muted:#7a959b;
+  --accent:#1aa6b7;
+  --accent-2:#3b9ad0;
+  --accent-ink:#4cc3d1;
+  --accent-soft:rgba(26,166,183,.14);
+  --on-accent:#04161a;
+  --accent-glow:rgba(26,166,183,.28);
+  --gold:#e8b13c;
+  --gold-soft:rgba(232,177,60,.14);
+  --sky:#6ea8ff;
+  --sky-soft:rgba(110,168,255,.14);
+  --up:#1aa6b7;
+  --up-soft:rgba(26,166,183,.14);
+  --down:#e9803a;
+  --down-soft:rgba(233,128,58,.14);
+  --warn:#e9c84a;
+  --warn-soft:rgba(233,200,74,.14);
+  --topbar:rgba(11,26,30,.78);
+  --sidebar:#0d1e23;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 14px 36px rgba(0,0,0,.38);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.45);
+  --logo-ring:rgba(255,255,255,.10);
+}
+.thm-sw[data-theme="terra"],html[data-theme="terra"]{
+  color-scheme:light;
+  --bg:#ede4d3;
+  --bg-2:#e7ddc9;
+  --surface:#f6f0e4;
+  --surface-2:#ece3d0;
+  --surface-3:#e3d8c2;
+  --line:#cfc3aa;
+  --line-soft:#ddd2bc;
+  --ink:#2a2a24;
+  --ink-soft:#5c5a4d;
+  --muted:#6f6c5b;
+  --accent:#4f6544;
+  --accent-2:#5d7549;
+  --accent-ink:#3f5336;
+  --accent-soft:rgba(79,101,68,.12);
+  --on-accent:#f6f0e4;
+  --accent-glow:rgba(79,101,68,.25);
+  --gold:#c58a12;
+  --gold-soft:rgba(197,138,18,.12);
+  --sky:#1f78c8;
+  --sky-soft:rgba(31,120,200,.12);
+  --up:#4f6544;
+  --up-soft:rgba(79,101,68,.12);
+  --down:#9a4529;
+  --down-soft:rgba(154,69,41,.12);
+  --warn:#c98410;
+  --warn-soft:rgba(201,132,16,.12);
+  --topbar:rgba(237,228,211,.8);
+  --sidebar:#f6f0e4;
+  --shadow:0 1px 2px rgba(42,42,36,.06),0 12px 30px rgba(42,42,36,.10);
+  --shadow-sm:0 1px 3px rgba(42,42,36,.08);
+  --logo-ring:rgba(42,42,36,.12);
 }
 
 /* ==========================================================================
@@ -167,6 +247,34 @@ body.sb-collapsed .sb-item{justify-content:center;padding:11px 0}
 .sb-mini:hover{background:var(--surface-2);color:var(--ink)}
 body.sb-collapsed .sb-mini .lbl{display:none}
 body.sb-collapsed .sb-mini{justify-content:center;padding:9px 0}
+.sb-mini .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.sb-mini[aria-expanded="true"]{background:var(--surface-2);color:var(--ink)}
+
+/* --- menu dei temi ---
+   Sta fuori dalla sidebar (overflow:hidden) e dal foglio "More" (che ha un
+   transform): è fixed e lo posiziona placeThemeMenu() accanto al pulsante.
+   Ogni campione ha il suo data-theme e i colori del suo tema; il bordo dei
+   campioni usa --thm-frame, calcolato qui col grigio del tema attivo. */
+.thm-menu{position:fixed;z-index:190;width:236px;max-width:calc(100vw - 16px);padding:5px;
+  border-radius:var(--r-sm);background:var(--surface);border:1px solid var(--line);
+  box-shadow:var(--shadow);--thm-frame:var(--muted);animation:thmIn .14s ease-out}
+.thm-menu[hidden]{display:none}
+@keyframes thmIn{from{opacity:0;transform:translateY(4px)}}
+.thm-hd{font-size:10.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--muted);padding:7px 10px 6px}
+.thm-item{display:flex;align-items:center;gap:11px;width:100%;padding:9px 10px;border-radius:8px;
+  font-size:13px;font-weight:600;color:var(--ink-soft);text-align:left;outline:none}
+.thm-item:hover{background:var(--surface-2);color:var(--ink)}
+.thm-item:focus-visible{background:var(--surface-2);color:var(--ink);box-shadow:inset 0 0 0 2px var(--accent)}
+.thm-item[aria-checked="true"]{color:var(--ink)}
+.thm-sw{display:flex;gap:3px;flex:none}
+.thm-sw i{width:13px;height:13px;border-radius:4px;box-shadow:0 0 0 1px var(--thm-frame)}
+.thm-sw i:nth-child(1){background:var(--bg)}
+.thm-sw i:nth-child(2){background:var(--surface)}
+.thm-sw i:nth-child(3){background:var(--accent)}
+.thm-n{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thm-ck{flex:none;display:grid;color:var(--accent-ink);visibility:hidden}
+.thm-item[aria-checked="true"] .thm-ck{visibility:visible}
 
 .main{min-width:0;display:flex;flex-direction:column}
 /* .wrap sta sullo stesso elemento di .page e di .tb-in, con la stessa
@@ -422,6 +530,9 @@ tbody tr:last-child td{border-bottom:0}
 }
 html[data-theme="light"] .field input,html[data-theme="light"] .field select,
 html[data-theme="light"] .field textarea,html[data-theme="light"] .inp{background:#fff}
+/* in Terra e argilla i campi sono crema come le card, non bianchi */
+html[data-theme="terra"] .field input,html[data-theme="terra"] .field select,
+html[data-theme="terra"] .field textarea,html[data-theme="terra"] .inp{background:var(--surface)}
 .field input:focus,.field select:focus,.field textarea:focus,.inp:focus{border-color:var(--accent)}
 .field textarea{min-height:88px;resize:vertical;font-size:13px}
 .field .hint{font-size:11.5px;color:var(--muted);margin-top:5px}
@@ -518,6 +629,9 @@ html[data-theme="light"] .field textarea,html[data-theme="light"] .inp{backgroun
   display:flex;align-items:center;gap:9px;animation:tin .2s ease}
 .toast.ok{border-color:var(--up);color:var(--up)}
 .toast.err{border-color:var(--down);color:var(--down)}
+/* Martin pescatore: turchese e arancio su --surface-3 restano sotto 4,5:1
+   (3,8 e 4,0), su --surface-2 ci arrivano */
+html[data-theme="martin"] .toast{background:var(--surface-2)}
 @keyframes tin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 
 /* ==========================================================================
@@ -536,6 +650,9 @@ html[data-theme="light"] .field textarea,html[data-theme="light"] .inp{backgroun
 .sheet.on{transform:none}
 .sheet .grab{width:38px;height:4px;border-radius:4px;background:var(--surface-3);margin:4px auto 12px}
 .sheet .sb-item{font-size:15px;padding:13px 14px}
+.sheet-foot{border-top:1px solid var(--line);margin-top:10px;padding-top:6px}
+.sheet-foot .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.sb-item[aria-expanded="true"]{background:var(--surface-2);color:var(--ink)}
 
 /* ==========================================================================
    13b. COMPONENTI DASHBOARD — filtri, donut, contributo, tabella, drawer
@@ -547,6 +664,7 @@ html[data-theme="light"] .field textarea,html[data-theme="light"] .inp{backgroun
   background:var(--surface-2);font-size:12.5px;color:var(--ink);outline:none;max-width:100%;
   transition:border-color .15s}
 html[data-theme="light"] .filters select,html[data-theme="light"] .filters input,html[data-theme="light"] .hsel{background:#fff}
+html[data-theme="terra"] .filters select,html[data-theme="terra"] .filters input,html[data-theme="terra"] .hsel{background:var(--surface)}
 .filters select:focus,.filters input:focus,.hsel:focus{border-color:var(--accent)}
 .filters .fs{flex:1;min-width:170px;max-width:250px}
 .fcount{font-size:12px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
@@ -835,6 +953,7 @@ tbody tr.clk{cursor:pointer}
   background:var(--surface-2);color:var(--ink);font-size:13.5px;outline:none;
   font-variant-numeric:tabular-nums;transition:border-color .15s}
 html[data-theme="light"] .rb-in{background:#fff}
+html[data-theme="terra"] .rb-in{background:var(--surface)}
 .rb-in:focus{border-color:var(--accent)}
 .rb-act{text-align:right}
 .rb-bar{grid-column:1/-1;position:relative;margin-top:-1px}
@@ -845,12 +964,17 @@ html[data-theme="light"] .rb-in{background:#fff}
    Il quarto livello non ha un token dedicato nella palette: usa l'arancio
    già presente tra i colori categorici, tra --warn e --down. */
 .badge.o{background:rgba(240,138,60,.14);color:#f08a3c}
-html[data-theme="light"] .badge.o{background:rgba(199,102,20,.12);color:#c76614}
+html[data-theme="light"] .badge.o,html[data-theme="terra"] .badge.o{background:rgba(199,102,20,.12);color:#c76614}
+/* Martin pescatore: quell'arancio coincide con --down (ΔE 4,6), "Strong drift"
+   e "Critical" sembravano uguali. Lì il quarto livello passa all'ambra di --gold,
+   fra il giallo di --warn e l'arancio di --down. */
+html[data-theme="martin"] .badge.o{background:var(--gold-soft);color:var(--gold)}
 /* spia della banda a riga chiusa: vive nel padding della card, non sposta nulla */
 .rb-row.lv1::before,.rb-row.lv2::before,.rb-row.lv3::before{content:"";position:absolute;
   left:-11px;top:11px;bottom:11px;width:3px;border-radius:3px}
 .rb-row.lv1::before{background:var(--warn)}
 .rb-row.lv2::before{background:#f08a3c}
+html[data-theme="martin"] .rb-row.lv2::before{background:var(--gold)}
 .rb-row.lv3::before{background:var(--down)}
 .rb-dev{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px}
 .rb-dev .dv{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -886,6 +1010,7 @@ html[data-theme="light"] .badge.o{background:rgba(199,102,20,.12);color:#c76614}
   outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;
   text-overflow:ellipsis;transition:border-color .15s}
 html[data-theme="light"] .sc-pick select{background:#fff}
+html[data-theme="terra"] .sc-pick select{background:var(--surface)}
 .sc-pick select:focus{border-color:var(--accent)}
 .sc-pick .chv{position:absolute;right:14px;top:50%;transform:translateY(-50%) rotate(90deg);
   color:var(--accent-ink);pointer-events:none;display:flex;opacity:.8}
@@ -1019,6 +1144,7 @@ tbody tr.sc-row.on td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 .maptbl select{width:100%;padding:7px 9px;border-radius:9px;border:1px solid var(--line);
   background:var(--surface-2);color:var(--ink);font-size:12.5px;outline:none}
 html[data-theme="light"] .maptbl select{background:#fff}
+html[data-theme="terra"] .maptbl select{background:var(--surface)}
 .maptbl select:focus{border-color:var(--accent)}
 
 .codebox{background:var(--bg-2);border:1px solid var(--line);border-radius:11px;padding:13px 15px;
@@ -1069,6 +1195,8 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .modal{max-width:none;border-radius:18px;max-height:92vh}
   .frow{grid-template-columns:1fr}
   .field input,.field select,.field textarea,.inp{font-size:16px}
+  /* voci del menu dei temi alte almeno 44 px, per il tocco */
+  .thm-item{padding:14px 12px;font-size:14px}
   .hide-xs{display:none!important}
   .alloc{gap:16px}
   .txadd,.txadd.dep{grid-template-columns:1fr 1fr;gap:9px}
@@ -1221,7 +1349,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
     </div>
     <div class="sb-scroll" id="sbNav"></div>
     <div class="sb-foot">
-      <button class="sb-mini" id="btnTheme"><span class="ic"></span><span class="lbl">Light theme</span></button>
+      <button class="sb-mini" id="btnTheme" aria-haspopup="menu" aria-expanded="false" aria-controls="themeMenu"><span class="ic"></span><span class="lbl">Theme</span></button>
       <button class="sb-mini" id="btnCollapse"><span class="ic"></span><span class="lbl">Collapse menu</span></button>
       <div class="sb-mini" id="cloudMini" style="display:none;color:var(--accent-ink)">
         <span class="ic">☁</span><span class="lbl">Cloud on</span></div>
@@ -1993,7 +2121,10 @@ html[data-theme="light"] .maptbl select{background:#fff}
 <!-- ===================== MOBILE ===================== -->
 <nav class="tabbar"><div class="tabbar-in" id="tabNav"></div></nav>
 <div class="ov" id="sheetOv" style="background:rgba(4,6,10,.5)"></div>
-<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetNav"></div></div>
+<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetNav"></div>
+  <div class="sheet-foot"><button class="sb-item" id="btnThemeM" aria-haspopup="menu" aria-expanded="false" aria-controls="themeMenu"><span class="ic"></span><span class="lbl">Theme</span></button></div></div>
+<!-- menu dei temi: lo aprono #btnTheme (sidebar) e #btnThemeM (foglio "More" su mobile) -->
+<div class="thm-menu" id="themeMenu" role="menu" aria-label="Theme" hidden></div>
 
 <!-- ===================== DRAWER (dettaglio posizione) ===================== -->
 <div class="drawer-ov" id="drawerOv"></div>
@@ -2278,6 +2409,7 @@ const P={
   plus:'<path d="M12 5v14M5 12h14"/>',
   moon:'<path d="M20.5 14.3A8.5 8.5 0 1 1 9.7 3.5a6.8 6.8 0 0 0 10.8 10.8z"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M2 12h2M20 12h2M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   collapse:'<path d="M15 6l-6 6 6 6"/><path d="M20 4v16"/>',
   expand:'<path d="M9 6l6 6-6 6"/><path d="M4 4v16"/>',
   chev:'<path d="M9 6l6 6-6 6"/>',
@@ -3471,12 +3603,77 @@ function toast(msg,kind){
   setTimeout(()=>{ el.style.transition='opacity .25s,transform .25s'; el.style.opacity='0';
     el.style.transform='translateY(8px)'; setTimeout(()=>el.remove(),260); },2600);
 }
+/* Temi: valore in S.settings.theme, nome nel menu, scuro o chiaro (luna o
+   sole sul pulsante). Un valore che non è in elenco vale come il tema scuro,
+   senza riscrivere l'impostazione salvata. I colori stanno solo nel CSS. */
+const THEMES=[
+  {v:'dark',  n:'Dark',            dark:true},
+  {v:'light', n:'Light',           dark:false},
+  {v:'martin',n:'Martin pescatore',dark:true},
+  {v:'terra', n:'Terra e argilla', dark:false}
+];
+const themeOf=v=>THEMES.find(t=>t.v===v)||THEMES[0];
 function applyTheme(){
-  const dark=S.settings.theme!=='light';
-  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
-  const b=$('#btnTheme');
-  b.querySelector('.ic').innerHTML=ic(dark?'sun':'moon',17);
-  b.querySelector('.lbl').textContent=dark?'Light theme':'Dark theme';
+  const t=themeOf(S.settings.theme);
+  document.documentElement.setAttribute('data-theme',t.v);
+  [['#btnTheme',17],['#btnThemeM',20]].forEach(([sel,sz])=>{
+    const b=$(sel); if(!b)return;
+    b.querySelector('.ic').innerHTML=ic(t.dark?'moon':'sun',sz);
+    b.querySelector('.lbl').textContent='Theme: '+t.n;
+    b.title='Theme: '+t.n;
+  });
+  $$('#themeMenu [data-theme-v]').forEach(x=>
+    x.setAttribute('aria-checked',x.getAttribute('data-theme-v')===t.v?'true':'false'));
+}
+/* --- menu dei temi: un pulsante con aria-haspopup apre quattro voci
+   menuitemradio. Frecce, Home e Fine spostano il focus; Esc e Tab chiudono
+   e riportano il focus al pulsante, come la scelta di una voce. --- */
+let themeMenuFrom=null;           /* pulsante che ha aperto il menu, null se chiuso */
+function themeMenuHTML(cur){
+  const on=themeOf(cur).v;
+  return '<div class="thm-hd" aria-hidden="true">Theme</div>'+THEMES.map(t=>
+    '<button type="button" class="thm-item" role="menuitemradio" tabindex="-1" data-theme-v="'+t.v+'"'+
+      ' aria-checked="'+(t.v===on?'true':'false')+'">'+
+      '<span class="thm-sw" data-theme="'+t.v+'" aria-hidden="true"><i></i><i></i><i></i></span>'+
+      '<span class="thm-n">'+esc(t.n)+'</span>'+
+      '<span class="thm-ck" aria-hidden="true">'+ic('check',16)+'</span></button>').join('');
+}
+/* sopra il pulsante; con la sidebar compressa alla sua destra, allineato in
+   basso. Sempre dentro la finestra, a 8 px dai bordi. */
+function placeThemeMenu(m,btn){
+  const r=btn.getBoundingClientRect(), pad=8, w=m.offsetWidth, h=m.offsetHeight;
+  const side=btn.id==='btnTheme'&&document.body.classList.contains('sb-collapsed');
+  let x=side?r.right+8:r.left, y=side?r.bottom-h:r.top-h-6;
+  x=Math.max(pad,Math.min(x,innerWidth-w-pad));
+  y=Math.max(pad,Math.min(y,innerHeight-h-pad));
+  m.style.left=Math.round(x)+'px'; m.style.top=Math.round(y)+'px';
+}
+function openThemeMenu(btn){
+  const m=$('#themeMenu');
+  m.innerHTML=themeMenuHTML(S.settings.theme);
+  m.hidden=false; themeMenuFrom=btn; btn.setAttribute('aria-expanded','true');
+  placeThemeMenu(m,btn);
+  (m.querySelector('[aria-checked="true"]')||m.querySelector('.thm-item')).focus();
+}
+function closeThemeMenu(refocus){
+  const b=themeMenuFrom; if(!b)return;
+  $('#themeMenu').hidden=true; themeMenuFrom=null;
+  b.setAttribute('aria-expanded','false');
+  if(refocus)b.focus();
+}
+function pickTheme(v){
+  S.settings.theme=v; applyTheme(); save(); closeThemeMenu(true); renderPage(UI.page);
+}
+function themeMenuKey(e){
+  const items=$$('#themeMenu .thm-item'), n=items.length, i=items.indexOf(document.activeElement);
+  if(e.key==='Escape'||e.key==='Tab'){
+    /* stopPropagation: l'Esc globale chiuderebbe anche il foglio "More" */
+    e.preventDefault(); e.stopPropagation(); closeThemeMenu(true);
+  }else if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault(); items[(i+(e.key==='ArrowDown'?1:n-1))%n].focus();
+  }else if(e.key==='Home'||e.key==='End'){
+    e.preventDefault(); items[e.key==='Home'?0:n-1].focus();
+  }
 }
 function applyPrivacy(){
   document.body.classList.toggle('privacy',!!S.settings.privacy);
@@ -8462,13 +8659,21 @@ function lumRgb(c){
   const f=v=>{ v/=255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4); };
   return .2126*f(c[0])+.7152*f(c[1])+.0722*f(c[2]);
 }
+/* contrasto WCAG fra due colori, ciascuno come [r,g,b] o come stringa */
+function contrastRgb(a,b){
+  const x=lumRgb(typeof a==='string'?hexRgb(a):a), y=lumRgb(typeof b==='string'?hexRgb(b):b);
+  return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);
+}
 /* Colore di una cella: dal neutro al polo del segno, intensità |ret|/cap.
-   Scala diverging a due poli: nessun colore intermedio arbitrario. */
+   Scala diverging a due poli: nessun colore intermedio arbitrario. Il testo
+   è quello dei due inchiostri che contrasta di più col fondo: con una soglia
+   fissa di luminanza (,45) le tinte medie dei temi chiari avevano il testo
+   bianco, fino a 2,1:1 in Terra e argilla. */
 function heatCell(ret,cap,pal){
   if(ret==null||!isFinite(ret))return null;
   const t=cap>0?Math.min(Math.abs(ret)*100/cap,1):0;
   const bg=mixRgb(pal.neutral,ret<0?pal.down:pal.up,t);
-  return {bg:bg,fg:lumRgb(bg)>.45?pal.inkDark:pal.inkLight,t:t};
+  return {bg:bg,fg:contrastRgb(bg,pal.inkDark)>contrastRgb(bg,pal.inkLight)?pal.inkDark:pal.inkLight,t:t};
 }
 /* Rendimento cumulato: si compone, non si somma. */
 function compoundRet(rets){
@@ -8519,11 +8724,14 @@ function heatTickers(mIdx){
   });
   return out;
 }
-/* palette corrente, letta dal tema attivo */
+/* palette corrente, letta dal tema attivo. L'inchiostro scuro è il più scuro
+   fra --ink e --bg: nei temi scuri --ink è chiaro, e con due inchiostri chiari
+   il testo sulle tinte piene scendeva a 1,97:1 (verde, Dark). */
 function heatPal(){
   const cs=getComputedStyle(document.documentElement), g=k=>cs.getPropertyValue(k);
+  const ink=hexRgb(g('--ink')), bg=hexRgb(g('--bg'));
   return {neutral:hexRgb(g('--surface-3')), up:hexRgb(g('--up')), down:hexRgb(g('--down')),
-          inkLight:'#ffffff', inkDark:hexRgb(g('--ink'))};
+          inkLight:'#ffffff', inkDark:lumRgb(bg)<lumRgb(ink)?bg:ink};
 }
 const heatFg=v=>typeof v==='string'?v:rgbCss(v);
 const pctIt=r=>(r>=0?'+':'−')+nf(Math.abs(r)*100,1)+'%';
@@ -9904,9 +10112,23 @@ function renderAll(){
    14. EVENTI
    ========================================================================== */
 function wire(){
-  $('#btnTheme').addEventListener('click',()=>{
-    S.settings.theme=S.settings.theme==='light'?'dark':'light'; applyTheme(); save(); renderPage(UI.page);
+  /* --- menu dei temi --- */
+  ['#btnTheme','#btnThemeM'].forEach(sel=>$(sel).addEventListener('click',e=>{
+    const b=e.currentTarget;
+    if(themeMenuFrom===b){ closeThemeMenu(true); return; }
+    closeThemeMenu(false); openThemeMenu(b);
+  }));
+  $('#themeMenu').addEventListener('click',e=>{
+    const it=e.target.closest('[data-theme-v]'); if(it)pickTheme(it.getAttribute('data-theme-v'));
   });
+  $('#themeMenu').addEventListener('keydown',themeMenuKey);
+  /* clic fuori: il focus torna al pulsante solo se non l'ha preso un altro elemento */
+  document.addEventListener('click',e=>{
+    if(!themeMenuFrom||e.target.closest('#themeMenu,#btnTheme,#btnThemeM'))return;
+    const a=document.activeElement;
+    closeThemeMenu(!a||a===document.body||$('#themeMenu').contains(a));
+  });
+  window.addEventListener('resize',()=>closeThemeMenu(false));
   $('#btnCollapse').addEventListener('click',()=>{
     S.settings.collapsed=!S.settings.collapsed; applyCollapsed(); save();
     setTimeout(()=>renderPage(UI.page),260);
