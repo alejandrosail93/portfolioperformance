@@ -39,7 +39,6 @@
   --gold-soft:rgba(232,177,60,.14);
   --sky:#4fb0ff;
   --sky-soft:rgba(79,176,255,.14);
-  --violet:#a072f0;
   --up:#34d27b;
   --up-soft:rgba(52,210,123,.14);
   --down:#f2565b;
@@ -76,7 +75,6 @@ html[data-theme="light"]{
   --gold-soft:rgba(197,138,18,.12);
   --sky:#1f78c8;
   --sky-soft:rgba(31,120,200,.12);
-  --violet:#7b46cc;
   --up:#12a150;
   --up-soft:rgba(18,161,80,.12);
   --down:#dc3b40;
@@ -252,7 +250,6 @@ html[data-theme="light"] .seg button.on{background:#fff}
 .card-hd .sub{font-size:12px;color:var(--muted);font-weight:500}
 .card-hd .right{margin-left:auto;display:flex;align-items:center;gap:8px}
 .card-bd{padding:20px}
-.card-bd.tight{padding:14px 20px}
 .chip{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none}
 .chip.a{background:var(--accent-soft);color:var(--accent-ink)}
 .chip.g{background:var(--gold-soft);color:var(--gold)}
@@ -275,7 +272,6 @@ html[data-theme="light"] .seg button.on{background:#fff}
 @media(min-width:1121px) and (max-width:1460px){
   .g2-dash .card-hd .seg button{padding-left:7px;padding-right:7px}
 }
-.g3{grid-template-columns:repeat(3,1fr)}
 
 /* ==========================================================================
    7. KPI
@@ -500,8 +496,6 @@ html[data-theme="light"] .field textarea,html[data-theme="light"] .inp{backgroun
   place-items:center;margin:0 auto 14px;color:var(--muted)}
 .empty .big{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px}
 .empty .sm{font-size:13px;max-width:380px;margin:0 auto}
-.soon{display:flex;align-items:center;justify-content:center;gap:10px;padding:60px 20px;color:var(--muted);
-  font-size:13.5px;border:1px dashed var(--line);border-radius:var(--r);background:var(--surface)}
 .sec-t{font-size:12px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);
   margin:26px 0 12px}
 .kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line-soft);
@@ -1066,7 +1060,7 @@ html[data-theme="light"] .maptbl select{background:#fff}
   .tb-title h1{font-size:17px}
   .tb-search{display:none}
   .tb-pv{display:none}
-  .g2,.g3{grid-template-columns:1fr}
+  .g2{grid-template-columns:1fr}
   .hero-val .big{font-size:30px;letter-spacing:-1px}
   .card-bd{padding:16px}
   .card-hd{padding:14px 16px}
@@ -2718,7 +2712,6 @@ function signedEur0(x){
   if(typeof x!=='number'||!isFinite(x))return '–';
   return (x>0||Object.is(x,0)?'+':'−')+'€ '+Math.round(Math.abs(x)).toLocaleString('it-IT');
 }
-const moneyAuto=n=>Math.abs(n)>=10000?money0(n):money(n);
 const sgn=n=>(n>=0?'+':'−');
 const pctv=(n,d)=>(n>=0?'+':'−')+nf(Math.abs(n),d==null?2:d)+'%';
 const qtyf=n=>Number(n||0).toLocaleString('it-IT',{maximumFractionDigits:6});
@@ -4595,7 +4588,6 @@ function normPTier(v){
   devWarn('ptier:'+s,'Tier non riconosciuto: "'+v+'", resta non assegnato');
   return '';
 }
-const ptierColor=t=>PTIER_COLORS[normPTier(t)]||'var(--muted)';
 /* Menu Tier sopra la tabella, come quello della piattaforma: elenco fisso col
    numero di titoli; "Non assegnato" solo finché c'è un titolo senza tier. */
 function fillTierSelect(sel,cur){
@@ -5381,7 +5373,11 @@ function savePos(){
   const p=isNew?{id:uid()}:S.positions.filter(x=>x.id===UI.editId)[0];
   if(!p)return;
   Object.assign(p,descFromForm('f'));
+  const px0=num(p.price);
   p.price=num($('#fPrice').value);
+  /* un prezzo scritto a mano non viene dalla quotazione: chiusura di ieri e
+     volume restano solo se il prezzo è quello di prima (vedi refreshPrices) */
+  if(!isNew&&p.price!==px0){ p.prevClose=null; p.vol=null; }
   /* la data scritta dall'utente vince sempre; per le nuove posizioni, se il
      campo è vuoto, si registra oggi */
   const da=$('#fDateAdded').value;
@@ -5526,7 +5522,6 @@ function openDrawer(id){
   const p=S.positions.filter(x=>x.id===id)[0]; if(!p)return;
   UI.drawerId=id;
   const d=derive(p), cur=p.currency||BASE, up=p._pnl>=0, dep=isDeposit(p);
-  const rk=Math.max(3,Math.min(9,Math.round(num(p.risk))||6));
   const a=ACT[p._action]||ACT.Ok;
   const hasRate=p.rate!=null&&p.rate!=='', rate=num(p.rate), interest=d.interest*fxRate(p.currency);
   /* un conto: saldo, capitale versato e interessi netti (saldo = versato +
@@ -5543,8 +5538,8 @@ function openDrawer(id){
   ];
   const stats=(dep?depStats:[
     ['Quantità',qtyf(p._q),0],
-    ['Prezzo di carico',nf(p._avg,2)+' '+cur,0],
-    ['Prezzo attuale',nf(num(p.price),2)+' '+cur,0],
+    ['Prezzo di carico',nf(p._avg,2)+' '+esc(cur),0],
+    ['Prezzo attuale',nf(num(p.price),2)+' '+esc(cur),0],
     ['Peso nel portafoglio',nf(p._w,1)+'%',0],
     ['Capitale investito',money(p._cost),1],
     ['Variazione di oggi',p.prevClose?pctv(p._dayPct):'—',0,p._day>=0?'up':'down'],
@@ -5644,7 +5639,7 @@ function drawerChart(p){
     const up=pts[pts.length-1].v>=pts[0].v;
     Chart.area(host,pts,{height:150,padR:44,color:up?'var(--up)':'var(--down)',
       fmtY:v=>nf(v,v>=1000?0:(v>=10?1:2)),
-      fmtTip:q=>nf(q.v,4)+' '+cur});
+      fmtTip:q=>nf(q.v,4)+' '+esc(cur)});
   };
   if(isDeposit(p)){ host.innerHTML='<div class="note">Conto deposito: il saldo cambia con versamenti, prelievi e interessi.</div>'; return; }
   if(!p.ticker){ host.innerHTML='<div class="note">Aggiungi un ticker per scaricare lo storico del titolo.</div>'; return; }
@@ -7554,6 +7549,9 @@ function saveWatch(){
   /* in modifica si parte dal titolo salvato: prezzo, chiusura di ieri e ogni
      campo che la scheda non mostra restano com'erano */
   const obj=Object.assign({},old||{},watchFromForm(id));
+  /* un altro ticker è un altro titolo: la quotazione del vecchio non vale più,
+     e senza prezzo quella nuova si chiede qui sotto */
+  if(old&&String(old.ticker||'').trim().toUpperCase()!==obj.ticker){ obj.price=null; obj.prevClose=null; obj.vol=null; }
   if(old)S.watchlist=S.watchlist.map(x=>x===old?obj:x);
   else S.watchlist.push(obj);
   save(); closeAll(); renderAll();
@@ -7582,7 +7580,7 @@ function watchToPortfolio(){
   S.positions.push(p);
   if(id)S.watchlist=S.watchlist.filter(x=>x.id!==id);
   save(); closeAll(); renderAll();
-  toast(esc(p.ticker||p.name||p.isin)+' spostato nel portafoglio','ok');
+  toast((p.ticker||p.name||p.isin)+' spostato nel portafoglio','ok');
   if(p.ticker)refreshOne(p);
 }
 function refreshWatchOne(w){
