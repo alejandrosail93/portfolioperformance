@@ -543,6 +543,21 @@ html[data-theme="terra"] .field textarea,html[data-theme="terra"] .inp{backgroun
 #fIsin,#fwIsin{text-transform:uppercase}
 #fIsin::placeholder,#fwIsin::placeholder{text-transform:none}
 #fIsinHint:empty,#fwIsinHint:empty{display:none}
+/* "Thesis and scores" in fondo ai Dettagli, nella scheda posizione e nella
+   watchlist: un blocco che si apre e si chiude, generato da rulesFieldsHTML() */
+.rl-fields{margin-top:16px;border:1px solid var(--line-soft);border-radius:var(--r-sm)}
+.rl-fields>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px;
+  padding:11px 14px;font-size:13px;font-weight:650;color:var(--ink-soft)}
+.rl-fields>summary::-webkit-details-marker{display:none}
+.rl-fields>summary::before{content:"";flex:none;width:6px;height:6px;margin:0 2px;
+  border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s}
+.rl-fields[open]>summary::before{transform:rotate(45deg)}
+.rl-fields>summary .sub{margin-left:auto;font-size:11.5px;font-weight:500;color:var(--muted)}
+.rl-fields .rl-in{padding:2px 14px 14px}
+.rl-fields .rl-in>.hint{font-size:11.5px;color:var(--muted);margin:-8px 0 14px}
+.rl-fields .field:last-child{margin-bottom:0}
+.rl-fields textarea{min-height:58px}
+.frow3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .field .hint.bad{color:var(--warn)}
 /* logo nella scheda: anteprima accanto al nome, tre pulsanti sotto */
 .logo-prev{flex:none;display:grid;place-items:center}
@@ -970,13 +985,23 @@ html[data-theme="light"] .badge.o,html[data-theme="terra"] .badge.o{background:r
    fra il giallo di --warn e l'arancio di --down. */
 html[data-theme="martin"] .badge.o{background:var(--gold-soft);color:var(--gold)}
 /* spia della banda a riga chiusa: vive nel padding della card, non sposta nulla */
-.rb-row.lv1::before,.rb-row.lv2::before,.rb-row.lv3::before{content:"";position:absolute;
+.rb-row.lv1::before,.rb-row.lv2::before,.rb-row.lv3::before,.rb-row.tpo::before{content:"";position:absolute;
   left:-11px;top:11px;bottom:11px;width:3px;border-radius:3px}
 .rb-row.lv1::before{background:var(--warn)}
 .rb-row.lv2::before{background:#f08a3c}
 html[data-theme="martin"] .rb-row.lv2::before{background:var(--gold)}
 .rb-row.lv3::before{background:var(--down)}
 .rb-dev{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px}
+/* "By tier": spia rossa fuori banda, fascia della banda sulla barra, badge
+   compra/vendi e di banda affiancati, campi min e max nel dettaglio */
+.rb-row.tpo::before{background:var(--down)}
+.rb-off{display:none!important}
+.rb-bar .bz{position:absolute;top:0;height:7px;border-radius:6px;background:var(--ink);opacity:.16;pointer-events:none}
+.tp-badges{display:inline-flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.tp-band{display:flex;gap:10px 16px;flex-wrap:wrap;margin-top:10px}
+.tp-band label{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted)}
+.tp-band .rb-in{width:76px}
+.rb-un{font-size:11.5px;color:var(--muted);line-height:1.4}
 .rb-dev .dv{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 .rb-tip{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:7px}
 .rb-tax{margin-top:9px;padding:11px 13px;border-radius:11px;
@@ -1165,6 +1190,81 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
 .dangerbox b{color:var(--warn)}
 
 /* ==========================================================================
+   13c. REGOLE — checklist di acquisto e vendita
+   ========================================================================== */
+/* parametri: card che si apre e si chiude dalla testata */
+.rl-hd{cursor:pointer;user-select:none}
+.rl-hd:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.rl-hd .tg{display:grid;place-items:center;color:var(--muted);transition:transform .18s}
+.rl-par.open .rl-hd .tg{transform:rotate(90deg)}
+.rl-par:not(.open) #rlPar{display:none}
+.rl-par:not(.open) .rl-hd{border-bottom:0}
+/* tabella dei tier: nome, tetto, totale minimo, gruppo */
+.rl-trow{display:grid;grid-template-columns:minmax(0,1.4fr) repeat(3,minmax(0,1fr));gap:8px 12px;
+  align-items:center;padding:7px 0;border-bottom:1px solid var(--line-soft)}
+.rl-trow.hd{font-size:11.5px;font-weight:650;color:var(--muted);padding-top:0}
+.rl-trow .tn{display:flex;align-items:center;gap:8px;font-weight:650;font-size:13.5px;min-width:0}
+.rl-trow .tn .bdot{width:9px;height:9px;border-radius:3px;flex:none}
+.rl-trow .tn .cellsub{font-weight:500;color:var(--muted);font-size:11.5px}
+.rl-trow .rb-in{text-align:left}
+.rl-trow select.rb-in{padding:7px 6px}
+.rl-lims{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0 16px;margin-top:18px}
+.rl-lims .field{margin-bottom:13px}
+.rl-lims .field label{font-weight:600}
+.rl-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rl-lk{display:inline-block;margin-top:6px;padding:0;background:none;border:0;font-size:11.5px;font-weight:650;
+  color:var(--accent-ink);text-decoration:underline;cursor:pointer}
+/* caselle: etichetta (auto o manuale), dettaglio, stato */
+.rl-item{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+.rl-item:last-child{border-bottom:0}
+.rl-item .rl-chk{flex:1;min-width:0;display:flex;gap:10px;align-items:flex-start}
+.rl-item label.rl-chk{cursor:pointer}
+.rl-item input[type=checkbox]{margin:2px 0 0;width:17px;height:17px;flex:none;accent-color:var(--accent)}
+.rl-item .rl-tx{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.rl-item .rl-lb{font-size:13.5px;font-weight:650;color:var(--ink);line-height:1.4}
+.rl-item .rl-kind{font-size:10px;font-weight:650;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.6px;margin-left:6px;white-space:nowrap}
+.rl-item .rl-dt{font-size:12px;color:var(--muted);line-height:1.5;overflow-wrap:anywhere}
+.rl-item .rl-dt b{color:var(--ink-soft)}
+.rl-item .badge{flex:none;margin-top:1px}
+.rl-item .inp{margin-top:7px;padding:7px 10px;font-size:13px;max-width:440px}
+.rl-item .btn{margin-top:8px;align-self:flex-start}
+/* esito: una riga colorata con lo stesso significato dei badge */
+.rl-out{margin-top:14px;padding:12px 14px;border-radius:11px;font-size:13px;font-weight:650;line-height:1.45;
+  background:var(--surface-2);border:1px solid var(--line-soft);color:var(--ink-soft)}
+.rl-out.u{background:var(--up-soft);color:var(--up);border-color:transparent}
+.rl-out.d{background:var(--down-soft);color:var(--down);border-color:transparent}
+.rl-out.w{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.rl-out .sm{display:block;font-size:12px;font-weight:500;margin-top:3px;opacity:.9}
+.rl-facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px 16px;
+  padding:12px 14px;border-radius:11px;background:var(--surface-2);border:1px solid var(--line-soft)}
+.rl-facts .l{font-size:10.5px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.rl-facts .v{font-size:14px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+.rl-facts .v.up{color:var(--up)}
+.rl-facts .v.down{color:var(--down)}
+.rl-sel{width:auto;max-width:240px;padding:7px 10px;font-size:13px}
+.rl-qty{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:6px}
+.rl-steps{margin:8px 0 0;padding-left:18px;font-size:12px;color:var(--muted);line-height:1.6}
+.rl-item .rl-dt.warn{color:var(--warn)}
+.rl-sub{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12.5px;color:var(--ink-soft);cursor:pointer}
+.rl-sub input,.rl-done input{width:16px;height:16px;margin:0;flex:none;accent-color:var(--accent)}
+.rl-acts{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-top:14px}
+.rl-acts .hint{font-size:11.5px;color:var(--muted)}
+/* registro delle decisioni */
+.rl-log-row{display:grid;grid-template-columns:minmax(0,1.1fr) 84px minmax(0,2.4fr) 104px 74px 30px;gap:10px;
+  align-items:center;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:13px}
+.rl-log-row:last-child{border-bottom:0}
+.rl-log-row.hd{font-size:11.5px;font-weight:650;color:var(--muted);padding-top:0}
+.rl-log-row .lg-t{display:flex;flex-direction:column;min-width:0}
+.rl-log-row .lg-t b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rl-log-row .cellsub{font-size:11.5px;color:var(--muted)}
+.rl-log-row .inp{padding:7px 10px;font-size:12.5px}
+.rl-log-row .wt{display:flex;flex-direction:column;font-variant-numeric:tabular-nums}
+.rl-log-row .wt.wait{color:var(--warn)}
+.rl-log-row.done .lg-t,.rl-log-row.done .wt{opacity:.6}
+.rl-done{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;color:var(--ink-soft)}
+
+/* ==========================================================================
    14. RESPONSIVE
    ========================================================================== */
 @media(max-width:1120px){
@@ -1232,6 +1332,26 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   .goal-foot{gap:6px 14px;font-size:12px}
 }
 @media(max-width:560px){
+  /* Ribilanciamento: con "By tier" i tre pulsanti della modalità non stanno
+     accanto a "Expand all": vanno su una riga loro, a tutta larghezza */
+  #pg-ribilanciamento .card-hd .right{flex-wrap:wrap}
+  #rbMode{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}
+  #rbMode button{padding:6px 4px}
+  /* Regole: il nome del tier su una riga sua, i tre campi sotto; nel
+     registro titolo, operazione ed elimina, poi il motivo, poi attesa e fatto */
+  .rl-trow{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .rl-trow .tn{grid-column:1/-1}
+  .rl-trow.hd>div:first-child{display:none}
+  .rl-sel{max-width:none;width:100%}
+  #rlSellCard .card-hd .right,#rlBuyCard .card-hd .right{margin-left:0;width:100%}
+  .rl-log-row{grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"tk op del" "mo mo mo" "wt done done";gap:8px 10px}
+  .rl-log-row.hd{display:none}
+  .rl-log-row>:nth-child(1){grid-area:tk}
+  .rl-log-row>:nth-child(2){grid-area:op}
+  .rl-log-row>:nth-child(3){grid-area:mo}
+  .rl-log-row>:nth-child(4){grid-area:wt;flex-direction:row;gap:8px;align-items:baseline}
+  .rl-log-row>:nth-child(5){grid-area:done;justify-self:end}
+  .rl-log-row>:nth-child(6){grid-area:del}
   .kpis{grid-template-columns:1fr 1fr;gap:10px}
   .kpi{padding:13px 14px}
   .kpi .v{font-size:20px}
@@ -1735,7 +1855,7 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
             <div class="card-hd"><h2><span class="chip t" id="chipRb"></span> Rebalancing plan</h2>
               <div class="right"><button class="btn btn-ghost btn-sm" id="rbToggleAll">Expand all</button>
                 <span class="seg" id="rbMode">
-                <button data-m="cat" class="on">By category</button><button data-m="pos">By asset</button>
+                <button data-m="cat" class="on">By category</button><button data-m="pos">By asset</button><button data-m="tier">By tier</button>
               </span></div>
             </div>
             <div class="card-bd">
@@ -1760,7 +1880,7 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
                 <input id="rbCash" type="text" inputmode="decimal" placeholder="0" value="0">
                 <div class="hint">Il piano tiene conto del capitale extra: ti dice quanto comprare o vendere per raggiungere i target.</div>
               </div>
-              <div class="field">
+              <div class="field" id="rbBandsField">
                 <label>Drift bands from target %</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
                   <input id="rbBand1" type="text" inputmode="decimal" placeholder="10" value="10" aria-label="Watch threshold %">
@@ -1768,6 +1888,10 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
                   <input id="rbBand3" type="text" inputmode="decimal" placeholder="30" value="30" aria-label="Critical threshold %">
                 </div>
                 <div class="hint">Le tre soglie aprono <b>Watch</b>, <b>Strong drift</b> e <b>Critical</b>. Sono scostamenti <b>relativi</b> al target, non punti percentuali: un target del 5% che sta al 6% è +20%.</div>
+              </div>
+              <div class="field rb-off" id="rbBandsNote">
+                <label>Drift bands from target %</label>
+                <div class="hint">Le bande relative valgono per categoria e per titolo. Per tier ogni riga ha la sua banda assoluta, <b>min</b> e <b>max</b> in punti percentuali, nel dettaglio della riga.</div>
               </div>
               <div class="field">
                 <label>Estimated capital gains tax %</label>
@@ -1777,9 +1901,16 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
               <div class="kv"><span class="k">Current value</span><span class="v num mask" id="rbCur">€ 0</span></div>
               <div class="kv"><span class="k">To invest</span><span class="v num mask" id="rbNew">€ 0</span></div>
               <div class="kv"><span class="k">Total after rebalancing</span><span class="v num mask" id="rbTot">€ 0</span></div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px" id="rbEqBtns">
                 <button class="btn btn-ghost btn-sm" id="rbEqual">Equal-weight targets</button>
                 <button class="btn btn-ghost btn-sm" id="rbCurrent">Use current weights</button>
+              </div>
+              <div class="rb-off" id="rbTierPar">
+                <div class="kv"><span class="k">Emergency band</span><span class="v" id="rbEmTxt"></span></div>
+                <div class="hint" style="font-size:11.5px;color:var(--muted);margin-top:4px">La soglia si cambia nella pagina <b>Rules</b>, nei parametri.</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+                  <button class="btn btn-ghost btn-sm" id="rbTierReset">Restore default bands</button>
+                </div>
               </div>
             </div>
           </div>
@@ -1789,6 +1920,40 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
           <div class="card-hd"><h2><span class="chip a" id="chipRbPlan"></span> Trades to make</h2>
             <div class="right"><span class="sub" id="rbPlanSub"></span></div></div>
           <div class="card-bd"><div class="plan" id="rbPlan"></div></div>
+        </div>
+      </section>
+
+      <section class="page wrap" id="pg-regole">
+        <div class="card rl-par" id="rlParCard">
+          <div class="card-hd rl-hd" id="rlParHd" role="button" tabindex="0" aria-expanded="false" aria-controls="rlPar">
+            <h2><span class="chip g" id="chipRlPar"></span> Parameters</h2>
+            <div class="right"><span class="sub" id="rlParSub"></span><span class="tg" id="rlParTg"></span></div>
+          </div>
+          <div class="card-bd" id="rlPar"></div>
+        </div>
+
+        <div class="card mt18" id="rlPreCard">
+          <div class="card-hd"><h2><span class="chip t" id="chipRlPre"></span> Before any order</h2>
+            <div class="right"><span class="sub" id="rlPreSub"></span></div></div>
+          <div class="card-bd" id="rlPre"></div>
+        </div>
+
+        <div class="card mt18" id="rlSellCard">
+          <div class="card-hd"><h2><span class="chip d" id="chipRlSell"></span> Sell checklist</h2>
+            <div class="right"><select class="inp rl-sel" id="rlSellSel" aria-label="Position to check"></select></div></div>
+          <div class="card-bd" id="rlSell"></div>
+        </div>
+
+        <div class="card mt18" id="rlBuyCard">
+          <div class="card-hd"><h2><span class="chip u" id="chipRlBuy"></span> Buy checklist</h2>
+            <div class="right"><select class="inp rl-sel" id="rlBuySel" aria-label="Asset to check"></select></div></div>
+          <div class="card-bd" id="rlBuy"></div>
+        </div>
+
+        <div class="card mt18" id="rlLogCard">
+          <div class="card-hd"><h2><span class="chip a" id="chipRlLog"></span> Decision log</h2>
+            <div class="right"><span class="sub" id="rlLogSub"></span></div></div>
+          <div class="card-bd" id="rlLog"></div>
         </div>
       </section>
 
@@ -2259,6 +2424,7 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
     </div>
     <div class="field" style="margin-bottom:0"><label>Notes</label>
       <textarea id="fwNote" placeholder="Why it interests you, at what price you'd buy…" style="min-height:60px"></textarea></div>
+    <div id="fwRules"></div>
     <div class="note" style="margin-top:15px;margin-bottom:0">Compila <b>quantità</b> e <b>prezzo previsto</b> per poter spostare il titolo direttamente nel portafoglio.</div>
     <input type="hidden" id="fwId">
   </div>
@@ -2354,6 +2520,7 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
       </div>
       <div class="field" style="margin-bottom:0"><label>Notes</label>
         <textarea id="fNote" placeholder="Investment thesis, reminders…" style="min-height:64px"></textarea></div>
+      <div id="fRules"></div>
     </div>
 
     <div id="tabTx" style="display:none">
@@ -2658,16 +2825,138 @@ function simDefaults(){
   return {init:10000,pac:300,years:20,rate:7,infl:2,retSkew:0,pacSkew:0,vol:null,seed:42,
     ter:0,taxBase:null};
 }
+/* Parametri della pagina Regole (checklist di acquisto e vendita). Per tier:
+   tetto di peso del singolo titolo (null = nessun tetto) e totale minimo dei
+   voti (null = non impostato: la scala del totale la sceglie l'utente). I
+   tier sono scritti per esteso perché blankState() gira prima di PTIERS; un
+   test controlla che siano gli stessi. groups: il gruppo di ogni tier, '' =
+   non ancora scelto. Gli altri numeri vengono dalla checklist dell'utente. */
+const RULES_DEFAULT={
+  tiers:{Core:{cap:5,minScore:null},Cash:{cap:null,minScore:null},Hedge:{cap:5,minScore:null},
+    Speculative:{cap:1.5,minScore:null},Thematic:{cap:3,minScore:null},Recovery:{cap:2,minScore:null},
+    Satellite:{cap:3,minScore:null}},
+  groups:{Core:'',Cash:'',Hedge:'',Speculative:'',Thematic:'',Recovery:'',Satellite:''},
+  groupBand:{Fondamenta:[45,55],Satellite:[45,55]},
+  ddDown:-15, ddUp:20, emergencyPts:10, lookThrough:5, sectorMax:30, countryMax:15,
+  satMaxTitles:40, minInitialPct:.5, newPerQuarter:3, waitDays:7, waitDaysIncr:2, waitDaysRally:30,
+  rallyPct:30, firstEntryFrac:.5, lossReviewPct:-30, reviewDays:14, taxGov:12.5
+};
+const RULES_GROUPS=['Fondamenta','Satellite','Nessuno'];
+/* limiti dei numeri singoli: [minimo, massimo, intero] */
+const RULES_LIM={ddDown:[-100,0],ddUp:[0,1000],emergencyPts:[0,100],lookThrough:[0,100],
+  sectorMax:[0,100],countryMax:[0,100],satMaxTitles:[0,1000,1],minInitialPct:[0,100],
+  newPerQuarter:[0,100,1],waitDays:[0,365,1],waitDaysIncr:[0,365,1],waitDaysRally:[0,365,1],
+  rallyPct:[0,1000],firstEntryFrac:[0,1],lossReviewPct:[-100,0],reviewDays:[0,365,1],taxGov:[0,100]};
+/* I parametri in uso: S.settings.rules unito ai default chiave per chiave
+   (anche dentro tiers, groups e groupBand), numeri nei limiti. Una chiave
+   presente vince anche se vale null: un tetto svuotato resta senza tetto.
+   Pura: non tocca settings, restituisce sempre un oggetto nuovo. */
+function rulesCfg(settings){
+  const D=RULES_DEFAULT, o=settings&&settings.rules&&typeof settings.rules==='object'?settings.rules:{};
+  const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
+  const has=(x,k)=>x[k]!==undefined;
+  const lim=(v,l)=>{ let x=num(v); if(l[2])x=Math.round(x); return Math.max(l[0],Math.min(l[1],x)); };
+  const opt=(v,l)=>v==null||!/\d/.test(String(v))?null:lim(v,l);
+  const out={tiers:{},groups:{},groupBand:{}}, ot=obj(o.tiers), og=obj(o.groups), ob=obj(o.groupBand);
+  Object.keys(D.tiers).forEach(t=>{
+    const u=obj(ot[t]);
+    out.tiers[t]={cap:has(u,'cap')?opt(u.cap,[0,100]):D.tiers[t].cap,
+                  minScore:has(u,'minScore')?opt(u.minScore,[0,Infinity]):D.tiers[t].minScore};
+  });
+  Object.keys(D.groups).forEach(t=>{ out.groups[t]=RULES_GROUPS.indexOf(og[t])>-1?og[t]:''; });
+  Object.keys(D.groupBand).forEach(g=>{
+    const b=Array.isArray(ob[g])&&ob[g].length===2&&ob[g].every(v=>/\d/.test(String(v)))?ob[g]:D.groupBand[g];
+    const lo=lim(b[0],[0,100]), hi=lim(b[1],[0,100]);
+    out.groupBand[g]=[Math.min(lo,hi),Math.max(lo,hi)];
+  });
+  Object.keys(RULES_LIM).forEach(k=>{
+    out[k]=has(o,k)&&o[k]!==null&&/\d/.test(String(o[k]))?lim(o[k],RULES_LIM[k]):D[k];
+  });
+  return out;
+}
+/* Piano per tier del Ribilanciamento ("By tier"): per ogni tier un target e
+   una banda assoluta [min, max] in punti percentuali. TPLAN_ORDER è l'ordine
+   delle righe di quella vista; i nomi sono i tier canonici di PTIERS, scritti
+   per esteso perché blankState() gira prima di PTIERS (un test controlla che
+   siano gli stessi). Valori di partenza dalla tabella dell'utente: sommano 100. */
+const TPLAN_ORDER=['Core','Satellite','Thematic','Hedge','Speculative','Recovery','Cash'];
+const TPLAN_DEFAULT={Core:{target:44,min:40,max:48},Satellite:{target:10,min:7,max:13},
+  Thematic:{target:22,min:18,max:26},Hedge:{target:10,min:8,max:13},
+  Speculative:{target:6,min:4,max:8},Recovery:{target:3,min:0,max:5},Cash:{target:5,min:3,max:8}};
+/* Una riga valida: numeri finiti fra 0 e 100 (un valore che non è un numero
+   prende quello di def), poi la banda allargata fino a contenere il target. */
+function tplanClean(row,def){
+  const d=def||{target:0,min:0,max:0}, o=row&&typeof row==='object'?row:{};
+  const v=k=>{ const x=o[k];
+    const n=typeof x==='number'?x:x!=null&&/\d/.test(String(x))?num(x):NaN;
+    return isFinite(n)?Math.max(0,Math.min(100,n)):d[k]; };
+  const t=v('target');
+  return {target:t,min:Math.min(v('min'),t),max:Math.max(v('max'),t)};
+}
+/* Il piano in uso: S.settings.tierPlan unito ai default tier per tier e
+   campo per campo; un tier che non è fra quelli canonici si ignora. Pura. */
+function tplanCfg(settings){
+  const raw=settings&&settings.tierPlan, o=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
+  const out={};
+  TPLAN_ORDER.forEach(t=>{
+    const u=o[t]&&typeof o[t]==='object'?o[t]:{}, d=TPLAN_DEFAULT[t], r={};
+    ['target','min','max'].forEach(k=>{ r[k]=u[k]!==undefined?u[k]:d[k]; });
+    out[t]=tplanClean(r,d);
+  });
+  return out;
+}
+/* Stato di un tier rispetto alla sua banda, estremi compresi, sul peso non
+   arrotondato: 'in', 'sotto' o 'sopra'. gap = peso − target, in punti. */
+function tplanStatus(curPct,row){
+  const c=num(curPct), e=1e-9;
+  return {state:c<row.min-e?'sotto':c>row.max+e?'sopra':'in', gap:c-row.target};
+}
+/* Banda di emergenza: un tier a PIÙ di pts punti dal suo target (10,0 esatti
+   non bastano). rows: [{tier,cur,value,target}]; contano i tier assegnati con
+   un target o un valore. worst: il tier più lontano; hits: quelli oltre. */
+function tplanEmergency(rows,pts){
+  let worst=null; const hits=[], gaps={};
+  (rows||[]).forEach(r=>{
+    if(!r||r.noPlan||!r.tier||!(num(r.target)>0||num(r.value)>0))return;
+    const gap=Math.round((num(r.cur)-num(r.target))*1e9)/1e9;
+    gaps[r.tier]=gap;
+    if(Math.abs(gap)>pts)hits.push(r.tier);
+    if(!worst||Math.abs(gap)>Math.abs(worst.gap))worst={tier:r.tier,gap:gap};
+  });
+  return {on:hits.length>0,worst:worst,hits:hits,gaps:gaps};
+}
+/* Valore e peso % di ogni tier fra le posizioni date, col suo piano, nell'ordine
+   di TPLAN_ORDER; in fondo, se ci sono, i titoli senza tier (noPlan, senza
+   target). n: quanti titoli. Usata dal Ribilanciamento e dalla pagina Regole. */
+function tplanRows(positions,total,plan){
+  const val={}, cnt={}, pct=v=>total>0?v/total*100:0;
+  (positions||[]).forEach(p=>{ const t=normPTier(p.tier); val[t]=(val[t]||0)+num(p._value); cnt[t]=(cnt[t]||0)+1; });
+  const rows=TPLAN_ORDER.map(t=>Object.assign({tier:t,value:val[t]||0,cur:pct(val[t]||0),n:cnt[t]||0},plan[t]));
+  if(cnt[''])rows.push({tier:'',noPlan:true,value:val['']||0,cur:pct(val['']||0),n:cnt['']});
+  return rows;
+}
+/* Registro delle decisioni della pagina Regole. Righe senza titolo, data o
+   tipo valido si tolgono; i campi tornano ai loro tipi. Pura. */
+const RULES_OPS=['buy','sell','review'];
+function rulesLogClean(rows){
+  if(!Array.isArray(rows))return [];
+  const iso=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v==null?'':v))?String(v):'';
+  const txt=v=>v==null?'':String(v);
+  return rows.filter(r=>r&&typeof r==='object'&&RULES_OPS.indexOf(r.op)>-1&&
+      txt(r.ticker).trim()&&iso(r.date))
+    .map((r,i)=>({id:txt(r.id)||'r'+i+'-'+r.date.replace(/-/g,''), date:r.date, ticker:txt(r.ticker).trim(),
+      op:r.op, motive:txt(r.motive), waitUntil:iso(r.waitUntil)||null, done:!!r.done, note:txt(r.note)}));
+}
 /* Peso delle distribuzioni per rischio e fattore in Analisi: numero di titoli,
    capitale investito (costo di carico) o valore di mercato. */
 const DIST_MODES=['count','cost','value'];
 function blankState(){
   return {
     v:3, positions:[], watchlist:[], goals:[], targets:{}, history:[], countries:[],
-    fx:{EUR:1}, lastUpdate:0, updatedAt:0,
+    fx:{EUR:1}, lastUpdate:0, updatedAt:0, rulesLog:[],
     settings:{theme:'dark',privacy:false,collapsed:false,riskFree:2,proxy:'',
               rebalanceBands:[10,20,30],capGainTax:26,
-              scenBench:'6040',scenSel:'inflEU',scenSens:{},benchKey:'URTH',
+              scenBench:'6040',scenSel:'inflEU',scenSens:{},benchKey:'URTH',rules:rulesCfg(),tierPlan:tplanCfg(),
               sim:simDefaults(),distMode:'count'}
   };
 }
@@ -2681,6 +2970,10 @@ const UI={
   expo:{level:'cat',leaf:null},
   perf:{size:'peso',per:'1G'},
   rbMode:'cat', rbOpen:{}, editWatch:null,
+  /* pagina Regole: titolo scelto nelle schede, spunte delle caselle manuali
+     (solo per questa sessione), quantità e motivo scritti nella scheda Vendita */
+  rulesSell:null, rulesTicks:{}, rulesParOpen:null, rulesSellQty:{}, rulesSellWhy:{}, rulesTaxSel:'std',
+  rulesBuy:null, rulesBuyAmt:'',
   histSrc:'snap', editGoal:null, heatM:null, heatSort:'ret',
   txFilters:{pos:'',type:''}
 };
@@ -2780,6 +3073,25 @@ function normalizeState(){
     });
     if(JSON.stringify(v)!==JSON.stringify(S.settings.sim)){ S.settings.sim=v; dirty=true; }
   }
+  /* parametri della pagina Regole: come le ipotesi del Simulatore, chiavi
+     mancanti dai default e numeri nei limiti (rulesCfg) */
+  if(S.settings&&S.settings.rules!==undefined){
+    const v=rulesCfg(S.settings);
+    if(JSON.stringify(v)!==JSON.stringify(S.settings.rules)){ S.settings.rules=v; dirty=true; }
+  }
+  /* piano per tier del Ribilanciamento: tier e campi mancanti dai default,
+     numeri fra 0 e 100, la banda che contiene il target */
+  if(S.settings&&S.settings.tierPlan!==undefined){
+    const v=tplanCfg(S.settings);
+    if(JSON.stringify(v)!==JSON.stringify(S.settings.tierPlan)){ S.settings.tierPlan=v; dirty=true; }
+  }
+  /* registro delle decisioni: un valore che non è un array (null, un oggetto)
+     torna [], le righe guaste si tolgono. Se manca del tutto ci pensa il
+     default di blankState(), come per gli altri campi */
+  if(S.rulesLog!==undefined){
+    const v=rulesLogClean(S.rulesLog);
+    if(JSON.stringify(v)!==JSON.stringify(S.rulesLog)){ S.rulesLog=v; dirty=true; }
+  }
   return dirty;
 }
 let saveT=null,storageWarned=false;
@@ -2836,6 +3148,14 @@ function fnum(v){
   return s.replace('.',',');
 }
 const nf=(n,d)=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d});
+/* come nf, ma senza zeri inutili: 2,4 e 3 invece di 2,40 e 3,00 (i voti) */
+const nfx=(n,d)=>Number(n||0).toLocaleString('it-IT',{maximumFractionDigits:d==null?2:d});
+/* i tre voti di un titolo su una riga, "—" al posto di quelli che mancano */
+function scoresLine(o){
+  const v=k=>o&&o[k]!=null&&o[k]!==''?nfx(num(o[k])):'—';
+  return o&&['quant','qual','score'].some(k=>o[k]!=null&&o[k]!=='')
+    ?'QUANT '+v('quant')+' · QUAL '+v('qual')+' · Total '+v('score'):'—';
+}
 const money=(n,d)=>'€ '+nf(n,d==null?2:d);
 const money0=n=>'€ '+Math.round(n||0).toLocaleString('it-IT');
 /* intero col segno, "+€ 13.290" / "−€ 59": hero in modalità Rendimento e KPI,
@@ -3704,6 +4024,7 @@ const NAV=[
   ]},
   {g:'Planning',items:[
     {k:'ribilanciamento',l:'Rebalancing',i:'balance',sub:'Targets by category and trade plan'},
+    {k:'regole',l:'Rules',i:'check',sub:'Buy and sell checklist'},
     {k:'simulatore',l:'Simulator',i:'trend',sub:'Capital growth with a monthly plan'},
     {k:'obiettivi',l:'Goals',i:'target',sub:'Financial milestones and progress'},
     {k:'watchlist',l:'Watchlist',i:'star',sub:'Assets to buy'}
@@ -4691,6 +5012,8 @@ function demoData(){
   hist.forEach(h=>{h.value=Math.round(h.value*k);h.cost=Math.round(h.cost*k);});
   hist[hist.length-1].date=todayISO();
   S.history=hist;
+  /* le decisioni registrate nella pagina Regole parlano dei titoli di prima */
+  S.rulesLog=[];
   save(); renderAll();
   toast('Sample data loaded','ok');
 }
@@ -5164,6 +5487,7 @@ function initDescSelects(pre){
     PLATFORMS.map(pf=>'<option value="'+esc(pf.k)+'">'+pf.s+' '+esc(pf.k)+'</option>').join('');
 }
 function initPosForm(){
+  $('#fRules').innerHTML=rulesFieldsHTML('f');
   initDescSelects('f');
   buildCountryList(); buildSectorList();
 }
@@ -5217,6 +5541,8 @@ function setClsSelect(sel,val){
    get: dal valore del campo al dato salvato; put: dal dato al valore del campo
    (di base il testo, vuoto se manca); set: quando serve altro che .value. */
 const optNum=v=>v===''?null:num(v);
+/* voti e fair value: vuoto, o senza nessuna cifra ("—"), è null; mai uno zero inventato */
+const optDigits=v=>/\d/.test(v)?num(v):null;
 const DESC_FIELDS=[
   {k:'ticker',      id:'Ticker',      get:v=>v.trim().toUpperCase()},
   {k:'isin',        id:'Isin',        get:normIsin},
@@ -5238,7 +5564,19 @@ const DESC_FIELDS=[
   {k:'divMonths',   id:'DivMonths',   get:v=>v.trim()},
   {k:'compSector',  id:'CompSector',  get:v=>normComposition(v.trim(),normSector)},
   {k:'compCountry', id:'CompCountry', get:v=>normComposition(v.trim(),normCountry)},
-  {k:'note',        id:'Note',        get:v=>v.trim()}
+  {k:'note',        id:'Note',        get:v=>v.trim()},
+  /* "Thesis and scores" (pagina Regole): tre voti scritti a mano, le cinque
+     righe della tesi e il fair value nella valuta del titolo */
+  {k:'quant',       id:'Quant',       get:optDigits,              put:v=>fnum(v)},
+  {k:'qual',        id:'Qual',        get:optDigits,              put:v=>fnum(v)},
+  {k:'score',       id:'Score',       get:optDigits,              put:v=>fnum(v)},
+  {k:'thBiz',       id:'ThBiz',       get:v=>v.trim()},
+  {k:'thPrice',     id:'ThPrice',     get:v=>v.trim()},
+  {k:'thDrivers',   id:'ThDrivers',   get:v=>v.trim()},
+  {k:'thRisk',      id:'ThRisk',      get:v=>v.trim()},
+  {k:'thInvalid',   id:'ThInvalid',   get:v=>v.trim()},
+  {k:'fairValue',   id:'FairValue',   get:optDigits,              put:v=>fnum(v)},
+  {k:'fvMethod',    id:'FvMethod',    get:v=>v.trim()}
 ];
 function descFromForm(pre){
   const o={};
@@ -5251,6 +5589,50 @@ function descToForm(pre,o){
     if(f.set)f.set(pre,v);
     else $('#'+pre+f.id).value=f.put?f.put(v):(v==null?'':String(v));
   });
+}
+/* ---------- tesi e voti (pagina Regole) ----------
+   Le cinque righe della tesi: chiave, suffisso dell'id, etichetta. La scheda
+   Acquisto usa le stesse etichette per dire quali mancano. */
+const THESIS_ROWS=[
+  ['thBiz','ThBiz','Business and competitive advantage'],
+  ['thPrice','ThPrice','Price and value'],
+  ['thDrivers','ThDrivers','What drives the value up'],
+  ['thRisk','ThRisk','Main risk'],
+  ['thInvalid','ThInvalid','What would invalidate the thesis']
+];
+const RULES_DESC_KEYS=['quant','qual','score','thBiz','thPrice','thDrivers','thRisk','thInvalid','fairValue','fvMethod'];
+const rulesHasData=o=>!!o&&RULES_DESC_KEYS.some(k=>o[k]!=null&&o[k]!=='');
+/* QUANT e QUAL da 0 a 3, il totale senza massimo (la scala è dell'utente)
+   ma mai negativo. Pura: o sono i campi letti da descFromForm(). */
+function scoreErrors(o){
+  const e=[], out=v=>v!=null&&!(v>=0&&v<=3);
+  if(out(o.quant))e.push('QUANT must be between 0 and 3');
+  if(out(o.qual))e.push('QUAL must be between 0 and 3');
+  if(o.score!=null&&!(o.score>=0))e.push('The total score cannot be negative');
+  return e;
+}
+/* Il blocco "Thesis and scores" delle due schede: un solo markup, con gli id
+   prefissati come gli altri campi ('f' posizione, 'fw' watchlist). */
+function rulesFieldsHTML(pre){
+  const inp=(id,lab,ph)=>'<div class="field"><label for="'+pre+id+'">'+lab+'</label>'+
+    '<input id="'+pre+id+'" type="text" inputmode="decimal" placeholder="'+ph+'"></div>';
+  return '<details class="rl-fields" id="'+pre+'RulesBox"><summary>Thesis and scores'+
+      '<span class="sub">for the Rules checklist</span></summary><div class="rl-in">'+
+    '<div class="frow3">'+inp('Quant','QUANT 0–3','e.g. 2,4')+inp('Qual','QUAL 0–3','e.g. 1,8')+
+      inp('Score','Total score','e.g. 3,9')+'</div>'+
+    '<div class="hint">Voti con i decimali, virgola o punto. Il totale '+
+      'si scrive a mano: non è la media né la somma di QUANT e QUAL.</div>'+
+    THESIS_ROWS.map(r=>'<div class="field"><label for="'+pre+r[1]+'">'+r[2]+'</label>'+
+      '<textarea id="'+pre+r[1]+'" rows="2"></textarea>'+
+      (r[0]==='thInvalid'?'<div class="hint">Con una soglia misurabile, per esempio "debito netto/EBITDA '+
+        'oltre 3,5": la scheda Acquisto cerca almeno una cifra.</div>':'')+'</div>').join('')+
+    '<div class="frow">'+
+      '<div class="field"><label for="'+pre+'FairValue">Fair value</label>'+
+        '<input id="'+pre+'FairValue" type="text" inputmode="decimal" placeholder="e.g. 140">'+
+        '<div class="hint">Nella valuta del titolo.</div></div>'+
+      '<div class="field"><label for="'+pre+'FvMethod">Valuation method</label>'+
+        '<input id="'+pre+'FvMethod" placeholder="e.g. DCF, relative P/E"></div>'+
+    '</div></div></details>';
 }
 /* ---------- logo nella scheda ----------
    Campo nascosto logo: '' automatico, 'none' solo iniziali, PNG in data URI.
@@ -5374,7 +5756,7 @@ function isinFind(pre){
 /* Quali campi della scheda valgono per un tipo (true = da mostrare). Pura.
    Un conto non ha ticker, ISIN, logo, categoria (è sempre Cash), prezzi,
    rendimenti, fattore, rischio né composizione; ha il tasso annuo. */
-const POS_SECURITY_ONLY=['ticker','isin','logo','cls','price','avg','risk','yield','ter','factor','divMonths','comp'];
+const POS_SECURITY_ONLY=['ticker','isin','logo','cls','price','avg','risk','yield','ter','factor','divMonths','comp','rules'];
 const POS_DEPOSIT_ONLY=['rate'];
 const POS_COMMON=['name','qty','currency','dateAdded','sector','country','tier','emergency','target','platform','note'];
 function posFormFields(kind){
@@ -5389,7 +5771,7 @@ function posFormFields(kind){
 const POS_FIELD_IDS={ticker:['pfTickerRow'],isin:['pfTickerRow','isinResults'],
   logo:['fLogoPrev','pfLogoAct','pfLogoHint'],cls:['pfCls'],price:['pfPrice'],avg:['pfAvg'],
   risk:['pfRisk'],yield:['pfYieldRow'],ter:['pfYieldRow'],factor:['pfFactor'],
-  divMonths:['pfDivMonths'],rate:['pfRate']};
+  divMonths:['pfDivMonths'],rate:['pfRate'],rules:['fRules']};
 /* Valori iniziali di un conto nuovo, per id del campo: si possono cambiare
    (un conto che non è il fondo emergenza: settore Cash, flag vuoto). */
 const DEPOSIT_DEFAULTS={Sector:'Emergency fund',Tier:'Cash',Emergency:'1',Cur:'EUR'};
@@ -5480,6 +5862,7 @@ function openPos(id){
   UI.posKind=isDeposit(p)?'deposit':'';
   $('#fKind').value=UI.posKind; $('#fKind').disabled=false;
   descToForm('f',p); logoPreview('f');
+  $('#fRulesBox').open=rulesHasData(p);
   isinSeq++; $('#isinResults').innerHTML='';
   $('#fDateAdded').value=p?(p.dateAdded||''):todayISO();
   $('#fQty').value=fnum(p&&p.qty!=null?p.qty:'');
@@ -5575,6 +5958,8 @@ function savePos(){
       toast(ISIN_BAD,'err'); setPosTab('det'); syncIsinUI(true,'f'); $('#fIsin').focus(); return;
     }
   }
+  const se=scoreErrors(descFromForm('f'));
+  if(se.length){ toast(se.join(' · '),'err'); setPosTab('det'); $('#fRulesBox').open=true; return; }
   const isNew=!UI.editId;
   const p=isNew?{id:uid()}:S.positions.filter(x=>x.id===UI.editId)[0];
   if(!p)return;
@@ -5761,6 +6146,7 @@ function openDrawer(id){
     ['Country / Region',esc(p.country||'—'),0],
     dep?null:['Factor',esc(normFactor(p.factor)),0],
     ['Tier',esc(normPTier(p.tier)||'—'),0],
+    dep?null:['Scores',scoresLine(p),0],
     ['Held since',p.dateAdded?fmtDate(p.dateAdded):'—',0],
     ['Target weight',p.targetWeight!=null&&p.targetWeight!==''?nf(num(p.targetWeight),1)+'%':'—',0],
     ['To trade',p._tDiff!=null?(p._tDiff>=0?'+':'−')+money0(Math.abs(p._tDiff)):'—',1,
@@ -5825,6 +6211,8 @@ function openDrawer(id){
           ic('balance',15)+' Withdraw all</button>'
         :'<button class="btn btn-ghost btn-sm" id="dwSell" title="Record a full sale instead of deleting the position">'+
           ic('balance',15)+' Sell all</button>')+
+      (isClosed(p)||dep?'':'<button class="btn btn-ghost btn-sm" id="dwRules" title="Open the sell checklist of the Rules page">'+
+          ic('check',15)+' Checklist</button>')+
       '<button class="btn btn-danger btn-sm" id="dwDel" style="margin-left:auto" '+
         'title="Delete the position and all its history">'+ic('trash',15)+'</button>'+
     '</div>';
@@ -5833,6 +6221,7 @@ function openDrawer(id){
   $('#dwEdit').addEventListener('click',()=>{ closeDrawer(); openPos(p.id); });
   if($('#dwRefresh'))$('#dwRefresh').addEventListener('click',()=>refreshOne(p));
   if($('#dwSell'))$('#dwSell').addEventListener('click',()=>openSellAll(p.id));
+  if($('#dwRules'))$('#dwRules').addEventListener('click',()=>openRulesSell(p.id));
   $('#dwDel').addEventListener('click',()=>deletePos(p.id));
   $('#drawer').classList.add('on'); $('#drawerOv').classList.add('on');
   drawerChart(p);
@@ -7490,6 +7879,11 @@ function rbTaxEstimate(p,sellEur){
   const tax=gain>0?gain*rbTaxRate()/100:0;
   return {noAvg:false,qty:qty,price:price,avg:avg,gain:gain,tax:tax,net:gain-tax,rate:rbTaxRate()};
 }
+/* la stessa nota sotto ogni stima fiscale: Ribilanciamento e scheda Vendita */
+const TAX_EST_NOTE='Stima indicativa basata sul prezzo medio di carico registrato. '+
+  'Non considera compensazione di minusvalenze pregresse, regime fiscale '+
+  '(amministrato/dichiarativo) né altri fattori: verifica con il tuo commercialista '+
+  'prima di vendere.';
 function rbTaxHtml(p,sellEur){
   const t=rbTaxEstimate(p,sellEur);
   if(!t)return '';
@@ -7514,15 +7908,36 @@ function rbTaxHtml(p,sellEur){
          '<span class="v mask">'+money0(t.net)+'</span></div>'
       :'<div class="tx-r tot"><span class="k">No estimated tax</span>'+
          '<span class="v">'+(t.gain<0?'loss that may be offset in the future':'no capital gain')+'</span></div>')+
-    '<div class="tx-note">Stima indicativa basata sul prezzo medio di carico registrato. '+
-      'Non considera compensazione di minusvalenze pregresse, regime fiscale '+
-      '(amministrato/dichiarativo) né altri fattori: verifica con il tuo commercialista '+
-      'prima di vendere.</div>'+
+    '<div class="tx-note">'+TAX_EST_NOTE+'</div>'+
   '</div>';
 }
+/* Un campo del piano per tier come lo scrive l'utente: numero fra 0 e 100,
+   vuoto o senza cifre = default. La banda che contiene il target la applica
+   tplanCfg() in lettura: un valore a metà battitura non sposta min o max. */
+function tplanSet(t,field,raw){
+  if(!TPLAN_DEFAULT[t]||!(field in TPLAN_DEFAULT[t]))return;
+  const old=S.settings.tierPlan&&typeof S.settings.tierPlan==='object'?S.settings.tierPlan:{};
+  const plan=tplanCfg(S.settings), v=String(raw==null?'':raw).trim();
+  const r=Object.assign({},TPLAN_DEFAULT[t],old[t]&&typeof old[t]==='object'?old[t]:{});
+  r[field]=/\d/.test(v)?Math.max(0,Math.min(100,num(v))):TPLAN_DEFAULT[t][field];
+  plan[t]=r;
+  S.settings.tierPlan=plan;
+}
+/* Le voci del Ribilanciamento "By tier": una per tier, anche senza titoli
+   (il target c'è comunque), più "Unassigned" per i titoli senza tier, che
+   non ha target e resta fuori da somma, piano e banda di emergenza. Senza
+   posizioni attive nessuna voce. raw: il target arriva come testo. */
+function tplanUnits(){
+  const act=activePositions(); if(!act.length)return [];
+  return tplanRows(act,T.value,tplanCfg(S.settings)).map(r=>r.noPlan
+    ?{key:'tier:-',label:'Unassigned',sub:'',value:r.value,n:r.n,noPlan:true,get:()=>null,set:()=>{}}
+    :{key:'tier:'+r.tier,label:r.tier,tier:r.tier,sub:'',value:r.value,n:r.n,raw:true,
+      get:()=>tplanCfg(S.settings)[r.tier].target,set:v=>tplanSet(r.tier,'target',v)});
+}
 function rbUnits(){
-  /* restituisce le voci del piano: categorie oppure singole posizioni,
+  /* restituisce le voci del piano: categorie, singole posizioni o tier,
      con una chiave stabile per leggere e scrivere il target */
+  if(UI.rbMode==='tier')return tplanUnits();
   if(UI.rbMode==='pos'){
     return activePositions().slice().sort((a,b)=>b._value-a._value).map(p=>({
       key:p.id, label:p.ticker||p.name||'—', sub:p.name&&p.ticker?p.name:'',
@@ -7538,6 +7953,61 @@ function rbUnits(){
     set:v=>{ S.targets[k]=v; }
   }));
 }
+/* Una riga "By tier". Target e banda dal piano (tplanCfg), stato di banda
+   sul peso attuale senza capitale extra, € al target = delta del piano (con
+   il capitale da investire): positivo = da aggiungere. "Unassigned" non ha
+   target: niente badge, piano né banda, mai un "vendi tutto". */
+function rbTierRow(u,total,newTot,plan){
+  const curP=total>0?u.value/total*100:0, open=!!UI.rbOpen[u.key];
+  const row=(cls,tip,dot,rest)=>'<div class="rb-row'+cls+(open?' open':'')+'" data-rbrow="'+esc(String(u.key))+'" title="'+esc(tip)+'"'+
+      ' aria-expanded="'+(open?'true':'false')+'">'+
+    '<div class="rb-cat"><span class="tg">'+ic('chev',14)+'</span><span class="dot" style="background:'+dot+'"></span>'+
+      '<span class="nm">'+esc(u.label)+'</span></div>'+
+    '<div class="rb-num mask">'+money0(u.value)+'<div class="sub">'+nf(curP,1)+'%</div></div>'+rest+'</div>';
+  if(u.noPlan){
+    const txt=u.n===1?'1 asset without tier: assign it to include it'
+      :u.n+' assets without tier: assign them to include them';
+    return row('',txt,'var(--muted)','<div><span class="badge">no target</span></div>'+
+      '<div class="rb-act"><span class="rb-un">'+esc(txt)+'</span></div>'+
+      '<div class="rb-detail"><div class="rb-tip">Restano fuori dalla somma dei target, dal piano e dalla banda '+
+        'di emergenza: assegna il tier nella scheda del titolo.</div></div>');
+  }
+  const t=u.tier, b=tplanCfg(S.settings)[t], tgt=b.target, st=tplanStatus(curP,b);
+  const delta=newTot*tgt/100-u.value, hold=Math.abs(delta)<newTot*.005;
+  if(!hold)plan.push({label:u.label,delta:delta});
+  const buy=hold?'<span class="badge">— hold</span>'
+    :delta>0?'<span class="badge u">▲ buy <span class="mask">'+money0(delta)+'</span></span>'
+            :'<span class="badge d">▼ sell <span class="mask">'+money0(-delta)+'</span></span>';
+  const lab={in:'In band',sotto:'↓ Below',sopra:'↑ Above'}[st.state];
+  const scale=Math.max(curP,b.max,1), pc=v=>Math.min(100,v/scale*100);
+  const bandTxt='target '+nfx(tgt,1)+'% · band '+nfx(b.min,1)+'–'+nfx(b.max,1)+'%';
+  const inp=(f,v)=>'<label>'+f+' %<input class="rb-in" data-rbband="'+esc(t+':'+f)+'" type="text" inputmode="decimal" value="'+
+    fnum(v)+'" aria-label="'+esc(t+' '+f)+' %"></label>';
+  return row(st.state==='in'?'':' tpo',lab+' · '+nf(curP,2)+'% · '+bandTxt,PTIER_COLORS[t]||'var(--muted)',
+    '<div><input class="rb-in" data-rb="'+esc(String(u.key))+'" type="text" inputmode="decimal" value="'+fnum(tgt)+'"></div>'+
+    '<div class="rb-act"><span class="tp-badges">'+buy+'<span class="badge '+(st.state==='in'?'u':'d')+'">'+lab+'</span></span></div>'+
+    '<div class="rb-detail">'+
+      '<div class="rb-bar"><div class="track"><i style="width:'+pc(curP).toFixed(1)+'%;background:'+(PTIER_COLORS[t]||'var(--muted)')+'"></i></div>'+
+        '<span class="bz" style="left:'+pc(b.min).toFixed(1)+'%;width:'+(pc(b.max)-pc(b.min)).toFixed(1)+'%" title="band '+
+          nfx(b.min,1)+'–'+nfx(b.max,1)+'%"></span>'+
+        '<span class="mk" style="left:'+pc(tgt).toFixed(1)+'%" title="target '+nf(tgt,1)+'%"></span></div>'+
+      '<div class="rb-dev"><span class="dv">'+bandTxt+'</span>'+
+        '<span class="dv">'+(hold?'at target':'<span class="mask">'+signedEur0(delta)+'</span> to target')+'</span></div>'+
+      '<div class="tp-band">'+inp('min',b.min)+inp('max',b.max)+'</div>'+
+    '</div>');
+}
+/* parametri secondo la modalità: per tier niente pulsanti che riscrivono tutti
+   i target (cancellerebbero il piano) né bande relative; c'è la soglia della
+   banda di emergenza, che vive nella pagina Regole */
+function rbModeUI(){
+  const tier=UI.rbMode==='tier';
+  $$('#rbMode button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-m')===UI.rbMode));
+  /* una classe, non style.display: i pulsanti hanno un display:flex in linea */
+  [['rbEqBtns',!tier],['rbBandsField',!tier],['rbBandsNote',tier],['rbTierPar',tier]].forEach(([id,on])=>{
+    const el=$('#'+id); if(el)el.classList.toggle('rb-off',!on); });
+  const em=$('#rbEmTxt');
+  if(em&&tier)em.textContent='beyond '+nfx(rulesCfg(S.settings).emergencyPts,1)+' points from target';
+}
 /* il bottone in testata dice sempre che cosa farà al prossimo clic */
 function rbSyncAllBtn(){
   const b=$('#rbToggleAll'); if(!b)return;
@@ -7548,6 +8018,8 @@ function rbSyncAllBtn(){
 }
 function renderRebalance(){
   const rows=$('#rbRows'); if(!rows)return;
+  rbModeUI();
+  const tier=UI.rbMode==='tier';
   /* le due impostazioni vivono qui accanto ai controlli del piano, come il
      tasso privo di rischio nella sua card. Non tocco il campo su cui l'utente
      sta scrivendo: renderRebalance() viene richiamata dal suo stesso input. */
@@ -7568,14 +8040,17 @@ function renderRebalance(){
     return;
   }
   const cash=num($('#rbCash').value), newTot=total+cash;
-  /* i target mancanti partono dal peso attuale, così il piano nasce già neutro */
+  /* i target mancanti partono dal peso attuale, così il piano nasce già neutro.
+     "Unassigned" (per tier) non ha target e non entra nella somma */
   let sum=0;
   units.forEach(u=>{
+    if(u.noPlan)return;
     if(u.get()==null)u.set(Math.round(u.value/total*1000)/10);
     sum+=num(u.get());
   });
   const plan=[];
   rows.innerHTML=units.map((u,i)=>{
+    if(tier)return rbTierRow(u,total,newTot,plan);
     const curP=total>0?u.value/total*100:0;
     const tgt=num(u.get()), tgtV=newTot*tgt/100, delta=tgtV-u.value;
     const hold=Math.abs(delta)<newTot*.005;
@@ -7658,22 +8133,901 @@ function renderRebalance(){
     openDrawer(el.getAttribute('data-rbopen'))));
 
   $$('#rbRows .rb-in').forEach(inp=>inp.addEventListener('input',()=>{
-    const k=inp.getAttribute('data-rb');
-    const u=rbUnits().filter(x=>String(x.key)===k)[0];
-    if(u)u.set(num(inp.value));
+    const k=inp.getAttribute('data-rb'), band=inp.getAttribute('data-rbband'), raw=inp.value;
+    /* per tier il campo arriva com'è scritto (tplanSet): min e max della banda,
+       oppure il target */
+    if(band){ const b=band.split(':'); tplanSet(b[0],b[1],raw); }
+    else{ const u=rbUnits().filter(x=>String(x.key)===k)[0];
+      if(u)u.set(u.raw?raw:num(raw)); }
     save();
     const pos=inp.selectionStart;
     renderRebalance();
-    const again=$('#rbRows .rb-in[data-rb="'+k.replace(/"/g,'\\"')+'"]');
-    if(again){ again.focus(); try{ again.setSelectionRange(pos,pos); }catch(e){} }
+    const sel=band?'data-rbband="'+band+'"':'data-rb="'+k.replace(/"/g,'\\"')+'"';
+    const again=$('#rbRows .rb-in['+sel+']');
+    /* il campo riprende il testo scritto, in tutte le modalità: "7," resta
+       "7," e non torna "7" mentre si batte un decimale */
+    if(again){ again.value=raw; again.focus(); try{ again.setSelectionRange(pos,pos); }catch(e){} }
     if(UI.rbMode==='pos'){ enrich(); }
   }));
 }
 
 /* ==========================================================================
+   12j2. REGOLE — checklist di acquisto e vendita
+   --------------------------------------------------------------------------
+   Ogni controllo è una funzione pura che restituisce una casella
+   {state, detail}: 'ok' rispettata, 'ko' non rispettata, 'na' non
+   verificabile, 'man' manuale. 'na' blocca come 'ko': un dato che manca non
+   diventa mai verde. Una casella 'man' spuntata vale 'ok'. Il disegno è a
+   parte (rulesItemHTML). Una casella automatica non decide l'operazione: la
+   scheda Vendita dice solo se esiste almeno un motivo ammesso.
+   I parametri sono quelli di rulesCfg(S.settings).
+   ========================================================================== */
+const RL_DAY=864e5;
+const rlBox=(state,detail,extra)=>Object.assign({state:state,detail:detail||''},extra||{});
+/* lo stato che conta: la spunta cambia solo le caselle manuali */
+const rulesEff=(box,ticked)=>box.state==='man'?(ticked?'ok':'man'):box.state;
+/* Riepilogo di un elenco [{box,ticked}]: passa solo se sono tutte 'ok'.
+   'na' conta come non rispettata, una 'man' senza spunta come da fare. */
+function rulesSummary(items){
+  const n={ok:0,ko:0,na:0,man:0};
+  (items||[]).forEach(i=>{ n[rulesEff(i.box,!!i.ticked)]++; });
+  n.total=(items||[]).length;
+  n.pass=n.total>0&&n.ok===n.total;
+  return n;
+}
+/* quello che manca, in breve: "1 not met · 2 not verifiable · 1 to tick" */
+function rulesSummaryText(n){
+  return [n.ko?n.ko+' not met':'',n.na?n.na+' not verifiable':'',n.man?n.man+' to tick':'']
+    .filter(Boolean).join(' · ');
+}
+/* peso % di ogni tier fra le posizioni attive; '' = titoli senza tier */
+function rulesTierWeights(rows){
+  const w={};
+  (rows||[]).forEach(p=>{ const t=normPTier(p.tier); w[t]=(w[t]||0)+num(p._w); });
+  return w;
+}
+/* Target per tier: dal piano del Ribilanciamento "By tier" (tplanCfg), l'unico
+   posto dove vivono target e bande. {tier: target %}. */
+function rulesTierTargets(){
+  const p=tplanCfg(S.settings), o={};
+  TPLAN_ORDER.forEach(t=>{ o[t]=p[t].target; });
+  return o;
+}
+
+/* B3.1 Variazione a 3 mesi del rendimento time-weighted (twr in %, come in
+   currentHistSeries): dall'ultimo punto al punto più vicino a 90 giorni fa,
+   purché i due distino almeno 75 giorni. Confini compresi: −15,0% e +20,0%
+   esatti sono dentro. Un ultimo punto vecchio di oltre un mese non è "oggi". */
+function rulesChange3m(pts,nowMs,cfg){
+  const P=(pts||[]).filter(p=>p&&isFinite(p.t)&&isFinite(p.twr)).slice().sort((a,b)=>a.t-b.t);
+  if(P.length<2)return rlBox('na','Not enough history: at least two points are needed');
+  const last=P[P.length-1];
+  if(nowMs-last.t>31*RL_DAY)return rlBox('na','History not up to date: the latest point is from '+fmtDate(isoOf(last.t)));
+  const ref=nowMs-90*RL_DAY;
+  let base=null;
+  P.slice(0,-1).forEach(p=>{ if(!base||Math.abs(p.t-ref)<Math.abs(base.t-ref))base=p; });
+  const days=Math.round((last.t-base.t)/RL_DAY);
+  if(days<75)return rlBox('na','History too short: '+days+' days instead of at least 75');
+  if(!(1+base.twr/100>0))return rlBox('na','History not usable');
+  const ch=Math.round(((1+last.twr/100)/(1+base.twr/100)-1)*1e8)/1e6;
+  const ok=ch>=cfg.ddDown&&ch<=cfg.ddUp;
+  return rlBox(ok?'ok':'ko','Time-weighted change over '+days+' days: '+pctv(ch,1)+
+    (ok?'':' — outside '+pctv(cfg.ddDown,0)+' … '+pctv(cfg.ddUp,0)+': no orders today'),{value:ch,days:days});
+}
+/* B3.2 Fondo emergenza: dall'obiettivo in modalità "emergency" o con
+   "emergenz" nel nome (anche "emergency", in inglese). Con più obiettivi
+   devono essere completi tutti. Nessun obiettivo: casella manuale.
+   status = goalStatus. */
+function rulesEmergencyFund(goals,status){
+  const gs=(goals||[]).filter(g=>g&&(g.mode==='emergency'||/emergen[zc]/i.test(String(g.name||''))));
+  if(!gs.length)return rlBox('man','No emergency fund goal in Goals: tick it if the fund is complete');
+  const low=gs.map(g=>({g:g,p:num(status(g).progress)})).sort((a,b)=>a.p-b.p)[0];
+  const nm='"'+(String(low.g.name||'').trim()||'Emergency fund')+'"';
+  return low.p>=100?rlBox('ok',nm+' completed')
+    :rlBox('ko',nm+' at '+nf(Math.floor(low.p*10)/10,1)+'%');
+}
+/* B3.3 Banda di emergenza, con tplanEmergency sui pesi attuali (tierW, in %)
+   e i target per tier: almeno un tier a PIÙ di emergencyPts punti dal suo
+   target (10,0 esatti non bastano). hits: i tier oltre; devs: lo scarto in
+   punti; tier: il più lontano. Nessun titolo con un tier (o portafoglio
+   vuoto): non verificabile. */
+function rulesEmergencyBand(tierW,targets,cfg){
+  const NA=t=>rlBox('na',t,{hits:[],devs:{}});
+  if(!Object.keys(tierW||{}).some(t=>t&&num(tierW[t])>0))return NA('No tiers assigned to the assets: assign the tiers');
+  const ks=targets?Object.keys(targets).filter(t=>targets[t]!=null&&targets[t]!==''):[];
+  const em=tplanEmergency(ks.map(t=>({tier:t,cur:num(tierW[t]),value:num(tierW[t]),target:num(targets[t])})),cfg.emergencyPts);
+  if(!em.worst)return NA('No targets by tier: the emergency band cannot be checked');
+  const w=em.worst, wTxt=w.tier+' '+(w.gap>=0?'+':'−')+nf(Math.abs(w.gap),1)+' points from target';
+  return rlBox(em.on?'ok':'ko',em.on?'Emergency band: '+wTxt
+    :'No tier beyond '+nfx(cfg.emergencyPts,1)+' points from target; largest gap: '+wTxt,{hits:em.hits,devs:em.gaps,tier:w.tier});
+}
+/* revisione trimestrale O banda di emergenza: la banda vale da sola, la
+   revisione la dichiara l'utente. Banda non verificabile: non verificabile. */
+function rulesQuarterly(band){
+  if(band.state==='ok'||band.state==='na')return rlBox(band.state,band.detail);
+  return rlBox('man',band.detail+'. Tick it if this is the quarterly review');
+}
+/* B3.4 Peso dei gruppi Fondamenta e Satellite dentro la loro banda, confini
+   compresi. Il gruppo "Nessuno" resta fuori dai due conti; un tier con peso
+   e senza gruppo, o dei titoli senza tier, lo rendono non verificabile. */
+function rulesGroupWeights(tierW,cfg){
+  const used=Object.keys(tierW||{}).filter(t=>tierW[t]>0);
+  if(!used.length)return rlBox('na','No positions with a weight');
+  const miss=PTIERS.filter(t=>used.indexOf(t)>-1&&!cfg.groups[t]);
+  if(miss.length||used.indexOf('')>-1)return rlBox('na',[miss.length?'Assign the group to: '+miss.join(', '):'',
+    used.indexOf('')>-1?nf(tierW[''],1)+'% of the portfolio has no tier':''].filter(Boolean).join(' · '));
+  const g={Fondamenta:0,Satellite:0};
+  used.forEach(t=>{ if(g[cfg.groups[t]]!=null)g[cfg.groups[t]]+=tierW[t]; });
+  const out=Object.keys(g).filter(k=>{ const b=cfg.groupBand[k], v=Math.round(g[k]*1e6)/1e6; return v<b[0]||v>b[1]; });
+  return rlBox(out.length?'ko':'ok',Object.keys(g).map(k=>k+' '+nf(g[k],1)+'% (band '+
+    nfx(cfg.groupBand[k][0],1)+'–'+nfx(cfg.groupBand[k][1],1)+'%)').join(' · '),{groups:g,out:out});
+}
+
+/* voci che non sono un settore o un paese singolo: non fanno concentrazione */
+const RL_EXPO_SKIP=['—','Multi-sector','World','Europe','North America','Asia-Pacific','Emerging Markets'];
+/* Settori e paesi toccati da un titolo che superano il limite, sulla quota di
+   expo (computeExposure, che spezza gli ETF con composizione) su total. */
+function rulesConcOver(p,expo,total,cfg){
+  const out=[];
+  if(!(total>0))return out;
+  [['sector',cfg.sectorMax],['country',cfg.countryMax]].forEach(([k,max])=>{
+    expoParts(p,k).forEach(c=>{
+      if(RL_EXPO_SKIP.indexOf(c.name)>-1||out.some(o=>o.lvl===k&&o.name===c.name))return;
+      const pct=Math.round(num((expo[k]||{})[c.name])/total*100*1e6)/1e6;
+      if(pct>max)out.push({lvl:k,name:c.name,pct:pct,max:max});
+    });
+  });
+  return out;
+}
+/* B4 motivo 2: peso oltre il tetto del suo tier, oltre il limite per singolo
+   titolo (look-through) o un suo settore/paese oltre il limite. L'importo
+   riporta il peso al più basso dei limiti di peso superati: al tetto, non al
+   target. Tier senza tetto: quel ramo non è verificabile, mai un tetto 0%. */
+function rulesOverweight(p,cfg,total,expo){
+  const t=normPTier(p.tier), cap=t?cfg.tiers[t].cap:null, w=Math.round(num(p._w)*1e6)/1e6;
+  const lim=[], txt=[];
+  let capState;
+  if(!t){ capState='na'; txt.push('No tier: the cap cannot be checked'); }
+  else if(cap==null){ capState='na'; txt.push(t+' has no cap: not verifiable'); }
+  else if(w>cap){ capState='ok'; lim.push(cap); txt.push('Weight '+nf(w,1)+'% above the '+t+' cap of '+nfx(cap,1)+'%'); }
+  else { capState='ko'; txt.push('Weight '+nf(w,1)+'% within the '+t+' cap of '+nfx(cap,1)+'%'); }
+  const lt=w>cfg.lookThrough;
+  if(lt){ lim.push(cfg.lookThrough); txt.push('above the '+nfx(cfg.lookThrough,1)+'% single-asset limit'); }
+  const conc=rulesConcOver(p,expo||{},total,cfg);
+  if(conc.length)txt.push(conc.map(c=>c.name+' '+nf(c.pct,1)+'% over the '+(c.lvl==='sector'?'sector':'country')+
+    ' limit of '+nfx(c.max,1)+'%').join(', '));
+  const hit=capState==='ok'||lt||conc.length>0;
+  const amount=lim.length&&total>0?(w-Math.min.apply(null,lim))/100*total:0;
+  return rlBox(hit?'ok':capState==='na'?'na':'ko',txt.join(' · '),
+    {amount:amount,capState:capState,cap:cap,lookThrough:lt,conc:conc});
+}
+/* B4 motivo 5: con la banda di emergenza sul tier DEL TITOLO vale da solo
+   (non basta che sia attiva su un altro tier), altrimenti lo dichiara
+   l'utente (2 trimestri fuori banda). Titolo senza tier o banda non
+   verificabile: non verificabile. */
+function rulesBlockRebalance(p,band){
+  const t=normPTier(p.tier);
+  if(!t)return rlBox('na','The asset has no tier: assign it in the asset form');
+  if(band.state==='na')return rlBox('na',band.detail);
+  if(band.state==='ok'&&(band.hits||[]).indexOf(t)>-1){
+    const d=band.devs[t];
+    return rlBox('ok','Emergency band on '+t+': '+(d>=0?'+':'−')+nf(Math.abs(d),1)+' points from target');
+  }
+  return rlBox('man',(band.state==='ok'?'Emergency band on '+band.hits.join(', ')+', not on '+t+'. ':'')+
+    'Tick it if '+t+' has been outside its band for 2 quarters');
+}
+/* B4 motivo 6: perdita dal carico oltre la soglia, confine compreso (−30,0%
+   scatta). È una revisione, non una vendita. Senza carico non scatta. */
+function rulesLossReview(p,cfg){
+  if(!(num(p._cost)>0))return rlBox('ko','No cost recorded');
+  const pct=Math.round(num(p._pnlPct)*1e6)/1e6;
+  return pct<=cfg.lossReviewPct?rlBox('ok',pctv(pct,1)+' from cost: start a review, it is not a sale')
+    :rlBox('ko',pctv(pct,1)+' from cost');
+}
+/* Esito dei motivi di vendita. eff: {m1…m6: stato effettivo}. Il solo −30%
+   avvia una revisione, non una vendita. In profitto e senza alcun motivo
+   ammesso resta l'avviso: "è salito troppo" non è un motivo. Pura. */
+function rulesSellOutcome(eff,pnlPct){
+  const yes=Object.keys(eff).filter(k=>eff[k]==='ok');
+  const review=yes.length===1&&yes[0]==='m6';
+  return {any:yes.length>0&&!review, review:review, reasons:yes,
+    text:!yes.length?'No reason to sell: don\'t sell'
+      :review?'Only the loss review applies: start the review, don\'t sell'
+      :'At least one admitted reason: go through the checks before the order',
+    cls:!yes.length?'d':review?'w':'u',
+    profitWarn:num(pnlPct)>0&&!yes.length};
+}
+/* Aliquota della stima: quella delle plusvalenze (la stessa del
+   Ribilanciamento) o quella dei titoli di Stato, scelta a mano. Mai dedotta
+   dalla categoria del titolo. */
+function rulesTaxRate(sel,cfg){ return sel==='gov'?cfg.taxGov:rbTaxRate(); }
+/* Stima fiscale della vendita di qty quote, in valuta di base (fx = cambio
+   della valuta del titolo). Tassa solo su una plusvalenza. Pura. */
+function rulesTaxEstimate(p,qty,rate,fx){
+  const price=num(p&&p.price), avg=num(p&&p._avg), q=num(qty);
+  if(!p||!(price>0)||!(q>0)||!(fx>0))return null;
+  if(!(avg>0))return {noAvg:true};
+  const gain=(price-avg)*q*fx, tax=gain>0?gain*rate/100:0;
+  return {noAvg:false,qty:q,price:price,avg:avg,gain:gain,tax:tax,net:gain-tax,rate:rate,etf:p.cls==='ETF'};
+}
+/* minusvalenze già realizzate, su tutti i titoli anche chiusi: la somma dei
+   realizzati negativi, senza le scadenze dei quattro anni */
+function rulesRealizedLosses(positions){
+  return (positions||[]).reduce((a,p)=>a+Math.min(0,num(p&&p._realized)),0);
+}
+/* Data ISO + n giorni, senza fusi orari di mezzo. */
+function rulesAddDays(iso,n){
+  const d=String(iso).slice(0,10).split('-').map(Number);
+  return new Date(Date.UTC(d[0],d[1]-1,d[2]+n)).toISOString().slice(0,10);
+}
+/* Fine dell'attesa di una decisione: acquisto waitDays, incremento
+   waitDaysIncr, dopo un rialzo oltre rallyPct in 3 mesi waitDaysRally (vale
+   anche per l'incremento), revisione reviewDays. Una vendita non ha attesa. */
+function rulesWaitUntil(dateISO,op,flags,cfg){
+  const f=flags||{};
+  if(op==='review')return rulesAddDays(dateISO,cfg.reviewDays);
+  if(op!=='buy')return null;
+  return rulesAddDays(dateISO,f.rally?cfg.waitDaysRally:f.incr?cfg.waitDaysIncr:cfg.waitDays);
+}
+/* chiave di un titolo nel registro: ticker, altrimenti ISIN o nome */
+const rulesKey=o=>String(o&&(o.ticker||o.isin||o.name)||'').trim();
+/* una decisione nuova nel registro, con la sua data di fine attesa */
+function rulesLogAdd(o,op,motive,flags){
+  const today=todayISO(), cfg=rulesCfg(S.settings);
+  const row={id:uid(),date:today,ticker:rulesKey(o),op:op,motive:String(motive||''),
+    waitUntil:rulesWaitUntil(today,op,flags,cfg),done:false,note:''};
+  if(!row.ticker)return null;
+  S.rulesLog=(Array.isArray(S.rulesLog)?S.rulesLog:[]).concat([row]);
+  save();
+  return row;
+}
+
+/* --- disegno ------------------------------------------------------------- */
+const RL_CHIP={ok:['u','Met'],ko:['d','Not met'],na:['w','Not verifiable'],man:['','To tick']};
+const RL_CHIP_MOT={ok:['u','Present'],ko:['','Absent'],na:['w','Not verifiable'],man:['','To tick']};
+/* Una casella: etichetta (sempre con "auto" o "manual"), dettaglio, stato.
+   Le manuali hanno la spunta; mot = un motivo di vendita (Present/Absent). */
+function rulesItemHTML(it,ticked,mot,extra){
+  const man=it.box.state==='man', eff=rulesEff(it.box,ticked);
+  const c=man&&ticked?['u','Ticked']:(mot?RL_CHIP_MOT:RL_CHIP)[eff];
+  const id='rlck-'+it.key;
+  return '<div class="rl-item" data-rlstate="'+eff+'"><div class="rl-chk">'+
+    (man?'<input type="checkbox" id="'+esc(id)+'" data-rltick="'+esc(it.key)+'"'+(ticked?' checked':'')+'>':'')+
+    '<div class="rl-tx">'+(man?'<label class="rl-lb" for="'+esc(id)+'">':'<span class="rl-lb">')+esc(it.label)+
+      '<span class="rl-kind">'+(man?'manual':'auto')+'</span>'+(man?'</label>':'</span>')+
+      (it.box.detail?'<span class="rl-dt'+(it.box.warn?' warn':'')+'">'+esc(it.box.detail)+'</span>':'')+(extra||'')+'</div></div>'+
+    '<span class="badge '+c[0]+'">'+esc(c[1])+'</span></div>';
+}
+const rulesTicked=k=>!!UI.rulesTicks[k];
+/* parametri che mancano per i tier in uso: totale minimo e gruppo */
+function rulesParamsMissing(cfg,tierW){
+  const out=[];
+  PTIERS.filter(t=>num(tierW[t])>0).forEach(t=>{
+    if(cfg.tiers[t].minScore==null)out.push(t+': min. total score');
+    if(!cfg.groups[t])out.push(t+': group');
+  });
+  return out;
+}
+const RL_LIMITS=[
+  ['ddDown','3-month change, lower limit %'],['ddUp','3-month change, upper limit %'],
+  ['emergencyPts','Emergency band, points'],['lookThrough','Single-asset limit %'],
+  ['sectorMax','Sector limit %'],['countryMax','Country limit %'],
+  ['satMaxTitles','Max assets in Satellite'],['minInitialPct','Min. initial weight %'],
+  ['newPerQuarter','New positions per quarter, fewer than'],['firstEntryFrac','First entry, share of target'],
+  ['waitDays','Wait before buying, days'],['waitDaysIncr','Wait before adding, days'],
+  ['rallyPct','Rally in 3 months, %'],['waitDaysRally','Wait after a rally, days'],
+  ['lossReviewPct','Loss review from cost %'],['reviewDays','Review time, days'],
+  ['taxGov','Government bonds tax %']
+];
+function rulesParamsHTML(cfg,tierW){
+  const o=(v,cur,lab)=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+lab+'</option>';
+  const inp=(path,v,ph,lab)=>'<input class="rb-in" type="text" inputmode="decimal" data-rl="'+path+'" value="'+
+    (v==null?'':fnum(v))+'" placeholder="'+ph+'" aria-label="'+esc(lab)+'">';
+  return '<div class="note" style="margin-bottom:16px">Il <b>tetto</b> vale per il singolo titolo del tier; il '+
+      '<b>totale minimo</b> è il voto totale che serve per entrare in quel tier, sulla tua scala. Campo vuoto: '+
+      'nessun tetto, totale non impostato. I <b>gruppi</b> servono al controllo dei pesi Fondamenta e Satellite.</div>'+
+    '<div class="rl-trow hd"><div>Tier</div><div>Cap per asset %</div><div>Min. total score</div><div>Group</div></div>'+
+    PTIERS.map(t=>{ const c=cfg.tiers[t], w=num(tierW[t]);
+      return '<div class="rl-trow"><div class="tn"><span class="bdot" style="background:'+PTIER_COLORS[t]+'"></span>'+esc(t)+
+          (w>0?' <span class="cellsub">'+nf(w,1)+'%</span>':'')+'</div>'+
+        '<div>'+inp('tiers.'+t+'.cap',c.cap,'no cap',t+' cap')+'</div>'+
+        '<div>'+inp('tiers.'+t+'.minScore',c.minScore,'not set',t+' min. total score')+'</div>'+
+        '<div><select class="rb-in" data-rlg="'+t+'" aria-label="'+esc(t)+' group">'+o('',cfg.groups[t],'—')+
+          RULES_GROUPS.map(g=>o(g,cfg.groups[t],g==='Nessuno'?'None':g)).join('')+'</select></div></div>';
+    }).join('')+
+    '<div class="rl-lims">'+
+      Object.keys(cfg.groupBand).map(g=>'<div class="field"><label>'+esc(g)+' band %</label><div class="rl-pair">'+
+        inp('groupBand.'+g+'.0',cfg.groupBand[g][0],'',g+' band from')+inp('groupBand.'+g+'.1',cfg.groupBand[g][1],'',g+' band to')+
+        '</div></div>').join('')+
+      RL_LIMITS.map(l=>'<div class="field"><label>'+esc(l[1])+'</label>'+inp(l[0],cfg[l[0]],fnum(RULES_DEFAULT[l[0]]),l[1])+
+        (l[0]==='emergencyPts'?'<button type="button" class="rl-lk" data-rlgo="tier">Open the rebalancing by tier</button>':'')+
+        '</div>').join('')+
+    '</div>';
+}
+/* Un campo dei parametri → S.settings.rules. Tetto e totale minimo vuoti =
+   null; un limite vuoto torna al default; una banda vuota resta com'era. */
+function rulesSetParam(path,raw){
+  const r=rulesCfg(S.settings), k=String(path).split('.'), v=String(raw==null?'':raw).trim(), has=/\d/.test(v);
+  if(k[0]==='tiers'&&r.tiers[k[1]])r.tiers[k[1]][k[2]]=has?num(v):null;
+  else if(k[0]==='groupBand'&&r.groupBand[k[1]]){ if(has)r.groupBand[k[1]][+k[2]]=num(v); }
+  else if(RULES_LIM[k[0]])r[k[0]]=has?num(v):RULES_DEFAULT[k[0]];
+  S.settings.rules=rulesCfg({rules:r});
+}
+/* il valore di un parametro dal suo percorso, "tiers.Core.cap" */
+function rulesParamAt(cfg,path){
+  return String(path).split('.').reduce((o,k)=>o==null?null:o[k],cfg);
+}
+function rulesSetGroup(t,g){
+  const r=rulesCfg(S.settings);
+  if(t in r.groups)r.groups[t]=RULES_GROUPS.indexOf(g)>-1?g:'';
+  S.settings.rules=rulesCfg({rules:r});
+}
+/* tutto quello che serve alle caselle, calcolato una volta per disegno */
+function rulesCtx(){
+  const cfg=rulesCfg(S.settings), act=activePositions();
+  const tierW=rulesTierWeights(act);
+  const c={cfg:cfg, act:act, tierW:tierW, total:T.value, expo:computeExposure(act),
+    band:rulesEmergencyBand(tierW,rulesTierTargets(),cfg)};
+  c.pre=[
+    {key:'pre.ch3m',label:'3-month change between '+pctv(cfg.ddDown,0)+' and '+pctv(cfg.ddUp,0),
+      box:rulesChange3m(currentHistSeries().pts,Date.now(),cfg)},
+    {key:'pre.fund',label:'Emergency fund complete',box:rulesEmergencyFund(S.goals,goalStatus)},
+    {key:'pre.quarter',label:'Quarterly review or emergency band',box:rulesQuarterly(c.band)},
+    {key:'pre.groups',label:'Fondamenta and Satellite within their bands',box:rulesGroupWeights(tierW,cfg)}
+  ];
+  return c;
+}
+function renderRulesParams(c){
+  const host=$('#rlPar'); if(!host)return;
+  const miss=rulesParamsMissing(c.cfg,c.tierW);
+  const open=UI.rulesParOpen==null?miss.length>0:UI.rulesParOpen;
+  $('#rlParCard').classList.toggle('open',open);
+  $('#rlParHd').setAttribute('aria-expanded',open?'true':'false');
+  $('#rlParSub').textContent=miss.length?miss.length+' to fill in':'complete';
+  $('#rlParSub').title=miss.join(' · ');
+  /* il campo su cui si sta scrivendo non si riscrive */
+  if(host.contains(document.activeElement))return;
+  host.innerHTML=rulesParamsHTML(c.cfg,c.tierW);
+}
+function renderRulesPre(c){
+  const host=$('#rlPre'); if(!host)return;
+  const it=c.pre.map(i=>({box:i.box,ticked:rulesTicked(i.key)})), n=rulesSummary(it);
+  $('#rlPreSub').textContent=n.ok+' of '+n.total+' met';
+  host.innerHTML='<div class="rl-list">'+c.pre.map(i=>rulesItemHTML(i,rulesTicked(i.key))).join('')+'</div>'+
+    '<div class="rl-out '+(n.pass?'u':'d')+'">'+(n.pass?'All met: orders are allowed today':
+      'Not all met: '+esc(rulesSummaryText(n)))+'</div>';
+}
+/* motivi di vendita e verifiche di una posizione */
+function rulesSellItems(p,c){
+  const k=x=>'sell.'+p.id+'.'+x, cur=p.currency||BASE;
+  const fv=num(p.fairValue)>0?'Fair value '+nfx(num(p.fairValue))+' '+cur+(p.fvMethod?' ('+p.fvMethod+')':'')+
+    ' · price '+nfx(num(p.price))+' '+cur:'No fair value written in the asset form';
+  return {
+    motives:[
+      {key:k('m1'),m:'m1',why:true,label:'Thesis invalidated',box:rlBox('man',p.thInvalid?'Your condition: '+p.thInvalid
+        :'No invalidation condition written in the asset form')},
+      {key:k('m2'),m:'m2',label:'Weight above the tier cap or a concentration limit',box:rulesOverweight(p,c.cfg,c.total,c.expo)},
+      {key:k('m3'),m:'m3',label:'Unfavourable valuation: the thesis does not hold at this price',box:rlBox('man',fv)},
+      {key:k('m4'),m:'m4',label:'Better alternative after 30 days of analysis',box:rlBox('man','')},
+      {key:k('m5'),m:'m5',label:'Block rebalancing or emergency band',box:rulesBlockRebalance(p,c.band)},
+      {key:k('m6'),m:'m6',label:'Down '+nfx(-c.cfg.lossReviewPct,1)+'% or more from cost',box:rulesLossReview(p,c.cfg)}
+    ],
+    checks:[
+      {key:k('q1'),label:'If I didn\'t own it, I would not buy it today at this price',
+        box:rlBox('man','"Would I buy it today?" must have a no for an answer')},
+      {key:k('q2'),label:'The reason is not profit, "it went up too much", news without impact, getting back to even, fear or someone else\'s advice',
+        box:rlBox('man','')},
+      {key:k('tax'),label:'Tax cost acceptable for the reason',box:rlBox('man','See the estimate above')}
+    ]
+  };
+}
+/* quantità proposta: quella che riporta al limite superato (motivo 2),
+   altrimenti tutta la posizione */
+function rulesSellQtyDefault(p,amount){
+  const px=num(p.price)*fxRate(p.currency);
+  return amount>0&&px>0?Math.min(num(p._q),amount/px):num(p._q);
+}
+function rulesTaxHTML(p,t,losses){
+  if(!t)return '<div class="rb-tax"><div class="tx-miss">Enter a quantity greater than zero to see the estimate.</div></div>';
+  if(t.noAvg)return '<div class="rb-tax"><div class="tx-miss">Average cost not available: add it to the asset '+
+    'to see the estimated tax.</div></div>';
+  const cur=p.currency||BASE, gainPos=t.gain>0;
+  return '<div class="rb-tax">'+
+    '<div class="tx-r"><span class="k">Current price / avg. cost</span>'+
+      '<span class="v">'+nf(t.price,2)+' / '+nf(t.avg,2)+' '+esc(cur)+'</span></div>'+
+    '<div class="tx-r"><span class="k">'+(t.gain<0?'Estimated capital loss':'Estimated capital gain')+'</span>'+
+      '<span class="v mask '+(gainPos?'up':t.gain<0?'down':'')+'">'+(t.gain>=0?'+':'−')+money0(Math.abs(t.gain))+'</span></div>'+
+    (gainPos
+      ?'<div class="tx-r"><span class="k">Estimated tax ('+nfx(t.rate,1)+'%)</span>'+
+         '<span class="v mask down">−'+money0(t.tax)+'</span></div>'+
+       '<div class="tx-r tot"><span class="k">Net after estimated tax</span><span class="v mask">'+money0(t.net)+'</span></div>'
+      :'<div class="tx-r tot"><span class="k">No estimated tax</span>'+
+         '<span class="v">'+(t.gain<0?'capital loss':'no capital gain')+'</span></div>')+
+    '<div class="tx-r"><span class="k">Realized losses already recorded</span>'+
+      '<span class="v mask">'+(losses<0?'−'+money0(-losses):money0(0))+'</span></div>'+
+    '<div class="tx-note">Somma dei realizzati negativi di tutti i titoli, anche chiusi: un\'approssimazione, '+
+      'senza il controllo della scadenza di quattro anni delle minusvalenze.'+
+      (t.etf?' <b>Le plusvalenze degli ETF UCITS non si compensano con le minusvalenze.</b>':'')+'</div>'+
+    '<div class="tx-note">'+TAX_EST_NOTE+'</div>'+
+  '</div>';
+}
+/* la stima della scheda: quantità scritta (raw) o proposta, aliquota scelta
+   (sel) e cambio della valuta del titolo. La categoria non entra. */
+function rulesSellTax(p,c,sel,raw){
+  const qty=raw==null?rulesSellQtyDefault(p,rulesOverweight(p,c.cfg,c.total,c.expo).amount):num(raw);
+  return rulesTaxEstimate(p,qty,rulesTaxRate(sel,c.cfg),fxRate(p.currency));
+}
+function renderRulesTax(p,c){
+  const host=$('#rlTax'); if(!host||!p)return;
+  host.innerHTML=rulesTaxHTML(p,rulesSellTax(p,c,UI.rulesTaxSel,UI.rulesSellQty[p.id]),rulesRealizedLosses(S.positions));
+}
+function renderRulesSell(c){
+  const sel=$('#rlSellSel'), host=$('#rlSell'); if(!host)return;
+  const list=c.act.filter(p=>!isDeposit(p)).slice()
+    .sort((a,b)=>String(a.ticker||a.name||'').localeCompare(String(b.ticker||b.name||'')));
+  if(!list.some(p=>p.id===UI.rulesSell))UI.rulesSell=null;
+  sel.disabled=!list.length;
+  sel.innerHTML='<option value="">'+(list.length?'Choose a position…':'No positions')+'</option>'+
+    list.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===UI.rulesSell?' selected':'')+'>'+
+      esc(p.ticker||p.name||p.isin||'—')+'</option>').join('');
+  const p=list.filter(x=>x.id===UI.rulesSell)[0];
+  if(!p){
+    host.innerHTML='<div class="empty" style="padding:20px"><div class="sm">'+(list.length
+      ?'Choose a position to see which reasons to sell apply. You can also open it from the position, with <b>Checklist</b>.'
+      :'Add positions to use the sell checklist.')+'</div></div>';
+    return;
+  }
+  const t=normPTier(p.tier), cap=t?c.cfg.tiers[t].cap:null, cur=p.currency||BASE;
+  const it=rulesSellItems(p,c), ov=it.motives[1].box;
+  const eff={}; it.motives.forEach(m=>{ eff[m.m]=rulesEff(m.box,rulesTicked(m.key)); });
+  const out=rulesSellOutcome(eff,p._pnlPct);
+  const gate={box:rlBox(out.any?'ok':'ko','')};
+  const n=rulesSummary(c.pre.map(i=>({box:i.box,ticked:rulesTicked(i.key)})).concat([gate],
+    it.checks.map(i=>({box:i.box,ticked:rulesTicked(i.key)}))));
+  const extra={
+    m1:'<input class="inp" data-rlwhy="'+esc(p.id)+'" placeholder="Which condition happened?" value="'+esc(UI.rulesSellWhy[p.id]||'')+'">',
+    m2:ov.amount>0?'<span class="rl-dt">Sell about <b class="mask">'+money0(ov.amount)+'</b> to bring it back to the limit, not to the target</span>':'',
+    m6:eff.m6==='ok'?'<button type="button" class="btn btn-soft btn-sm" data-rlreview="'+esc(p.id)+'">Record review</button>':''
+  };
+  const up=p._pnl>=0;
+  host.innerHTML=
+    '<div class="rl-facts">'+
+      '<div><div class="l">Asset</div><div class="v">'+esc(p.ticker||p.name||'—')+'</div></div>'+
+      '<div><div class="l">Tier</div><div class="v">'+esc(t||'—')+'</div></div>'+
+      '<div><div class="l">Weight / cap</div><div class="v">'+nf(num(p._w),1)+'% / '+(cap==null?'no cap':nfx(cap,1)+'%')+'</div></div>'+
+      '<div><div class="l">Value</div><div class="v mask">'+money0(p._value)+'</div></div>'+
+      '<div><div class="l">Cost</div><div class="v mask">'+money0(p._cost)+'</div></div>'+
+      '<div><div class="l">Return</div><div class="v '+(up?'up':'down')+'">'+(num(p._cost)>0?pctv(num(p._pnlPct),1):'—')+'</div></div>'+
+    '</div>'+
+    '<div class="sec-t">Reasons to sell · at least one</div>'+
+    '<div class="rl-list">'+it.motives.map(m=>rulesItemHTML(m,rulesTicked(m.key),true,extra[m.m])).join('')+'</div>'+
+    '<div class="rl-out '+out.cls+'">'+esc(out.text)+'</div>'+
+    (out.profitWarn?'<div class="rl-out w">In profit: "it went up too much" is not a reason</div>':'')+
+    '<div class="sec-t">Before the order</div>'+
+    '<div class="rl-list">'+it.checks.slice(0,2).map(i=>rulesItemHTML(i,rulesTicked(i.key))).join('')+'</div>'+
+    '<div class="sec-t">Tax estimate</div>'+
+    '<div class="rl-qty">'+
+      '<div class="field"><label for="rlQty">Quantity to sell</label><input id="rlQty" type="text" inputmode="decimal" '+
+        'data-rlqty="'+esc(p.id)+'" value="'+(UI.rulesSellQty[p.id]!=null?esc(UI.rulesSellQty[p.id])
+          :fnum(+rulesSellQtyDefault(p,ov.amount).toFixed(6)))+'">'+
+        '<div class="hint">'+(ov.amount>0?'Proposta: la quantità che riporta il peso al limite.':'Proposta: tutta la posizione.')+
+          ' Prezzo '+nf(num(p.price),2)+' '+esc(cur)+'.</div></div>'+
+      '<div class="field"><label for="rlTaxSel">Tax rate</label><select class="inp" id="rlTaxSel">'+
+        '<option value="std"'+(UI.rulesTaxSel!=='gov'?' selected':'')+'>Capital gains '+nfx(rbTaxRate(),1)+'%</option>'+
+        '<option value="gov"'+(UI.rulesTaxSel==='gov'?' selected':'')+'>Government bonds '+nfx(c.cfg.taxGov,1)+'%</option>'+
+      '</select></div>'+
+    '</div>'+
+    '<div id="rlTax"></div>'+
+    '<div class="rl-dt" style="font-size:12px;color:var(--muted);margin-top:10px">Where the money should come from, in order:</div>'+
+    '<ol class="rl-steps"><li>new contributions</li><li>positions with a capital loss</li>'+
+      '<li>positions with the smallest gains</li><li>everything else</li></ol>'+
+    '<div class="rl-list">'+rulesItemHTML(it.checks[2],rulesTicked(it.checks[2].key))+'</div>'+
+    '<div class="rl-out '+(n.pass?'u':'d')+'">'+(n.pass?'All checks met: the decision is yours'
+      :'Not ready for the order: '+esc(rulesSummaryText(n)))+
+      '<span class="sm">Counts the checks before any order, at least one reason to sell, the two questions and the tax cost.</span></div>'+
+    '<div class="rl-acts"><button type="button" class="btn btn-ghost btn-sm" data-rldecide="sell">Record decision</button>'+
+      '<span class="hint">Nel registro, con i motivi presenti o spuntati.</span></div>';
+  renderRulesTax(p,c);
+}
+/* --- C. scheda Acquisto ---------------------------------------------------- */
+/* La sorgente: 'w:id' un titolo della watchlist (posizione nuova), 'p:id'
+   una posizione attiva (incremento). value: il suo valore in portafoglio;
+   price: la quotazione, per la watchlist il prezzo previsto se manca. */
+function rulesBuySource(key,watchlist,rows){
+  const k=String(key||''), id=k.slice(2);
+  if(k.indexOf('w:')===0){
+    const w=(watchlist||[]).filter(x=>x&&x.id===id)[0];
+    return w?{key:k,o:w,incr:false,value:0,price:num(w.price)||num(w.avg)}:null;
+  }
+  if(k.indexOf('p:')===0){
+    const p=(rows||[]).filter(x=>x&&x.id===id&&!isDeposit(x))[0];
+    return p?{key:k,o:p,incr:true,value:num(p._value),price:num(p.price)}:null;
+  }
+  return null;
+}
+/* peso finale % dopo l'acquisto: (valore del titolo + importo) / (totale + importo) */
+function rulesFinalWeight(value,amount,total){
+  const a=Math.max(0,num(amount)), d=num(total)+a;
+  return d>0?(num(value)+a)/d*100:0;
+}
+/* C1 motivo 1: le cinque righe della tesi */
+function rulesThesis(o){
+  const miss=THESIS_ROWS.filter(r=>!String(o[r[0]]==null?'':o[r[0]]).trim()).map(r=>r[2]);
+  return miss.length?rlBox('ko',(5-miss.length)+'/5 · missing: '+miss.join(', ')):rlBox('ok','5/5 lines written');
+}
+/* C1 motivo 2: una condizione che invalida la tesi, con una soglia (una cifra) */
+function rulesInvalidation(o){
+  const s=String(o.thInvalid==null?'':o.thInvalid).trim();
+  if(!s)return rlBox('ko','No invalidation condition');
+  return /\d/.test(s)?rlBox('ok',s):rlBox('ko','No measurable threshold, no number in: '+s);
+}
+/* C1 motivo 3: i tre voti */
+function rulesScores(o){
+  const miss=[['quant','QUANT'],['qual','QUAL'],['score','total']].filter(x=>o[x[0]]==null||o[x[0]]==='').map(x=>x[1]);
+  return miss.length?rlBox('ko','Missing: '+miss.join(', ')):rlBox('ok',scoresLine(o));
+}
+/* C1 motivo 4: totale ≥ totale minimo del tier. Se non basta, il tier più
+   alto compatibile: quello con la soglia più alta fra quelle impostate e non
+   sopra il totale. Tier non scelto: ko; soglia non impostata: na. */
+function rulesScoreTier(o,cfg){
+  const t=normPTier(o.tier);
+  if(!t)return rlBox('ko','Choose the tier of the asset');
+  const min=cfg.tiers[t].minScore;
+  if(min==null)return rlBox('na','Min. total score for '+t+' not set in the parameters');
+  if(o.score==null||o.score==='')return rlBox('na','No total score');
+  const sc=num(o.score);
+  if(sc>=min)return rlBox('ok','Total '+nfx(sc)+', '+t+' requires at least '+nfx(min));
+  const fit=PTIERS.filter(x=>cfg.tiers[x].minScore!=null&&cfg.tiers[x].minScore<=sc)
+    .sort((a,b)=>cfg.tiers[b].minScore-cfg.tiers[a].minScore)[0];
+  return rlBox('ko','Total '+nfx(sc)+', '+t+' requires at least '+nfx(min)+': '+
+    (fit?'with '+nfx(sc)+' at most '+fit:'no tier allows a total of '+nfx(sc)),{fit:fit||''});
+}
+/* C1 motivo 5: margine di sicurezza dichiarato, fair value e metodo. Un
+   margine nullo o negativo si dice, ma la regola chiede che sia dichiarato. */
+function rulesMargin(o,price){
+  const fv=num(o.fairValue), m=String(o.fvMethod==null?'':o.fvMethod).trim(), cur=o.currency||BASE;
+  if(!(fv>0)||!m)return rlBox('ko',!(fv>0)&&!m?'No fair value and no method':!(fv>0)?'No fair value':'No valuation method');
+  const px=num(price), base='Fair value '+nfx(fv)+' '+cur+' ('+m+')';
+  if(!(px>0))return rlBox('ok',base+'; no price to compare');
+  const mg=(fv-px)/fv*100;
+  return rlBox('ok',base+' · price '+nfx(px)+' '+cur+' · margin '+pctv(mg,1)+(mg<=0?': no margin of safety at this price':''),{margin:mg});
+}
+/* C1 blocco 1: peso finale entro il tetto del tier e sotto il limite per
+   singolo titolo. Un tier senza tetto non ha quel limite (scelta
+   dell'utente); il tier non scelto o l'importo mancante: non verificabile. */
+function rulesBuyWeight(o,fw,cfg,amount){
+  if(!(num(amount)>0))return rlBox('na','Enter the amount to invest');
+  const t=normPTier(o.tier);
+  if(!t)return rlBox('na','Choose the tier of the asset');
+  const cap=cfg.tiers[t].cap, w=Math.round(num(fw)*1e6)/1e6, lt=w<cfg.lookThrough;
+  const capOk=cap==null||w<=cap;
+  return rlBox(capOk&&lt?'ok':'ko','Final weight '+nf(w,2)+'% · '+
+    (cap==null?t+' has no cap':(capOk?'within':'above')+' the '+t+' cap of '+nfx(cap,1)+'%')+' · '+
+    (lt?'below':'not below')+' the '+nfx(cfg.lookThrough,1)+'% single-asset limit',{weight:w});
+}
+/* C1 blocco 2: settori e paesi del titolo dopo l'acquisto. computeExposure
+   sulle attive più una riga finta che vale l'importo (un ETF con la
+   composizione si spezza), sul totale più l'importo. Un titolo senza
+   settore o paese: non verificabile. */
+function rulesBuyExposure(o,amount,rows,total,cfg){
+  const a=Math.max(0,num(amount)), fake=Object.assign({},o,{_value:a}), tot=num(total)+a;
+  if(!(tot>0))return rlBox('na','Enter the amount to invest');
+  const ex=computeExposure((rows||[]).concat([fake]));
+  const bad=[], good=[], miss=[];
+  [['sector',cfg.sectorMax],['country',cfg.countryMax]].forEach(([k,max])=>{
+    expoParts(fake,k).forEach(c=>{
+      if(c.name==='—'){ if(miss.indexOf(k)<0)miss.push(k); return; }
+      if(RL_EXPO_SKIP.indexOf(c.name)>-1)return;
+      const pct=Math.round(num(ex[k][c.name])/tot*100*1e6)/1e6;
+      (pct>max?bad:good).push(c.name+' '+nf(pct,1)+'%'+(pct>max?' over the '+nfx(max,1)+'% limit':''));
+    });
+  });
+  if(bad.length)return rlBox('ko','After the purchase: '+bad.concat(good).join(', '));
+  if(miss.length)return rlBox('na','No '+miss.join(' and ')+' in the asset form');
+  return rlBox('ok',good.length?'After the purchase: '+good.join(', '):'Only aggregate sectors and countries (e.g. World)');
+}
+/* posizioni che contano come titoli: attive, non conti deposito */
+const rulesHeld=rows=>(rows||[]).filter(p=>p&&!isClosed(p)&&!isDeposit(p)&&num(p._q)>0);
+/* C1 blocco 3a: titoli nel gruppo Satellite dopo l'acquisto, meno di
+   satMaxTitles (questo compreso, come per le nuove posizioni). Tier senza
+   gruppo o titoli senza tier: non verificabile. */
+function rulesSatTitles(o,incr,rows,cfg){
+  const t=normPTier(o.tier);
+  if(!t)return rlBox('na','Choose the tier of the asset');
+  const held=rulesHeld(rows);
+  if(held.some(p=>!normPTier(p.tier)))return rlBox('na','Some positions have no tier');
+  const used=PTIERS.filter(x=>x===t||held.some(p=>normPTier(p.tier)===x));
+  const miss=used.filter(x=>!cfg.groups[x]);
+  if(miss.length)return rlBox('na','Assign the group to: '+miss.join(', '));
+  const sat=cfg.groups[t]==='Satellite';
+  const n=held.filter(p=>cfg.groups[normPTier(p.tier)]==='Satellite').length+(!incr&&sat?1:0);
+  return rlBox(n<cfg.satMaxTitles?'ok':'ko',n+' assets in Satellite'+(!incr&&sat?' with this one':'')+
+    ' · fewer than '+cfg.satMaxTitles+' allowed'+(sat?'':' · this asset is not in Satellite'),{n:n});
+}
+/* C1 blocco 3b: peso iniziale di una posizione nuova almeno minInitialPct */
+function rulesMinInitial(fw,incr,cfg,amount){
+  if(incr)return null;
+  if(!(num(amount)>0))return rlBox('na','Enter the amount to invest');
+  const w=Math.round(num(fw)*1e6)/1e6;
+  return rlBox(w>=cfg.minInitialPct?'ok':'ko','Initial weight '+nf(w,2)+'% · at least '+nfx(cfg.minInitialPct,2)+'%');
+}
+/* trimestre solare di una data ISO, "2026-Q4"; '' se non è una data */
+function rulesQuarter(iso){
+  const d=String(iso==null?'':iso);
+  return /^\d{4}-\d{2}/.test(d)?d.slice(0,4)+'-Q'+(Math.floor((+d.slice(5,7)-1)/3)+1):'';
+}
+/* C1 blocco 4: nuove posizioni nel trimestre solare di oggi, questa
+   compresa. "Meno di newPerQuarter": con 3, ammesso fino a 2 in tutto.
+   Contano i titoli in portafoglio (non le chiuse né i conti). Un incremento
+   non apre una posizione: non è bloccato. */
+function rulesNewThisQuarter(rows,incr,todayIso,cfg){
+  const q=rulesQuarter(todayIso), already=rulesHeld(rows).filter(p=>rulesQuarter(p.dateAdded)===q);
+  const names=already.length?': '+already.map(p=>p.ticker||p.name||'—').join(', '):'';
+  if(incr)return rlBox('ok','An increase is not a new position ('+already.length+' new this quarter'+names+')');
+  const n=already.length+1;
+  return rlBox(n<cfg.newPerQuarter?'ok':'ko',n+' new position'+(n===1?'':'s')+' this quarter with this one · fewer than '+
+    cfg.newPerQuarter+' allowed'+names,{n:n});
+}
+/* C1 blocco 5: l'attesa dalla decisione registrata (l'ultima d'acquisto
+   ancora da fare, per quel titolo). Fine: la più tarda fra quella salvata e
+   quella che danno oggi incremento e rialzo. Finisce il giorno indicato. */
+function rulesBuyWait(o,incr,rally,log,todayIso,cfg){
+  const key=rulesKey(o), days=rally?cfg.waitDaysRally:incr?cfg.waitDaysIncr:cfg.waitDays;
+  const rows=(log||[]).filter(r=>r&&r.op==='buy'&&!r.done&&r.ticker===key)
+    .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  if(!rows.length)return rlBox('ko','No decision recorded: record it, then wait '+days+' days',{none:true});
+  const r=rows[0], end=[r.waitUntil,rulesWaitUntil(r.date,'buy',{incr:incr,rally:rally},cfg)].filter(Boolean).sort().pop();
+  return end>todayIso?rlBox('ko','Decision of '+fmtDate(r.date)+': wait until '+fmtDate(end),{end:end})
+    :rlBox('ok','Decision of '+fmtDate(r.date)+': waiting ended on '+fmtDate(end),{end:end});
+}
+/* C1 blocco 6: primo ingresso al massimo firstEntryFrac del peso target del
+   titolo (non del tetto). Non vale per gli incrementi. */
+function rulesFirstEntry(o,fw,incr,cfg,amount){
+  if(incr)return null;
+  const tg=num(o.targetWeight);
+  if(o.targetWeight==null||o.targetWeight===''||!(tg>0))return rlBox('na','No target weight in the asset form');
+  if(!(num(amount)>0))return rlBox('na','Enter the amount to invest');
+  const max=Math.round(tg*cfg.firstEntryFrac*1e6)/1e6, w=Math.round(num(fw)*1e6)/1e6;
+  return rlBox(w<=max?'ok':'ko','Final weight '+nf(w,2)+'% · at most '+nfx(cfg.firstEntryFrac*100,0)+'% of the '+
+    nfx(tg,2)+'% target = '+nfx(max,2)+'%');
+}
+/* C1 blocco 7: vendite di titoli degli ultimi 30 giorni, dalla più recente.
+   I prelievi dai conti deposito non contano. */
+function rulesRecentSales(positions,todayIso){
+  const from=rulesAddDays(todayIso,-30), out=[];
+  (positions||[]).forEach(p=>{ if(!p||isDeposit(p))return;
+    (p.tx||[]).forEach(t=>{ const d=String(t&&t.date||'').slice(0,10);
+      if(t&&t.type==='sell'&&d>=from&&d<=todayIso)out.push({name:p.ticker||p.name||'—',date:d}); });
+  });
+  return out.sort((a,b)=>b.date.localeCompare(a.date));
+}
+function rulesFunds(sales){
+  return rlBox('man',sales.length?'Sales in the last 30 days: '+sales.map(s=>s.name+' '+fmtDate(s.date)).join(', ')+
+    '. The money must not come from them':'No sales in the last 30 days',{warn:sales.length>0});
+}
+/* Esito della scheda Acquisto: ammesso solo con tutte le caselle 'ok' */
+function rulesBuyOutcome(n){
+  return n.pass?{cls:'u',text:'Buy allowed',sub:''}
+    :{cls:'d',text:'Buy not allowed: the contribution goes to the Fondamenta ETFs',sub:rulesSummaryText(n)};
+}
+/* tutte le caselle della scheda Acquisto per la sorgente src e amount € */
+function rulesBuyItems(src,amount,c,log,todayIso){
+  const o=src.o, k=x=>'buy.'+src.key+'.'+x, cfg=c.cfg;
+  const fw=rulesFinalWeight(src.value,amount,c.total), rally=rulesTicked(k('rally'));
+  const t=normPTier(o.tier);
+  return {fw:fw, rally:rally,
+    motives:[
+      {key:k('m1'),label:'Thesis in 5 lines',box:rulesThesis(o)},
+      {key:k('m2'),label:'Invalidation condition with a threshold',box:rulesInvalidation(o)},
+      {key:k('m3'),label:'QUANT, QUAL and total scores',box:rulesScores(o)},
+      {key:k('m4'),label:'Total score fits the tier'+(t?' ('+t+')':''),box:rulesScoreTier(o,cfg)},
+      {key:k('m5'),label:'Margin of safety declared',box:rulesMargin(o,src.price)},
+      {key:k('m6'),label:'Key data checked on a primary source',box:rlBox('man','Annual report, filings, official statistics')}
+    ],
+    blocks:[
+      {key:k('b1'),label:'Final weight within the tier cap and below the single-asset limit',box:rulesBuyWeight(o,fw,cfg,amount),
+        note:'La composizione degli ETF è per settore e paese, non per titolo: il look-through del singolo titolo dentro gli ETF non si può calcolare.'},
+      {key:k('b2'),label:'Sector and country within their limits after the purchase',box:rulesBuyExposure(o,amount,c.act,c.total,cfg)},
+      {key:k('b3'),label:'Fewer than '+cfg.satMaxTitles+' assets in Satellite',box:rulesSatTitles(o,src.incr,c.act,cfg)},
+      {key:k('b3w'),label:'Initial weight at least '+nfx(cfg.minInitialPct,2)+'%',box:rulesMinInitial(fw,src.incr,cfg,amount)},
+      {key:k('b4'),label:'Fewer than '+cfg.newPerQuarter+' new positions this quarter',box:rulesNewThisQuarter(c.act,src.incr,todayIso,cfg)},
+      {key:k('b5'),label:'Waiting time after the decision',box:rulesBuyWait(o,src.incr,rally,log,todayIso,cfg)},
+      {key:k('b6'),label:'First entry at most '+nfx(cfg.firstEntryFrac*100,0)+'% of the target weight',box:rulesFirstEntry(o,fw,src.incr,cfg,amount)},
+      {key:k('b7'),label:'The money comes from contributions, not from a sale made to fund it',box:rulesFunds(rulesRecentSales(S.positions,todayIso))}
+    ].filter(b=>b.box)
+  };
+}
+/* motivo da registrare: le regole rispettate o spuntate, in breve */
+function rulesMotiveText(items,why){
+  const met=items.filter(i=>rulesEff(i.box,rulesTicked(i.key))==='ok').map(i=>i.label+(i.why&&why?': '+why:''));
+  return met.length?met.join(' · '):'No rule met';
+}
+function renderRulesBuyBody(c){
+  const host=$('#rlBuyBody'); if(!host)return;
+  const src=rulesBuySource(UI.rulesBuy,S.watchlist,c.act); if(!src){ host.innerHTML=''; return; }
+  const today=todayISO(), amount=num(UI.rulesBuyAmt), it=rulesBuyItems(src,amount,c,S.rulesLog,today);
+  const all=c.pre.concat(it.motives,it.blocks).map(i=>({box:i.box,ticked:rulesTicked(i.key)}));
+  const n=rulesSummary(all), out=rulesBuyOutcome(n);
+  const extra=b=>{
+    if(b.key.slice(-3)==='.b5')return '<label class="rl-sub"><input type="checkbox" data-rltick="buy.'+esc(src.key)+'.rally"'+
+      (it.rally?' checked':'')+'> It went up more than '+nfx(c.cfg.rallyPct,0)+'% in 3 months: wait '+c.cfg.waitDaysRally+' days</label>'+
+      (b.box.none?'<button type="button" class="btn btn-soft btn-sm" data-rldecide="buy">Record decision</button>':'');
+    if(b.key.slice(-3)==='.b1')return '<span class="rl-dt">'+esc(b.note)+'</span>';
+    return '';
+  };
+  host.innerHTML=
+    '<div class="sec-t">Reasons to buy · all needed</div>'+
+    '<div class="rl-list">'+it.motives.map(m=>rulesItemHTML(m,rulesTicked(m.key))).join('')+'</div>'+
+    '<div class="sec-t">Checks · final weight '+nf(it.fw,2)+'%</div>'+
+    '<div class="rl-list">'+it.blocks.map(b=>rulesItemHTML(b,rulesTicked(b.key),false,extra(b))).join('')+'</div>'+
+    '<div class="rl-out '+out.cls+'">'+esc(out.text)+(out.sub?'<span class="sm">'+esc(out.sub)+'</span>':'')+
+      '<span class="sm">Counts the checks before any order too.</span></div>'+
+    '<div class="rl-acts"><button type="button" class="btn btn-ghost btn-sm" data-rldecide="buy">Record decision</button>'+
+      '<span class="hint">Nel registro, con le regole rispettate come motivo e la data di fine attesa.</span></div>';
+}
+function renderRulesBuy(c){
+  const sel=$('#rlBuySel'), host=$('#rlBuy'); if(!host)return;
+  const wl=(S.watchlist||[]).slice().sort((a,b)=>rulesKey(a).localeCompare(rulesKey(b)));
+  const pos=c.act.filter(p=>!isDeposit(p)).slice().sort((a,b)=>rulesKey(a).localeCompare(rulesKey(b)));
+  if(!rulesBuySource(UI.rulesBuy,S.watchlist,c.act))UI.rulesBuy=null;
+  const o=(k,x)=>'<option value="'+esc(k)+'"'+(k===UI.rulesBuy?' selected':'')+'>'+esc(rulesKey(x)||'—')+'</option>';
+  sel.disabled=!wl.length&&!pos.length;
+  sel.innerHTML='<option value="">'+(sel.disabled?'Nothing to buy':'Choose an asset…')+'</option>'+
+    (wl.length?'<optgroup label="Watchlist · new position">'+wl.map(w=>o('w:'+w.id,w)).join('')+'</optgroup>':'')+
+    (pos.length?'<optgroup label="Portfolio · increase">'+pos.map(p=>o('p:'+p.id,p)).join('')+'</optgroup>':'');
+  const src=rulesBuySource(UI.rulesBuy,S.watchlist,c.act);
+  if(!src){
+    host.innerHTML='<div class="empty" style="padding:20px"><div class="sm">'+(sel.disabled
+      ?'Add assets to the watchlist, or positions, to use the buy checklist.'
+      :'Choose an asset from the watchlist (new position) or from the portfolio (increase).')+'</div></div>';
+    return;
+  }
+  const x=src.o, t=normPTier(x.tier), cap=t?c.cfg.tiers[t].cap:null;
+  host.innerHTML=
+    '<div class="rl-facts">'+
+      '<div><div class="l">Asset</div><div class="v">'+esc(rulesKey(x)||'—')+'</div></div>'+
+      '<div><div class="l">Operation</div><div class="v">'+(src.incr?'Increase':'New position')+'</div></div>'+
+      '<div><div class="l">Tier / cap</div><div class="v">'+esc(t||'—')+(t?' · '+(cap==null?'no cap':nfx(cap,1)+'%'):'')+'</div></div>'+
+      '<div><div class="l">Scores</div><div class="v">'+esc(scoresLine(x))+'</div></div>'+
+      (src.incr?'<div><div class="l">Current weight</div><div class="v">'+nf(num(x._w),2)+'%</div></div>':'')+
+      '<div><div class="l">Target weight</div><div class="v">'+(x.targetWeight==null||x.targetWeight===''?'—':nfx(num(x.targetWeight),2)+'%')+'</div></div>'+
+    '</div>'+
+    '<div class="field" style="margin:16px 0 0;max-width:260px"><label for="rlBuyAmt">Amount to invest (€)</label>'+
+      '<input id="rlBuyAmt" type="text" inputmode="decimal" placeholder="e.g. 1.000" value="'+esc(UI.rulesBuyAmt||'')+'"></div>'+
+    '<div id="rlBuyBody"></div>';
+  renderRulesBuyBody(c);
+}
+
+/* --- C2. registro delle decisioni -------------------------------------------- */
+const RL_OP_LBL={buy:['Buy','u'],sell:['Sell','d'],review:['Review','w']};
+function rulesLogHTML(log,todayIso){
+  const rows=(log||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.id).localeCompare(String(a.id)));
+  if(!rows.length)return '<div class="empty" style="padding:20px"><div class="sm">No decisions recorded yet: use '+
+    '<b>Record decision</b> in the checklists above.</div></div>';
+  return '<div class="rl-log-row hd"><div>Asset</div><div>Operation</div><div>Reason (rule)</div><div>Wait ends</div><div>Done</div><div></div></div>'+
+    rows.map(r=>{ const op=RL_OP_LBL[r.op]||['—',''], wait=!r.done&&r.waitUntil&&r.waitUntil>todayIso;
+      return '<div class="rl-log-row'+(r.done?' done':'')+'">'+
+        '<div class="lg-t"><b>'+esc(r.ticker)+'</b><span class="cellsub">'+fmtDate(r.date)+'</span></div>'+
+        '<div><span class="badge '+op[1]+'">'+op[0]+'</span></div>'+
+        '<div class="mo"><input class="inp" data-rlmotive="'+esc(r.id)+'" value="'+esc(r.motive)+'" aria-label="Reason"></div>'+
+        '<div class="wt'+(wait?' wait':'')+'">'+(r.waitUntil?fmtDate(r.waitUntil)+(wait?'<span class="cellsub">waiting</span>':''):'—')+'</div>'+
+        '<div><label class="rl-done"><input type="checkbox" data-rldone="'+esc(r.id)+'"'+(r.done?' checked':'')+'> Done</label></div>'+
+        '<div><button type="button" class="rowbtn" data-rldel="'+esc(r.id)+'" title="Delete">×</button></div></div>';
+    }).join('');
+}
+function renderRulesLog(){
+  const host=$('#rlLog'); if(!host)return;
+  const log=Array.isArray(S.rulesLog)?S.rulesLog:[], today=todayISO();
+  const wait=log.filter(r=>!r.done&&r.waitUntil&&r.waitUntil>today).length;
+  $('#rlLogSub').textContent=log.length?log.length+(log.length===1?' decision':' decisions')+(wait?' · '+wait+' waiting':''):'';
+  if(host.contains(document.activeElement))return;
+  host.innerHTML=rulesLogHTML(log,today);
+}
+/* scrive "Fatto" o il motivo di una riga; elimina una riga */
+function rulesLogSet(id,field,v){
+  const r=(S.rulesLog||[]).filter(x=>x.id===id)[0]; if(!r)return false;
+  r[field]=field==='done'?!!v:String(v==null?'':v);
+  save(); return true;
+}
+function rulesLogDel(id){
+  const n=(S.rulesLog||[]).length;
+  S.rulesLog=(S.rulesLog||[]).filter(x=>x.id!==id);
+  if(S.rulesLog.length!==n)save();
+}
+function renderRegole(){
+  if(!$('#rlPar'))return;
+  const c=rulesCtx();
+  renderRulesParams(c); renderRulesPre(c); renderRulesSell(c); renderRulesBuy(c); renderRulesLog();
+}
+/* dopo un nuovo disegno la casella appena spuntata resta quella col fuoco */
+function rulesRefocus(id){
+  const el=id&&document.getElementById(id);
+  if(el)try{ el.focus({preventScroll:true}); }catch(e){}
+}
+/* "Checklist" nel dettaglio di una posizione: la pagina Regole con quella
+   posizione nella scheda Vendita */
+function openRulesSell(id){
+  UI.rulesSell=id; closeDrawer(); go('regole');
+  const card=$('#rlSellCard'); if(!card)return;
+  requestAnimationFrame(()=>window.scrollTo({top:Math.max(0,card.getBoundingClientRect().top+window.scrollY-80),
+    behavior:reducedMotion()?'auto':'smooth'}));
+}
+/* "Record decision": una riga nel registro col motivo precompilato dalle
+   regole rispettate o spuntate e, per un acquisto, la fine dell'attesa */
+function rulesDecide(op){
+  const c=rulesCtx();
+  if(op==='buy'){
+    const src=rulesBuySource(UI.rulesBuy,S.watchlist,c.act); if(!src)return;
+    const it=rulesBuyItems(src,num(UI.rulesBuyAmt),c,S.rulesLog,todayISO());
+    const r=rulesLogAdd(src.o,'buy',rulesMotiveText(it.motives),{incr:src.incr,rally:it.rally});
+    if(r)toast('Decision recorded: wait until '+fmtDate(r.waitUntil),'ok');
+  }else{
+    const p=c.act.filter(x=>x.id===UI.rulesSell)[0]; if(!p)return;
+    const r=rulesLogAdd(p,'sell',rulesMotiveText(rulesSellItems(p,c).motives,UI.rulesSellWhy[p.id]),{});
+    if(r)toast('Decision recorded in the log','ok');
+  }
+  renderRegole();
+}
+function wireRules(){
+  const hd=$('#rlParHd');
+  hd.addEventListener('click',()=>{ UI.rulesParOpen=!$('#rlParCard').classList.contains('open'); renderRegole(); });
+  hd.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); hd.click(); } });
+  const par=$('#rlPar');
+  /* target e bande per tier vivono nel Ribilanciamento: il link porta lì */
+  par.addEventListener('click',e=>{
+    if(!e.target.closest('[data-rlgo]'))return;
+    UI.rbMode='tier'; go('ribilanciamento');
+  });
+  par.addEventListener('input',e=>{
+    const el=e.target.closest('[data-rl]'); if(!el)return;
+    rulesSetParam(el.getAttribute('data-rl'),el.value); save(); renderRegole();
+  });
+  par.addEventListener('change',e=>{
+    const el=e.target;
+    if(el.matches('[data-rlg]')){ rulesSetGroup(el.getAttribute('data-rlg'),el.value); save(); renderRegole(); }
+    /* all'uscita dal campo si vede il valore salvato, già nei limiti */
+    else if(el.matches('[data-rl]')){ const v=rulesParamAt(rulesCfg(S.settings),el.getAttribute('data-rl'));
+      el.value=v==null?'':fnum(v); }
+  });
+  $('#rlSellSel').addEventListener('change',e=>{ UI.rulesSell=e.target.value||null; renderRegole(); });
+  $('#rlBuySel').addEventListener('change',e=>{ UI.rulesBuy=e.target.value||null; renderRegole(); });
+  const pg=$('#pg-regole');
+  pg.addEventListener('change',e=>{
+    const el=e.target;
+    if(el.matches('[data-rltick]')){ UI.rulesTicks[el.getAttribute('data-rltick')]=el.checked; renderRegole(); rulesRefocus(el.id); }
+    else if(el.id==='rlTaxSel'){ UI.rulesTaxSel=el.value; renderRulesTax(activePositions().filter(p=>p.id===UI.rulesSell)[0],rulesCtx()); }
+    else if(el.matches('[data-rldone]')){ rulesLogSet(el.getAttribute('data-rldone'),'done',el.checked); renderRegole(); }
+    else if(el.matches('[data-rlmotive]')){ rulesLogSet(el.getAttribute('data-rlmotive'),'motive',el.value.trim()); }
+  });
+  pg.addEventListener('input',e=>{
+    const el=e.target;
+    if(el.matches('[data-rlwhy]'))UI.rulesSellWhy[el.getAttribute('data-rlwhy')]=el.value;
+    else if(el.matches('[data-rlqty]')){
+      UI.rulesSellQty[el.getAttribute('data-rlqty')]=el.value;
+      renderRulesTax(activePositions().filter(p=>p.id===el.getAttribute('data-rlqty'))[0],rulesCtx());
+    }
+    else if(el.id==='rlBuyAmt'){ UI.rulesBuyAmt=el.value; renderRulesBuyBody(rulesCtx()); }
+  });
+  pg.addEventListener('click',e=>{
+    const del=e.target.closest('[data-rldel]');
+    if(del){
+      if(!confirm('Delete this decision from the log?'))return;
+      rulesLogDel(del.getAttribute('data-rldel')); renderRegole(); return;
+    }
+    const d=e.target.closest('[data-rldecide]');
+    if(d){ rulesDecide(d.getAttribute('data-rldecide')); return; }
+    const b=e.target.closest('[data-rlreview]'); if(!b)return;
+    const p=S.positions.filter(x=>x.id===b.getAttribute('data-rlreview'))[0]; if(!p)return;
+    const r=rulesLogAdd(p,'review','Down '+nfx(-rulesCfg(S.settings).lossReviewPct,1)+'% from cost: review',{});
+    if(r)toast('Review recorded: decide by '+fmtDate(r.waitUntil),'ok');
+    renderRegole();
+  });
+}
+
+/* ==========================================================================
    12k. WATCHLIST — titoli da comprare
    ========================================================================== */
-function initWatchForm(){ initDescSelects('fw'); }
+function initWatchForm(){ $('#fwRules').innerHTML=rulesFieldsHTML('fw'); initDescSelects('fw'); }
 function renderWatchlist(){
   const wl=S.watchlist||[], tb=$('#watchBody'), empty=$('#watchEmpty');
   $('#tblWatch').style.display=wl.length?'':'none';
@@ -7725,6 +9079,7 @@ function openWatch(id){
   UI.editWatch=w?w.id:null;
   $('#wTitle').textContent=w?'Edit asset':'Add asset to buy';
   descToForm('fw',w); logoPreview('fw');
+  $('#fwRulesBox').open=rulesHasData(w);
   isinSeq++; $('#fwIsinResults').innerHTML='';
   $('#fwQty').value=fnum(w&&num(w.qty)?w.qty:'');
   $('#fwAvg').value=fnum(w&&num(w.avg)?w.avg:'');
@@ -7740,12 +9095,15 @@ function watchFromForm(id){
     {qty:num($('#fwQty').value), avg:num($('#fwAvg').value)});
 }
 /* Stessi controlli di savePos(): un ISIN nel Ticker si sposta, serve almeno
-   ticker, nome o ISIN, e un ISIN scritto deve essere valido. */
+   ticker, nome o ISIN, un ISIN scritto deve essere valido e i voti nella scala. */
 function watchFormOk(){
   tickerToIsin('fw');
   const t=$('#fwTicker').value.trim(), n=$('#fwName').value.trim(), isin=normIsin($('#fwIsin').value);
   if(!t&&!n&&!isin){ toast('Enter at least a ticker, a name or an ISIN','err'); $('#fwTicker').focus(); return false; }
   if(isin&&!isinValid(isin)){ toast(ISIN_BAD,'err'); syncIsinUI(true,'fw'); $('#fwIsin').focus(); return false; }
+  /* voti fuori scala: come in savePos(), né salvati né portati in portafoglio */
+  const se=scoreErrors(descFromForm('fw'));
+  if(se.length){ toast(se.join(' · '),'err'); $('#fwRulesBox').open=true; return false; }
   return true;
 }
 function saveWatch(){
@@ -9534,7 +10892,8 @@ const CSV_FIELDS=[
   ['ticker','Ticker / Symbol *'],['isin','ISIN'],['name','Name'],['cls','Category'],['sector','Sector'],
   ['country','Country / Region'],['currency','Currency'],['platform','Platform'],['qty','Quantity *'],['avg','Average / trade price *'],
   ['price','Current price'],['yield','Dividend yield %'],['ter','TER %'],['risk','Risk 3–9'],['factor','Factor'],
-  ['tier','Tier'],['targetWeight','Target weight %'],['dateAdded','Date / Held since'],
+  ['tier','Tier'],['quant','QUANT score'],['qual','QUAL score'],['score','Total score'],
+  ['targetWeight','Target weight %'],['dateAdded','Date / Held since'],
   ['txType','Transaction (buy/sell)'],['fee','Fee'],
   ['divTotal','Dividend (total)'],['divShare','Dividend per share']
 ];
@@ -9568,6 +10927,12 @@ const CSV_HINTS={
   factor:['fattore','factor','stile','style'],
   /* "tier" solo come parola a sé: dentro "frontiera" o "cantiere" non lo è */
   tier:[{re:/\btier\b/,len:4},'ruolo','bucket'],
+  /* voti: "quant" e "qual" solo come parole a sé, altrimenti "Quantità" e
+     "Qualità" finirebbero qui. Niente 'totale' da solo: in molti CSV di
+     movimenti è l'importo dell'operazione */
+  quant:[{re:/\bquant\b/,len:5},'voto quant','quantitativ'],
+  qual:[{re:/\bqual\b/,len:4},'voto qual','qualitativ'],
+  score:['voto totale','punteggio totale','score totale','total score','score'],
   targetWeight:['peso previsto','target','peso','target weight','weight'],
   dateAdded:['portafoglio dal','in portafoglio','data acquisto','data di acquisto','inserimento',
              'apertura','data','date','added','since','held since','purchase date','trade date'],
@@ -9627,9 +10992,10 @@ function guessAllColumns(headers){
 }
 /* Esito dell'import: resta visibile sotto il riquadro finché non se ne fa un
    altro. Un valore scartato in silenzio sarebbe il modo peggiore di sbagliare. */
-function csvReport(conflitti,scartate,senzaTicker){
+function csvReport(conflitti,scartate,senzaTicker,fuoriScala){
   const host=$('#csvReport'); if(!host)return;
-  if(!conflitti.length&&!scartate&&!senzaTicker){ host.innerHTML=''; return; }
+  fuoriScala=fuoriScala||[];
+  if(!conflitti.length&&!scartate&&!senzaTicker&&!fuoriScala.length){ host.innerHTML=''; return; }
   let s='';
   if(conflitti.length){
     const gruppi={};
@@ -9647,6 +11013,16 @@ function csvReport(conflitti,scartate,senzaTicker){
       }).join('<br>')+
       (Object.keys(gruppi).length>8?'<br>… e altri '+(Object.keys(gruppi).length-8):'')+
       '<br><br>Se il valore giusto è un altro, correggilo nella scheda del titolo.</div>';
+  }
+  /* un voto fuori scala non entra: il campo resta vuoto e qui si dice quale */
+  if(fuoriScala.length){
+    const righe=fuoriScala;
+    s+='<div class="note mt18" style="border-color:var(--warn);color:var(--ink-soft)">'+
+      '<b>'+righe.length+(righe.length===1?' voto fuori scala':' voti fuori scala')+'</b>: QUANT e QUAL vanno '+
+      'da 0 a 3, il totale non può essere negativo. Il campo è rimasto vuoto.<br><br>'+
+      righe.slice(0,8).map(f=>'• <b>'+esc(f.ticker+' · '+f.campo)+'</b>: '+esc(f.valore)).join('<br>')+
+      (righe.length>8?'<br>… e altri '+(righe.length-8):'')+
+      '<br><br>Correggilo nella scheda del titolo, in <b>Thesis and scores</b>.</div>';
   }
   if(scartate)
     s+='<div class="note mt18">'+scartate+(scartate===1?' riga non conteneva':' righe non contenevano')+
@@ -9695,6 +11071,11 @@ function csvPosFields(){
     ['factor','Factor',v=>normFactor(v)],
     /* un tier sconosciuto torna vuoto e non conta: resta non assegnato */
     ['tier','Tier',v=>normPTier(v)],
+    /* voti: senza cifre restano assenti. Il quarto elemento dice se il valore
+       è nella scala: fuori scala il campo resta vuoto e finisce nel report */
+    ['quant','QUANT',v=>/\d/.test(v)?num(v):'',v=>v>=0&&v<=3],
+    ['qual','QUAL',v=>/\d/.test(v)?num(v):'',v=>v>=0&&v<=3],
+    ['score','Total score',v=>/\d/.test(v)?num(v):'',v=>v>=0],
     ['targetWeight','Target weight %',v=>num(v)]
   ];
 }
@@ -9712,7 +11093,7 @@ function csvDoImport(){
      sempre: una riga = una posizione con quantità e prezzo di carico. */
   const txMode=has('txType')||has('fee')||has('divTotal')||has('divShare');
   const POS_FIELDS=csvPosFields();
-  const byTicker={}, order=[], visti={}, conflitti=[];
+  const byTicker={}, order=[], visti={}, conflitti=[], fuoriScala=[];
   let righe=0, movimenti=0, scartate=0;
 
   parsedCSV.data.forEach(r=>{
@@ -9749,6 +11130,12 @@ function csvDoImport(){
       const raw=get(r,k); if(raw==='')return;
       const v=f[2](raw);
       if(v===''||v==null||(typeof v==='number'&&!isFinite(v)))return;
+      if(f[3]&&!f[3](v)){
+        /* un CSV di movimenti ripete il voto su ogni riga: lo si segnala una volta */
+        if(!fuoriScala.some(x=>x.ticker===label&&x.campo===f[1]&&x.valore===raw))
+          fuoriScala.push({ticker:label,campo:f[1],valore:raw});
+        return;
+      }
       const sv=visti[key];
       if(!(k in sv)){ sv[k]=v; p[k]=v; return; }
       if(String(sv[k])!==String(v))
@@ -9805,13 +11192,15 @@ function csvDoImport(){
   $('#csvPaste').value=''; $('#csvFile').value='';
   save(); renderAll();
   const n=order.length;
-  csvReport(conflitti,scartate,senzaTicker);
+  csvReport(conflitti,scartate,senzaTicker,fuoriScala);
   toast((txMode
     ? n+(n===1?' position':' positions')+' · '+movimenti+(movimenti===1?' transaction':' transactions')+
       (conflitti.length?' · '+conflitti.length+' conflicting values':'')+
       (scartate?' · '+scartate+' rows without data':'')
     : n+(n===1?' position imported':' positions imported'))+
-    (senzaTicker?' · '+senzaTicker+' without ticker':''),conflitti.length?'':'ok');
+    (senzaTicker?' · '+senzaTicker+' without ticker':'')+
+    (fuoriScala.length?' · '+fuoriScala.length+' out-of-range scores left empty':''),
+    conflitti.length||fuoriScala.length?'':'ok');
   if(n)refreshPrices(true);
 }
 
@@ -9830,13 +11219,16 @@ const stamp=()=>new Date().toISOString().slice(0,10);
 function exportPositions(){
   if(!S.positions.length){ toast('No positions to export','err'); return; }
   const head=['Ticker','ISIN','Nome','Categoria','Settore','Paese','Valuta','Piattaforma','Quantità','Prezzo carico',
-    'Prezzo attuale','Yield %','TER %','Rischio','Fattore','Tier','Peso previsto %','In portafoglio dal','Mesi stacco',
+    'Prezzo attuale','Yield %','TER %','Rischio','Fattore','Tier','QUANT','QUAL','Voto totale',
+    'Peso previsto %','In portafoglio dal','Mesi stacco',
     'Chiusa il','Valore EUR','G/P EUR','G/P %','Realizzato EUR'];
   const lines=[head.join(',')];
   S.positions.forEach(p=>lines.push([
     p.ticker,p.isin||'',p.name||'',p.cls||'',p.sector||'',p.country||'',p.currency||'EUR',normPlatform(p.platform),
     p._q,p._avg,num(p.price),p.yield==null?'':num(p.yield),p.ter==null||p.ter===''?'':num(p.ter),Math.round(num(p.risk))||6,
-    normFactor(p.factor),p.tier||'',p.targetWeight==null?'':num(p.targetWeight),p.dateAdded||'',p.divMonths||'',
+    normFactor(p.factor),p.tier||'',
+    ...['quant','qual','score'].map(k=>p[k]==null||p[k]===''?'':num(p[k])),
+    p.targetWeight==null?'':num(p.targetWeight),p.dateAdded||'',p.divMonths||'',
     p.closedDate||'',p._value.toFixed(2),p._pnl.toFixed(2),p._pnlPct.toFixed(2),num(p._realized).toFixed(2)
   ].map(csvField).join(',')));
   download('portafoglio_'+stamp()+'.csv','﻿'+lines.join('\n'),'text/csv;charset=utf-8');
@@ -10054,11 +11446,12 @@ function syncDisconnect(){
    Dashboard solo il benvenuto e toglie il valore dalla barra in alto. */
 function markEmpty(){ document.body.classList.toggle('pf-empty',!S.positions.length); }
 /* "Prova con i dati di esempio": posizioni da perdere non ce ne sono, quindi
-   niente conferma. Watchlist, obiettivi, target e storico però demoData() li
-   sostituisce: se ce ne sono, si chiede. */
+   niente conferma. Watchlist, obiettivi, target, storico e registro delle
+   decisioni (Regole) però demoData() li sostituisce: se ce ne sono, si chiede. */
 function welcomeDemo(){
-  const altro=(S.watchlist||[]).length+(S.goals||[]).length+(S.history||[]).length+Object.keys(S.targets||{}).length;
-  if(altro&&!confirm('Load the sample data? It replaces the watchlist, goals, targets and history you have entered.'))return;
+  const altro=(S.watchlist||[]).length+(S.goals||[]).length+(S.history||[]).length+Object.keys(S.targets||{}).length+
+    (S.rulesLog||[]).length;
+  if(altro&&!confirm('Load the sample data? It replaces the watchlist, goals, targets, history and decision log you have entered.'))return;
   demoData();
 }
 /* "Importa il CSV del tuo broker": Impostazioni, alla card di importazione
@@ -10086,6 +11479,7 @@ function renderPage(k){
   else if(k==='salute'){ renderHealth(); renderQuant(); }
   else if(k==='scenari'){ renderScenarios(); }
   else if(k==='ribilanciamento'){ renderRebalance(); }
+  else if(k==='regole'){ renderRegole(); }
   else if(k==='watchlist'){ renderWatchlist(); }
   else if(k==='dividendi'){ renderDividends(); }
   else if(k==='simulatore'){ renderSim(); }
@@ -10305,6 +11699,9 @@ function wire(){
     S.settings.scenSens={}; save(); renderScenarios(); toast('Sensitivities restored','ok');
   });
 
+  /* --- pagina Regole --- */
+  wireRules();
+
   /* --- ribilanciamento --- */
   $$('#rbMode button').forEach(b=>b.addEventListener('click',()=>{
     $$('#rbMode button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
@@ -10327,13 +11724,20 @@ function wire(){
     S.settings.capGainTax=num(e.target.value); save(); renderRebalance();
   });
   $('#rbEqual').addEventListener('click',()=>{
+    /* per tier i target sono il piano dell'utente: il pulsante è nascosto e non agisce */
+    if(UI.rbMode==='tier')return;
     const u=rbUnits(); if(!u.length)return;
     const eq=Math.round(1000/u.length)/10;
     u.forEach(x=>x.set(eq)); save(); enrich(); renderRebalance();
   });
   $('#rbCurrent').addEventListener('click',()=>{
+    if(UI.rbMode==='tier')return;
     const u=rbUnits(); if(!u.length||T.value<=0)return;
     u.forEach(x=>x.set(Math.round(x.value/T.value*1000)/10)); save(); enrich(); renderRebalance();
+  });
+  $('#rbTierReset').addEventListener('click',()=>{
+    if(!confirm('Restore the default target and band of every tier? Your changes will be lost.'))return;
+    S.settings.tierPlan=tplanCfg({}); save(); renderRebalance(); toast('Default bands restored','ok');
   });
 
   /* --- watchlist --- */
@@ -10507,6 +11911,12 @@ $('#chipScenA').innerHTML=ic('settings',17);
 $('#chipRb').innerHTML=ic('balance',17);
 $('#chipRbP').innerHTML=ic('settings',17);
 $('#chipRbPlan').innerHTML=ic('inbox',17);
+$('#chipRlPar').innerHTML=ic('settings',17);
+$('#chipRlPre').innerHTML=ic('check',17);
+$('#chipRlSell').innerHTML=ic('balance',17);
+$('#chipRlBuy').innerHTML=ic('plus',17);
+$('#chipRlLog').innerHTML=ic('clock',17);
+$('#rlParTg').innerHTML=ic('chev',16);
 $('#chipWl').innerHTML=ic('star',17);
 $('#chipDiv').innerHTML=ic('coins',17);
 $('#chipDivP').innerHTML=ic('trend',17);
