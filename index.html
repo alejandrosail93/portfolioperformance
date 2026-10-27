@@ -1907,7 +1907,7 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
               </div>
               <div class="rb-off" id="rbTierPar">
                 <div class="kv"><span class="k">Emergency band</span><span class="v" id="rbEmTxt"></span></div>
-                <div class="hint" style="font-size:11.5px;color:var(--muted);margin-top:4px">La soglia si cambia nella pagina <b>Rules</b>, nei parametri.</div>
+                <div class="hint" style="font-size:11.5px;color:var(--muted);margin-top:4px">La soglia si cambia nella pagina <b>Regole</b>, nei parametri.</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
                   <button class="btn btn-ghost btn-sm" id="rbTierReset">Restore default bands</button>
                 </div>
@@ -1926,32 +1926,32 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
       <section class="page wrap" id="pg-regole">
         <div class="card rl-par" id="rlParCard">
           <div class="card-hd rl-hd" id="rlParHd" role="button" tabindex="0" aria-expanded="false" aria-controls="rlPar">
-            <h2><span class="chip g" id="chipRlPar"></span> Parameters</h2>
+            <h2><span class="chip g" id="chipRlPar"></span> Parametri</h2>
             <div class="right"><span class="sub" id="rlParSub"></span><span class="tg" id="rlParTg"></span></div>
           </div>
           <div class="card-bd" id="rlPar"></div>
         </div>
 
         <div class="card mt18" id="rlPreCard">
-          <div class="card-hd"><h2><span class="chip t" id="chipRlPre"></span> Before any order</h2>
+          <div class="card-hd"><h2><span class="chip t" id="chipRlPre"></span> Prima di ogni ordine</h2>
             <div class="right"><span class="sub" id="rlPreSub"></span></div></div>
           <div class="card-bd" id="rlPre"></div>
         </div>
 
         <div class="card mt18" id="rlSellCard">
-          <div class="card-hd"><h2><span class="chip d" id="chipRlSell"></span> Sell checklist</h2>
-            <div class="right"><select class="inp rl-sel" id="rlSellSel" aria-label="Position to check"></select></div></div>
+          <div class="card-hd"><h2><span class="chip d" id="chipRlSell"></span> Checklist di vendita</h2>
+            <div class="right"><select class="inp rl-sel" id="rlSellSel" aria-label="Posizione da verificare"></select></div></div>
           <div class="card-bd" id="rlSell"></div>
         </div>
 
         <div class="card mt18" id="rlBuyCard">
-          <div class="card-hd"><h2><span class="chip u" id="chipRlBuy"></span> Buy checklist</h2>
-            <div class="right"><select class="inp rl-sel" id="rlBuySel" aria-label="Asset to check"></select></div></div>
+          <div class="card-hd"><h2><span class="chip u" id="chipRlBuy"></span> Checklist di acquisto</h2>
+            <div class="right"><select class="inp rl-sel" id="rlBuySel" aria-label="Titolo da verificare"></select></div></div>
           <div class="card-bd" id="rlBuy"></div>
         </div>
 
         <div class="card mt18" id="rlLogCard">
-          <div class="card-hd"><h2><span class="chip a" id="chipRlLog"></span> Decision log</h2>
+          <div class="card-hd"><h2><span class="chip a" id="chipRlLog"></span> Registro delle decisioni</h2>
             <div class="right"><span class="sub" id="rlLogSub"></span></div></div>
           <div class="card-bd" id="rlLog"></div>
         </div>
@@ -3154,7 +3154,7 @@ const nfx=(n,d)=>Number(n||0).toLocaleString('it-IT',{maximumFractionDigits:d==n
 function scoresLine(o){
   const v=k=>o&&o[k]!=null&&o[k]!==''?nfx(num(o[k])):'—';
   return o&&['quant','qual','score'].some(k=>o[k]!=null&&o[k]!=='')
-    ?'QUANT '+v('quant')+' · QUAL '+v('qual')+' · Total '+v('score'):'—';
+    ?'QUANT '+v('quant')+' · QUAL '+v('qual')+' · Totale '+v('score'):'—';
 }
 const money=(n,d)=>'€ '+nf(n,d==null?2:d);
 const money0=n=>'€ '+Math.round(n||0).toLocaleString('it-IT');
@@ -3232,6 +3232,13 @@ const LOGO_SVG={
 "vertiv":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\" viewBox=\"0 0 18 18\"><path fill=\"url(#vertiv-actx14otf)\" d=\"M0 0h18v18H0z\"/><path fill-rule=\"evenodd\" d=\"m7 13.6 2-2 2 2a5 5 0 1 0-4 0ZM9 9 7.05 7H4.49L9 11.6 13.55 7H11L9 9Z\" fill=\"#fff\"/><defs><linearGradient id=\"vertiv-actx14otf\" x1=\"12.75\" y1=\"2.13\" x2=\".88\" y2=\"14.88\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#FE8101\"/><stop offset=\".48\" stop-color=\"#F8520C\"/><\/linearGradient><\/defs><\/svg>",
 "viatris":"<svg viewBox=\"0 0 18 18\" xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\"><path fill=\"#F0F3FA\" d=\"M0 0h18v18H0z\"/><path d=\"M11.38 11.48c-4.13 3.2-8.22-2.3-7.6-5.38a.02.02 0 00-.03-.01 6 6 0 002.16 8.05.6.6 0 00.25.1c.78.2 3.42.53 5.24-2.74a.02.02 0 00-.02-.02z\" fill=\"#703E97\"/><path d=\"M9.96 5.7c4.84 1.97 2.11 8.27-.86 9.27-.01 0-.02.01-.01.02l.01.01A6 6 0 0015 9.1c0-.08-.01-.18-.04-.26-.22-.78-1.25-3.22-5-3.17a.01.01 0 000 .03z\" fill=\"#F1CB14\"/><path d=\"M5.66 9.82c-.71-5.18 6.1-5.96 8.46-3.89a.01.01 0 10.03-.02 6 6 0 00-8.06-2.16.95.95 0 00-.21.17c-.57.58-2.17 2.7-.25 5.91a.02.02 0 00.03-.01z\" fill=\"#2A276E\"/><circle cx=\"9\" cy=\"9\" r=\"2.67\" fill=\"#2A276E\" fill-opacity=\".6\"/><\/svg>",
 "zignago":"<svg width=\"18\" height=\"18\" viewBox=\"0 0 18 18\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#F0F3FA\" d=\"M0 0h18v18H0z\"/><path d=\"M10.28 9h3.23c.13 0 .25-.1.3-.23l1.17-3.26c.08-.24-.08-.51-.31-.51h-3.16a.33.33 0 0 0-.3.23L9.97 8.48c-.09.24.07.52.3.52ZM8.82 9H3.33c-.24 0-.4-.28-.3-.52l1.23-3.25a.33.33 0 0 1 .3-.23h5.42c.23 0 .4.27.3.51L9.13 8.77c-.05.14-.17.23-.3.23Zm2.75 5H6.32c-.23 0-.38-.28-.3-.52l1.19-3.25c.05-.14.16-.23.29-.23h5.18c.23 0 .38.27.3.51l-1.12 3.26c-.04.14-.16.23-.29.23Z\" fill=\"#BCCBD3\"/><\/svg>",
+"abb":"<svg viewBox=\"0 0 56 56\" width=\"56\" height=\"56\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#E9282C\" d=\"M0 0h56v56H0z\"/><path d=\"M14 20v8H9l3-8h2zM15 20v8h5l-3-8h-2zM20.375 29H15v4h3l1 3h4l-2.625-7zM14 33v-4H8.625L6 36h4l1-3h3zM26 29h4v7h-4v-7zM31 35.987c2.498-.128 6-1.245 6-4.987 0-.772-.116-1.434-.307-2H31v6.987zM39 29v7h4v-7h-4zM44 35.987c2.498-.128 6-1.245 6-4.987 0-.772-.116-1.434-.307-2H44v6.987zM49.231 28c-.672-1.113-1.631-1.7-2.231-2 .5-.333 1.5-1.3 1.5-2.5 0-2.8-2-3.5-3-3.5H44v8h5.231zM43 20v8h-4v-8h4zM36.231 28H31v-8h1.5c1 0 3 .7 3 3.5 0 1.2-1 2.167-1.5 2.5.6.3 1.56.887 2.231 2zM30 20v8h-4v-8h4z\" fill=\"#fff\"/><\/svg>",
+"american-tower":"<svg viewBox=\"0 0 56 56\" width=\"56\" height=\"56\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"url(#american-tower-paint0_linear)\" d=\"M0 0h56v56H0z\"/><path d=\"M27.982 21.51v7.511l.734 1.167c.403.641 1.418 2.256 2.255 3.591.838 1.335 2.055 3.279 2.709 4.318.653 1.04 1.463 2.338 1.805 2.884l.623.995 4.948.004c2.72 0 4.944-.012 4.944-.025 0-.016-.323-.53-.719-1.142l-2.278-3.538-5.781-8.977c-.316-.485-.934-1.446-1.376-2.136-.445-.69-1.075-1.668-1.402-2.178-.33-.51-1.395-2.165-2.37-3.677l-2.916-4.532c-.63-.973-1.152-1.775-1.16-1.775-.008 0-.016 3.382-.016 7.51z\" fill=\"#D21241\"/><path d=\"M26.85 15.787c-.635.982-1.948 3.024-2.924 4.54-.976 1.512-2.04 3.168-2.37 3.677-.327.51-.957 1.488-1.403 2.178-.441.69-1.06 1.652-1.375 2.136l-5.781 8.978c-.857 1.33-1.883 2.925-2.279 3.537-.395.612-.718 1.126-.718 1.142 0 .013 2.224.025 4.948.025l4.944-.004.623-.994a4013.48 4013.48 0 014.901-7.815c.78-1.245 1.683-2.687 2.01-3.205l.591-.945-.007-7.518-.012-7.52-1.149 1.788z\" fill=\"#fff\"/><defs><linearGradient id=\"american-tower-paint0_linear\" x1=\"10.418\" y1=\"9.712\" x2=\"68.147\" y2=\"76.017\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#1A1E21\"/><stop offset=\"1\" stop-color=\"#06060A\"/><\/linearGradient><\/defs><\/svg>",
+"constellation-energy":"<svg width=\"56\" height=\"56\" viewBox=\"0 0 56 56\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#F0F3FA\" d=\"M0 0h56v56H0z\"/><path d=\"M11.13 33.25 9 37c4.62-2.25 11.37-1.13 17.05-.75 4.55.3 8.53-2.88 9.95-4.5-2.49.38-15.63-.75-19.54-.75-3.13 0-4.85 1.5-5.33 2.25Z\" fill=\"url(#constellation-energy-a)\"/><path d=\"M16.46 31c3.74 0 15.95 1.03 19.16.79A13.6 13.6 0 0 1 28.18 34c-3.98 0-9.71-1.73-12.98-2.91.4-.06.81-.09 1.26-.09Z\" fill=\"url(#constellation-energy-b)\"/><path d=\"M44.87 21.75 47 18c-4.62 2.25-11.37 1.13-17.05.75-4.55-.3-8.53 2.88-9.95 4.5 2.49-.38 15.63.75 19.54.75 3.13 0 4.85-1.5 5.33-2.25Z\" fill=\"url(#constellation-energy-c)\"/><path d=\"M39.54 24c-3.74 0-15.95-1.03-19.16-.79A13.6 13.6 0 0 1 27.82 21c3.98 0 9.71 1.73 12.98 2.91-.4.06-.81.09-1.26.09Z\" fill=\"url(#constellation-energy-d)\"/><path d=\"M17.35 25.67 13 30c.97-.33 3.91-1 7.98-1 5.07 0 7.25.67 11.23.67 3.2 0 5.44-.23 6.16-.34L42 25c-1.09.33-3.99 1-6.89 1-3.62 0-9.06-.67-11.96-.67-2.32 0-4.83.23-5.8.34Z\" fill=\"url(#constellation-energy-e)\"/><defs><linearGradient id=\"constellation-energy-a\" x1=\"9\" y1=\"34\" x2=\"36\" y2=\"34\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#018C4B\"/><stop offset=\"1\" stop-color=\"#A8BF39\"/><\/linearGradient><linearGradient id=\"constellation-energy-b\" x1=\"15.2\" y1=\"32.5\" x2=\"35.62\" y2=\"32.5\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#038846\"/><stop offset=\"1\" stop-color=\"#8BAF43\"/><\/linearGradient><linearGradient id=\"constellation-energy-c\" x1=\"47\" y1=\"21\" x2=\"20\" y2=\"21\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#1B458D\"/><stop offset=\"1\" stop-color=\"#1886C1\"/><\/linearGradient><linearGradient id=\"constellation-energy-d\" x1=\"40.8\" y1=\"22.5\" x2=\"20.38\" y2=\"22.5\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0A4A91\"/><stop offset=\"1\" stop-color=\"#0D6AB2\"/><\/linearGradient><linearGradient id=\"constellation-energy-e\" x1=\"13\" y1=\"27.5\" x2=\"42\" y2=\"27.5\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#E5562A\"/><stop offset=\"1\" stop-color=\"#F3983B\"/><\/linearGradient><\/defs><\/svg>",
+"deere":"<svg viewBox=\"0 0 56 56\" width=\"56\" height=\"56\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#FCE24C\" d=\"M0 0h56v56H0z\"/><path d=\"M44.31 14.674c-4.732-2.284-9.974-3.514-15.238-3.66-5.297-.146-10.626.808-15.511 2.837-.588.244-1.169.504-1.742.778-.089.043-.129.046-.167.139a28.117 28.117 0 00-.264.65A34.221 34.221 0 009 28.084c.007 2.672.323 5.343.948 7.944a34.272 34.272 0 001.73 5.274l.275.132c.575.273 1.158.53 1.748.772 4.897 2.01 10.233 2.943 15.534 2.773a38.227 38.227 0 007.94-1.091 37.218 37.218 0 005.535-1.84 33.872 33.872 0 001.258-.56l.206-.099c.125-.06.146-.083.198-.21a34.447 34.447 0 002.542-15.622 34.36 34.36 0 00-2.604-10.884z\" fill=\"url(#deere-paint0_radial)\"/><path d=\"M42.99 38.846a32.423 32.423 0 00.529-20.075 32.758 32.758 0 00-.905-2.623l-.219-.099a33.166 33.166 0 00-.957-.408 35.16 35.16 0 00-7.793-2.164 36.044 36.044 0 00-16.199 1.145 34.037 34.037 0 00-3.994 1.512c-.098.044-.096.09-.133.185a31.987 31.987 0 00-.525 1.459 32.34 32.34 0 00-1.654 9.979c-.02 2.708.297 5.417.95 8.048.328 1.315.738 2.61 1.227 3.875.037.096.035.142.132.185l.22.1a34.656 34.656 0 001.41.587c.627.245 1.261.472 1.902.679a36.015 36.015 0 0016.167 1.366 35.557 35.557 0 006.46-1.552c1.019-.35 1.99-.792 2.99-1.186.081-.032.161-.04.202-.119l.19-.368c.087-.167.024-.342 0-.526zM13.11 15.933c4.866-2.24 10.269-3.321 15.636-3.212 2.703.054 5.4.41 8.022 1.06a35.211 35.211 0 015.614 1.909c.143.063.286.127.428.192.131.06.167.275.217.406A32.817 32.817 0 0144.77 33.3a32.413 32.413 0 01-1.505 5.786c-.064.173-.132.345-.2.517-.058.15-.112.452-.264.521a35.031 35.031 0 01-7.567 2.442 36.457 36.457 0 01-16.16-.392 34.418 34.418 0 01-5.613-1.947c-.13-.058-.333-.102-.386-.236a30.757 30.757 0 01-.525-1.428 32.603 32.603 0 01-1.64-7.86 32.805 32.805 0 012.2-14.769z\" fill=\"#FCE24C\"/><path d=\"M15.79 30.47c1.362-.442 2.748-.654 4.173-.785.308-.029.618-.062.926-.092.24-.023.399.039.433-.25.084-.703.211-1.4.386-2.088.171-.67.387-1.33.65-1.971.123-.31.268-.611.411-.912.11-.23.295-.564-.034-.72-.132-.062-.309-.071-.452-.1l-.513-.103c-.37-.074-.741-.147-1.112-.224-.149-.031-.238-.047-.3-.195-.043-.1-.1-.257.014-.31.31-.145.658-.236.983-.342a41.293 41.293 0 013.654-1.012c.223-.05.305-.14.386-.348.136-.352.259-.714.06-1.072-.414-.746-1.674-.697-2.393-.642-.508.039-1.01.12-1.506.23-.245.053-.489.114-.731.18-.059.015-.588.138-.59.156.007-.059.232-.134.281-.166.23-.125.489-.215.713-.338.29-.16-.374-.865-.476-.97.192.075.38.189.538.32.086.07.169.147.233.238.054.076.08.186.193.188.18.003.42-.122.596-.166.266-.067.538-.117.811-.148.145-.016.52.043.527-.17.005-.14-.05-.325-.082-.463a2.591 2.591 0 00-.288-.7c-.025-.043-.325-.48-.313-.487.031-.017.258.175.29.2.13.099.252.207.364.324.21.217.386.464.518.734.063.127.096.446.244.503.098.037.259.002.364.007.18.01.36.029.536.067.147.032.286.075.417.146.109.06.224.015.25-.108.064-.32.199-.612.223-.947a2.92 2.92 0 00-.107-.991 3.488 3.488 0 00-.158-.45c-.011-.025-.176-.34-.144-.344.048-.008.23.209.266.247.111.116.212.241.3.374.178.268.309.564.392.872.193.716.146 1.495-.012 2.213-.074.333-.163.68-.302.994-.025.057-.092.156-.07.222.017.055.319-.043.362-.051a48.28 48.28 0 011.82-.322c.079-.013.41-.118.474-.055.078.078-1.357 1.042-1.494 1.12-.243.14-.65.004-.916-.026-.157-.018-.313-.036-.468-.06-.096.127-.122.286-.164.434-.184.66-.37 1.317-.499 1.991-.12.638-.236 1.32-.189 1.97.044.6.3 1.152.825 1.485.535.34 1.207.402 1.828.4 1.433-.005 2.852-.056 4.283.067a17.79 17.79 0 011.668.214c.276.05.55.11.82.18.149.038.329.14.48.142.172.001.17-.358.183-.47a3.34 3.34 0 00.002-.78 4.601 4.601 0 00-.476-1.555c-.036-.072-.368-.58-.336-.62.024-.029.27.178.3.202.443.35.86.73 1.211 1.171.337.423.616.895.769 1.413.033.114.122.275 0 .334-.12.058-.245.106-.37.154-.29.11-.577.227-.862.35.88.872 1.39 1.94 1.737 3.107.167.564.288 1.146.51 1.692.101.251.23.508.42.706.205.21.471.368.724.517.56.333 1.131.648 1.71.946.227.117.3.3.446.493.199.265.372.552.55.831.35.552.69 1.11 1.024 1.672.053.089.093.19.154.273.057.076.137.15.158.245.028.121-.16.463-.266.528-.187-.242-.328-.525-.497-.78-.19-.288-.392-.57-.601-.846a22.776 22.776 0 00-1.283-1.535 1.135 1.135 0 00-.624-.386c-.335-.09-.666-.202-.997-.306a72.467 72.467 0 01-2.056-.672c-.65-.225-1.31-.45-1.933-.742-.593-.277-1.105-.675-1.575-1.12a12.944 12.944 0 01-.654-.667 6.938 6.938 0 01-.323-.376c-.121-.094-.286-.071-.43-.074-.707-.012-1.409-.053-2.116-.008-1.417.09-2.828.431-4.252.38-1.418-.053-2.72-.505-4.058-.929-.668-.211-1.342-.41-2.032-.537a10.132 10.132 0 00-1.01-.134c-.12-.01-.897-.109-.934.009-.031.098.182.382.23.466.164.292.342.577.534.853a8.44 8.44 0 001.26 1.457c.467.421 1.016.788 1.627.97.235.072.58.11.708.342.143.259.302.526.414.798-.112-.007-.217-.094-.308-.149-.153-.091-.312-.175-.465-.266a24.52 24.52 0 01-.92-.575 22.962 22.962 0 01-1.813-1.309 21.994 21.994 0 01-1.662-1.473 15.813 15.813 0 01-.73-.77c-.126-.14-.248-.284-.365-.431-.075-.138-.046-.302-.102-.445\" fill=\"#FCE24C\"/><defs><radialGradient id=\"deere-paint0_radial\" cx=\"0\" cy=\"0\" r=\"1\" gradientUnits=\"userSpaceOnUse\" gradientTransform=\"matrix(-19.0251 0 0 -21.2782 28.026 27.98)\"><stop stop-color=\"#0D8516\"/><stop offset=\"1\" stop-color=\"#19512A\"/><\/radialGradient><\/defs><\/svg>",
+"ecolab":"<svg viewBox=\"0 0 56 56\" width=\"56\" height=\"56\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#0098CC\" d=\"M0 0h56v56H0z\"/><path d=\"M40.707 23H36.5L34 32h3.026s.18-.619.308-1h2.836c.11.363.24.632.33 1h3.022c-.933-3.002-1.904-5.99-2.815-9zm-1.078 6H38l.768-3.45.861 3.45z\" fill=\"#fff\"/><path d=\"M4 23c2.333.022 4.667-.006 7 0v2.509H7v.823h3V28.5H7v1.005h4V32H4v-9z\" fill=\"#fff\"/><path d=\"M18 25.581V23c-4 0-5.613.432-6.54 2.454-.656 1.428-.594 3.452.254 4.78C12.77 31.888 15 32 18 32v-2.5c-.85.014-2.041.142-2.815-.285C14.567 28.872 14 28.5 14 27.5c0-2.046 2.703-1.991 4-1.919zM28 23h3v6.502c1.07.006 3-.002 3-.002l-.688 2.5H34h-6v-9z\" fill=\"#fff\"/><path fill-rule=\"evenodd\" d=\"M44.5 23H44v9c.7-.036 1.468-.015 2.24.006 2.891.079 5.918.274 5.753-2.632-.061-1.093-.785-1.625-1.593-1.976.472-.17.803-.397 1.02-.764.718-1.222-.022-2.617-.92-3.134-1.126-.648-3.649-.485-6-.5zm4.275 5.688c.23.284.28.852 0 1.132-.237.237-1.172.18-1.172.18H47v-1.548h.603s.946-.044 1.172.235zm-.319-3.553c.35.193.44.846.096 1.147-.24.21-.68.171-1.152.171-.129-.005-.279 0-.4 0V25c.5 0 1.168-.024 1.456.135zM22.75 32.3a4.75 4.75 0 100-9.5 4.75 4.75 0 000 9.5zm.598-5.733l1.513-2.843-2.058 2.677a1.168 1.168 0 00-.452.07l-3.242-1.704 2.732 2.078a1.145 1.145 0 00-.118.188l-2.977-1.565 2.858 2.174c.005.066.016.132.032.195l-1.573 2.994 1.875-2.467c.067.067.14.125.222.173l-1.396 2.657 1.898-2.497a1.158 1.158 0 00.39-.037l2.993 1.594-2.472-1.901c.062-.064.117-.134.163-.21l2.794 1.488-2.631-2.024a1.198 1.198 0 00-.037-.35l1.622-3.048-1.934 2.515a1.155 1.155 0 00-.202-.157z\" fill=\"#fff\"/><\/svg>",
+"oracle":"<svg viewBox=\"0 0 56 56\" width=\"56\" height=\"56\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#F80000\" d=\"M0 0h56v56H0z\"/><path d=\"M24.828 29H28l-1.783-2.698-3.078 4.667h-1.401l3.744-5.606a.897.897 0 01.735-.363.88.88 0 01.72.354l3.758 5.615h-1.4L28.71 30H25.5l-.672-1zM39 29.974V25h-1v5.403c0 .146.06.288.173.396.113.109.266.17.434.17h5.506l.887-.995h-6zm-19.393-.92c1.154 0 2.393-.96 2.393-2.064S20.761 25 19.607 25H15v5.97h1v-4.975h3.528c.552 0 1.298.203 1.298.995s-.746 1.025-1.298 1.025l-2.946-.004 3.143 2.958h1.727l-2.388-1.916h.543zM7.09 30.968C5.385 30.97 4 29.65 4 28.015c0-1.632 1.385-2.958 3.09-2.958l3.82-.005c1.706 0 3.09 1.326 3.09 2.959 0 1.632-1.384 2.954-3.09 2.954l-3.82.004zm3.739-1.047c1.105 0 2-.854 2-1.911s-.895-1.916-2-1.916l-3.66.005c-1.105 0-2 .858-2 1.915s.895 1.912 2 1.912l3.66-.005zM33.872 31c-1.706 0-3.177-1.352-3.177-2.985 0-1.632 1.47-2.928 3.177-2.928l3.572-.03-.696 1.043-2.797.03c-1.105 0-2.086.828-2.086 1.885s.981 1.942 2.086 1.942l3.591-.03-.7 1.042-2.97.031zm13.842-1.073c-.913 0-1.688-.586-1.924-1.393h5.08l.7-1.043h-5.78c.236-.802 1.01-1.496 1.924-1.496H51.2l.705-.995h-4.271c-1.707 0-3.093 1.383-3.093 3.015 0 1.633 1.386 2.954 3.093 2.954H51.3l.7-1.043h-4.286z\" fill=\"#fff\"/><\/svg>",
+"shopify":"<svg viewBox=\"0 0 56 56\" width=\"56\" height=\"56\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#95BF47\" d=\"M0 0h56v56H0z\"/><path fill-rule=\"evenodd\" d=\"M33.47 14.792a1.122 1.122 0 00-.42.03c-.018 0-.369.112-.94.299-.573-1.667-1.551-3.184-3.305-3.184h-.166C28.16 11.3 27.532 11 27.015 11c-4.06 0-6.016 5.151-6.625 7.773-.727.232-1.357.428-1.84.578-.57.178-.932.291-1.002.322-.886.28-.905.3-1.015 1.142-.093.637-2.4 18.75-2.4 18.75l17.958 3.41.033-.008-.002.033 9.745-2.135s-3.415-23.452-3.433-23.62a.501.501 0 00-.314-.281c-.11 0-2.528-.188-2.528-.188s-1.68-1.704-1.883-1.873a.355.355 0 00-.24-.112v.001zM29.6 15.87c.534-.187 1.07-.356 1.512-.487-.387-1.199-.96-2.229-1.882-2.341.24.655.37 1.48.37 2.49v.338zm-1.09.15c0-1.236-.166-2.135-.406-2.772-.96.43-2.122 1.592-2.731 3.952.653-.213 1.292-.413 1.915-.608h.001c.415-.13.823-.257 1.221-.385v-.187zm-1.07-3.746a.874.874 0 00-.517-.188c-2.916 0-4.577 3.896-5.241 6.294.426-.14.863-.276 1.31-.415.386-.12.78-.241 1.181-.372.572-3.146 1.957-4.701 3.267-5.32zm.184 13.748l1.182-3.615s-.812-.487-2.4-.468c-4.263 0-6.367 2.885-6.367 5.863 0 2.002 1.098 2.907 2.058 3.7.747.616 1.412 1.164 1.412 2.107 0 .524-.37 1.236-1.274 1.236-1.365 0-2.99-1.424-2.99-1.424l-.83 2.772s1.55 1.949 4.65 1.949c2.566 0 4.467-1.967 4.467-5.02 0-2.348-1.555-3.507-2.783-4.423-.8-.597-1.462-1.09-1.462-1.74 0-.3.093-1.517 1.994-1.517 1.273 0 2.343.58 2.343.58z\" fill=\"#fff\"/><\/svg>",
 "ishares":"<svg width=\"18\" height=\"18\" viewBox=\"0 0 18 18\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#1DA8DC\" d=\"M0 0h18v18H0z\"/><path d=\"M8 5V3h2v2H8Zm0 10V6h2v9H8Z\"/><\/svg>",
 "amundi":"<svg width=\"18\" height=\"18\" viewBox=\"0 0 18 18\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#019DE0\" d=\"M0 0h18v18H0z\"/><path d=\"M6.21 5h-.93L3 11h1.05l.45-1.17H7L7.45 11h1.04L6.21 5ZM4.9 8.7l.84-2.3.86 2.3H4.9ZM9.9 6H9v5h1V7.45c.15-.18.48-.33.79-.37.2-.02.4 0 .52.12.18.2.19.64.19.77V11h1V7.37c.2-.15.49-.31.77-.34.18-.02.36 0 .5.13.23.19.23.61.23.8V11h1V8.04c0-.52-.06-1.17-.44-1.6a1.56 1.56 0 0 0-1.1-.44c-.47.02-.91.19-1.3.5-.17-.22-.5-.42-.85-.48a1.72 1.72 0 0 0-1.37.48L9.9 6ZM15 12H3v1h12v-1Z\" fill=\"#fff\"/><\/svg>",
 "invesco":"<svg width=\"18\" height=\"18\" viewBox=\"0 0 18 18\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#000AD2\" d=\"M0 0h18v18H0z\"/><path d=\"m10.99 12.05-.45.47-.43-.47-.23-.73-.66-.24v-.46h-.44l-.22 1.16.23.75-1.01.47-.31-.47.21-.47v-.5h-.66l-.88.97-.66-.22v-.98l-1.15-.19-.83.48-.5-.23v-.99l.45-.23 1.76-.93.26.23.66-.7V8.3l.88-.93.44-1 .66-1.15L9.2 5h.44v.45l.88.93v.99l1.38 1.38 1.33.93.66.23.23.7.88.45-.44.47h-.44v-.47l-.66-.22-1.11-1.15-.88-.47-.94-1.4-.43-.45.21-.75-.66-.7-.45.46v1l-.42.45.88.92-.45.48.9.92v.47l.43.92H11l.49-.47-.23-.23-.27-.7h.5l.43.93.45.47-1.37.5Z\" fill=\"#fff\"/><\/svg>",
@@ -3288,6 +3295,13 @@ const LOGO_MAP=[
 {k:"vertiv",n:["VERTIV","VERTV"],t:["VRT"]},
 {k:"viatris",n:["VIATRIS"],t:["VTRS"]},
 {k:"zignago",n:["ZIGNAGO"],t:["ZV.MI"]},
+{k:"abb",n:["ABB"],t:["ABBN.SW","ABBNY"]},
+{k:"american-tower",n:["AMERICAN TOWER"],t:["AMT"]},
+{k:"constellation-energy",n:["CONSTELLATION ENERGY"],t:["CEG"]},
+{k:"deere",n:["DEERE"],t:["DE"]},
+{k:"ecolab",n:["ECOLAB"],t:["ECL"]},
+{k:"oracle",n:["ORACLE"],t:["ORCL"]},
+{k:"shopify",n:["SHOPIFY"],t:["SHOP","SHOP.TO"]},
 {k:"ishares",n:["ISHARES"],t:[]},
 {k:"amundi",n:["AMUNDI"],t:[]},
 {k:"invesco",n:["INVESCO"],t:[]},
@@ -4024,7 +4038,7 @@ const NAV=[
   ]},
   {g:'Planning',items:[
     {k:'ribilanciamento',l:'Rebalancing',i:'balance',sub:'Targets by category and trade plan'},
-    {k:'regole',l:'Rules',i:'check',sub:'Buy and sell checklist'},
+    {k:'regole',l:'Regole',i:'check',sub:'Checklist di acquisto e vendita'},
     {k:'simulatore',l:'Simulator',i:'trend',sub:'Capital growth with a monthly plan'},
     {k:'obiettivi',l:'Goals',i:'target',sub:'Financial milestones and progress'},
     {k:'watchlist',l:'Watchlist',i:'star',sub:'Assets to buy'}
@@ -5594,11 +5608,11 @@ function descToForm(pre,o){
    Le cinque righe della tesi: chiave, suffisso dell'id, etichetta. La scheda
    Acquisto usa le stesse etichette per dire quali mancano. */
 const THESIS_ROWS=[
-  ['thBiz','ThBiz','Business and competitive advantage'],
-  ['thPrice','ThPrice','Price and value'],
-  ['thDrivers','ThDrivers','What drives the value up'],
-  ['thRisk','ThRisk','Main risk'],
-  ['thInvalid','ThInvalid','What would invalidate the thesis']
+  ['thBiz','ThBiz','Business e vantaggio competitivo'],
+  ['thPrice','ThPrice','Prezzo e valore'],
+  ['thDrivers','ThDrivers','Cosa fa salire il valore'],
+  ['thRisk','ThRisk','Rischio principale'],
+  ['thInvalid','ThInvalid','Cosa invaliderebbe la tesi']
 ];
 const RULES_DESC_KEYS=['quant','qual','score','thBiz','thPrice','thDrivers','thRisk','thInvalid','fairValue','fvMethod'];
 const rulesHasData=o=>!!o&&RULES_DESC_KEYS.some(k=>o[k]!=null&&o[k]!=='');
@@ -5606,20 +5620,20 @@ const rulesHasData=o=>!!o&&RULES_DESC_KEYS.some(k=>o[k]!=null&&o[k]!=='');
    ma mai negativo. Pura: o sono i campi letti da descFromForm(). */
 function scoreErrors(o){
   const e=[], out=v=>v!=null&&!(v>=0&&v<=3);
-  if(out(o.quant))e.push('QUANT must be between 0 and 3');
-  if(out(o.qual))e.push('QUAL must be between 0 and 3');
-  if(o.score!=null&&!(o.score>=0))e.push('The total score cannot be negative');
+  if(out(o.quant))e.push('QUANT deve essere tra 0 e 3');
+  if(out(o.qual))e.push('QUAL deve essere tra 0 e 3');
+  if(o.score!=null&&!(o.score>=0))e.push('Il voto totale non può essere negativo');
   return e;
 }
-/* Il blocco "Thesis and scores" delle due schede: un solo markup, con gli id
+/* Il blocco "Tesi e voti" delle due schede: un solo markup, con gli id
    prefissati come gli altri campi ('f' posizione, 'fw' watchlist). */
 function rulesFieldsHTML(pre){
   const inp=(id,lab,ph)=>'<div class="field"><label for="'+pre+id+'">'+lab+'</label>'+
     '<input id="'+pre+id+'" type="text" inputmode="decimal" placeholder="'+ph+'"></div>';
-  return '<details class="rl-fields" id="'+pre+'RulesBox"><summary>Thesis and scores'+
-      '<span class="sub">for the Rules checklist</span></summary><div class="rl-in">'+
-    '<div class="frow3">'+inp('Quant','QUANT 0–3','e.g. 2,4')+inp('Qual','QUAL 0–3','e.g. 1,8')+
-      inp('Score','Total score','e.g. 3,9')+'</div>'+
+  return '<details class="rl-fields" id="'+pre+'RulesBox"><summary>Tesi e voti'+
+      '<span class="sub">per la checklist Regole</span></summary><div class="rl-in">'+
+    '<div class="frow3">'+inp('Quant','QUANT 0–3','es. 2,4')+inp('Qual','QUAL 0–3','es. 1,8')+
+      inp('Score','Voto totale','es. 3,9')+'</div>'+
     '<div class="hint">Voti con i decimali, virgola o punto. Il totale '+
       'si scrive a mano: non è la media né la somma di QUANT e QUAL.</div>'+
     THESIS_ROWS.map(r=>'<div class="field"><label for="'+pre+r[1]+'">'+r[2]+'</label>'+
@@ -5628,10 +5642,10 @@ function rulesFieldsHTML(pre){
         'oltre 3,5": la scheda Acquisto cerca almeno una cifra.</div>':'')+'</div>').join('')+
     '<div class="frow">'+
       '<div class="field"><label for="'+pre+'FairValue">Fair value</label>'+
-        '<input id="'+pre+'FairValue" type="text" inputmode="decimal" placeholder="e.g. 140">'+
+        '<input id="'+pre+'FairValue" type="text" inputmode="decimal" placeholder="es. 140">'+
         '<div class="hint">Nella valuta del titolo.</div></div>'+
-      '<div class="field"><label for="'+pre+'FvMethod">Valuation method</label>'+
-        '<input id="'+pre+'FvMethod" placeholder="e.g. DCF, relative P/E"></div>'+
+      '<div class="field"><label for="'+pre+'FvMethod">Metodo di valutazione</label>'+
+        '<input id="'+pre+'FvMethod" placeholder="es. DCF, P/E relativo"></div>'+
     '</div></div></details>';
 }
 /* ---------- logo nella scheda ----------
@@ -6211,7 +6225,7 @@ function openDrawer(id){
           ic('balance',15)+' Withdraw all</button>'
         :'<button class="btn btn-ghost btn-sm" id="dwSell" title="Record a full sale instead of deleting the position">'+
           ic('balance',15)+' Sell all</button>')+
-      (isClosed(p)||dep?'':'<button class="btn btn-ghost btn-sm" id="dwRules" title="Open the sell checklist of the Rules page">'+
+      (isClosed(p)||dep?'':'<button class="btn btn-ghost btn-sm" id="dwRules" title="Apri la checklist di vendita della pagina Regole">'+
           ic('check',15)+' Checklist</button>')+
       '<button class="btn btn-danger btn-sm" id="dwDel" style="margin-left:auto" '+
         'title="Delete the position and all its history">'+ic('trash',15)+'</button>'+
@@ -8162,7 +8176,10 @@ function renderRebalance(){
    scheda Vendita dice solo se esiste almeno un motivo ammesso.
    I parametri sono quelli di rulesCfg(S.settings).
    ========================================================================== */
+/* Testi in italiano per scelta (ott. 2026): il resto dell'interfaccia è in inglese. */
 const RL_DAY=864e5;
+/* n col sostantivo accordato: rlPl(1,'decisione','decisioni') → "1 decisione" */
+const rlPl=(n,uno,altri)=>n+' '+(n===1?uno:altri);
 const rlBox=(state,detail,extra)=>Object.assign({state:state,detail:detail||''},extra||{});
 /* lo stato che conta: la spunta cambia solo le caselle manuali */
 const rulesEff=(box,ticked)=>box.state==='man'?(ticked?'ok':'man'):box.state;
@@ -8175,9 +8192,10 @@ function rulesSummary(items){
   n.pass=n.total>0&&n.ok===n.total;
   return n;
 }
-/* quello che manca, in breve: "1 not met · 2 not verifiable · 1 to tick" */
+/* quello che manca, in breve: "1 non rispettata · 2 non verificabili · 1 da spuntare" */
 function rulesSummaryText(n){
-  return [n.ko?n.ko+' not met':'',n.na?n.na+' not verifiable':'',n.man?n.man+' to tick':'']
+  return [n.ko?rlPl(n.ko,'non rispettata','non rispettate'):'',n.na?rlPl(n.na,'non verificabile','non verificabili'):'',
+    n.man?n.man+' da spuntare':'']
     .filter(Boolean).join(' · ');
 }
 /* peso % di ogni tier fra le posizioni attive; '' = titoli senza tier */
@@ -8200,19 +8218,19 @@ function rulesTierTargets(){
    esatti sono dentro. Un ultimo punto vecchio di oltre un mese non è "oggi". */
 function rulesChange3m(pts,nowMs,cfg){
   const P=(pts||[]).filter(p=>p&&isFinite(p.t)&&isFinite(p.twr)).slice().sort((a,b)=>a.t-b.t);
-  if(P.length<2)return rlBox('na','Not enough history: at least two points are needed');
+  if(P.length<2)return rlBox('na','Storico insufficiente: servono almeno due punti');
   const last=P[P.length-1];
-  if(nowMs-last.t>31*RL_DAY)return rlBox('na','History not up to date: the latest point is from '+fmtDate(isoOf(last.t)));
+  if(nowMs-last.t>31*RL_DAY)return rlBox('na','Storico non aggiornato: l\'ultimo punto è del '+fmtDate(isoOf(last.t)));
   const ref=nowMs-90*RL_DAY;
   let base=null;
   P.slice(0,-1).forEach(p=>{ if(!base||Math.abs(p.t-ref)<Math.abs(base.t-ref))base=p; });
   const days=Math.round((last.t-base.t)/RL_DAY);
-  if(days<75)return rlBox('na','History too short: '+days+' days instead of at least 75');
-  if(!(1+base.twr/100>0))return rlBox('na','History not usable');
+  if(days<75)return rlBox('na','Storico troppo breve: '+rlPl(days,'giorno','giorni')+' invece di almeno 75');
+  if(!(1+base.twr/100>0))return rlBox('na','Storico non utilizzabile');
   const ch=Math.round(((1+last.twr/100)/(1+base.twr/100)-1)*1e8)/1e6;
   const ok=ch>=cfg.ddDown&&ch<=cfg.ddUp;
-  return rlBox(ok?'ok':'ko','Time-weighted change over '+days+' days: '+pctv(ch,1)+
-    (ok?'':' — outside '+pctv(cfg.ddDown,0)+' … '+pctv(cfg.ddUp,0)+': no orders today'),{value:ch,days:days});
+  return rlBox(ok?'ok':'ko','Variazione time-weighted in '+rlPl(days,'giorno','giorni')+': '+pctv(ch,1)+
+    (ok?'':' — fuori da '+pctv(cfg.ddDown,0)+' … '+pctv(cfg.ddUp,0)+': oggi niente ordini'),{value:ch,days:days});
 }
 /* B3.2 Fondo emergenza: dall'obiettivo in modalità "emergency" o con
    "emergenz" nel nome (anche "emergency", in inglese). Con più obiettivi
@@ -8220,11 +8238,11 @@ function rulesChange3m(pts,nowMs,cfg){
    status = goalStatus. */
 function rulesEmergencyFund(goals,status){
   const gs=(goals||[]).filter(g=>g&&(g.mode==='emergency'||/emergen[zc]/i.test(String(g.name||''))));
-  if(!gs.length)return rlBox('man','No emergency fund goal in Goals: tick it if the fund is complete');
+  if(!gs.length)return rlBox('man','Nessun obiettivo per il fondo emergenza nella pagina Goals: spuntala se il fondo è completo');
   const low=gs.map(g=>({g:g,p:num(status(g).progress)})).sort((a,b)=>a.p-b.p)[0];
-  const nm='"'+(String(low.g.name||'').trim()||'Emergency fund')+'"';
-  return low.p>=100?rlBox('ok',nm+' completed')
-    :rlBox('ko',nm+' at '+nf(Math.floor(low.p*10)/10,1)+'%');
+  const nm='"'+(String(low.g.name||'').trim()||'Fondo emergenza')+'"';
+  return low.p>=100?rlBox('ok',nm+' completato')
+    :rlBox('ko',nm+' al '+nf(Math.floor(low.p*10)/10,1)+'%');
 }
 /* B3.3 Banda di emergenza, con tplanEmergency sui pesi attuali (tierW, in %)
    e i target per tier: almeno un tier a PIÙ di emergencyPts punti dal suo
@@ -8233,33 +8251,33 @@ function rulesEmergencyFund(goals,status){
    vuoto): non verificabile. */
 function rulesEmergencyBand(tierW,targets,cfg){
   const NA=t=>rlBox('na',t,{hits:[],devs:{}});
-  if(!Object.keys(tierW||{}).some(t=>t&&num(tierW[t])>0))return NA('No tiers assigned to the assets: assign the tiers');
+  if(!Object.keys(tierW||{}).some(t=>t&&num(tierW[t])>0))return NA('Nessun tier assegnato ai titoli: assegna i tier');
   const ks=targets?Object.keys(targets).filter(t=>targets[t]!=null&&targets[t]!==''):[];
   const em=tplanEmergency(ks.map(t=>({tier:t,cur:num(tierW[t]),value:num(tierW[t]),target:num(targets[t])})),cfg.emergencyPts);
-  if(!em.worst)return NA('No targets by tier: the emergency band cannot be checked');
-  const w=em.worst, wTxt=w.tier+' '+(w.gap>=0?'+':'−')+nf(Math.abs(w.gap),1)+' points from target';
-  return rlBox(em.on?'ok':'ko',em.on?'Emergency band: '+wTxt
-    :'No tier beyond '+nfx(cfg.emergencyPts,1)+' points from target; largest gap: '+wTxt,{hits:em.hits,devs:em.gaps,tier:w.tier});
+  if(!em.worst)return NA('Nessun target per tier: la banda di emergenza non si può verificare');
+  const w=em.worst, wTxt=w.tier+' '+(w.gap>=0?'+':'−')+nf(Math.abs(w.gap),1)+' punti dal target';
+  return rlBox(em.on?'ok':'ko',em.on?'Banda di emergenza: '+wTxt
+    :'Nessun tier oltre '+nfx(cfg.emergencyPts,1)+' punti dal target; scarto maggiore: '+wTxt,{hits:em.hits,devs:em.gaps,tier:w.tier});
 }
 /* revisione trimestrale O banda di emergenza: la banda vale da sola, la
    revisione la dichiara l'utente. Banda non verificabile: non verificabile. */
 function rulesQuarterly(band){
   if(band.state==='ok'||band.state==='na')return rlBox(band.state,band.detail);
-  return rlBox('man',band.detail+'. Tick it if this is the quarterly review');
+  return rlBox('man',band.detail+'. Spuntala se è la revisione trimestrale');
 }
 /* B3.4 Peso dei gruppi Fondamenta e Satellite dentro la loro banda, confini
    compresi. Il gruppo "Nessuno" resta fuori dai due conti; un tier con peso
    e senza gruppo, o dei titoli senza tier, lo rendono non verificabile. */
 function rulesGroupWeights(tierW,cfg){
   const used=Object.keys(tierW||{}).filter(t=>tierW[t]>0);
-  if(!used.length)return rlBox('na','No positions with a weight');
+  if(!used.length)return rlBox('na','Nessuna posizione con un peso');
   const miss=PTIERS.filter(t=>used.indexOf(t)>-1&&!cfg.groups[t]);
-  if(miss.length||used.indexOf('')>-1)return rlBox('na',[miss.length?'Assign the group to: '+miss.join(', '):'',
-    used.indexOf('')>-1?nf(tierW[''],1)+'% of the portfolio has no tier':''].filter(Boolean).join(' · '));
+  if(miss.length||used.indexOf('')>-1)return rlBox('na',[miss.length?'Assegna il gruppo a: '+miss.join(', '):'',
+    used.indexOf('')>-1?nf(tierW[''],1)+'% del portafoglio è senza tier':''].filter(Boolean).join(' · '));
   const g={Fondamenta:0,Satellite:0};
   used.forEach(t=>{ if(g[cfg.groups[t]]!=null)g[cfg.groups[t]]+=tierW[t]; });
   const out=Object.keys(g).filter(k=>{ const b=cfg.groupBand[k], v=Math.round(g[k]*1e6)/1e6; return v<b[0]||v>b[1]; });
-  return rlBox(out.length?'ko':'ok',Object.keys(g).map(k=>k+' '+nf(g[k],1)+'% (band '+
+  return rlBox(out.length?'ko':'ok',Object.keys(g).map(k=>k+' '+nf(g[k],1)+'% (banda '+
     nfx(cfg.groupBand[k][0],1)+'–'+nfx(cfg.groupBand[k][1],1)+'%)').join(' · '),{groups:g,out:out});
 }
 
@@ -8287,15 +8305,15 @@ function rulesOverweight(p,cfg,total,expo){
   const t=normPTier(p.tier), cap=t?cfg.tiers[t].cap:null, w=Math.round(num(p._w)*1e6)/1e6;
   const lim=[], txt=[];
   let capState;
-  if(!t){ capState='na'; txt.push('No tier: the cap cannot be checked'); }
-  else if(cap==null){ capState='na'; txt.push(t+' has no cap: not verifiable'); }
-  else if(w>cap){ capState='ok'; lim.push(cap); txt.push('Weight '+nf(w,1)+'% above the '+t+' cap of '+nfx(cap,1)+'%'); }
-  else { capState='ko'; txt.push('Weight '+nf(w,1)+'% within the '+t+' cap of '+nfx(cap,1)+'%'); }
+  if(!t){ capState='na'; txt.push('Senza tier: il tetto non si può verificare'); }
+  else if(cap==null){ capState='na'; txt.push(t+' non ha un tetto: non verificabile'); }
+  else if(w>cap){ capState='ok'; lim.push(cap); txt.push('Peso '+nf(w,1)+'% sopra il tetto di '+t+' del '+nfx(cap,1)+'%'); }
+  else { capState='ko'; txt.push('Peso '+nf(w,1)+'% entro il tetto di '+t+' del '+nfx(cap,1)+'%'); }
   const lt=w>cfg.lookThrough;
-  if(lt){ lim.push(cfg.lookThrough); txt.push('above the '+nfx(cfg.lookThrough,1)+'% single-asset limit'); }
+  if(lt){ lim.push(cfg.lookThrough); txt.push('sopra il limite del '+nfx(cfg.lookThrough,1)+'% per singolo titolo'); }
   const conc=rulesConcOver(p,expo||{},total,cfg);
-  if(conc.length)txt.push(conc.map(c=>c.name+' '+nf(c.pct,1)+'% over the '+(c.lvl==='sector'?'sector':'country')+
-    ' limit of '+nfx(c.max,1)+'%').join(', '));
+  if(conc.length)txt.push(conc.map(c=>c.name+' '+nf(c.pct,1)+'% oltre il limite per '+(c.lvl==='sector'?'settore':'paese')+
+    ' del '+nfx(c.max,1)+'%').join(', '));
   const hit=capState==='ok'||lt||conc.length>0;
   const amount=lim.length&&total>0?(w-Math.min.apply(null,lim))/100*total:0;
   return rlBox(hit?'ok':capState==='na'?'na':'ko',txt.join(' · '),
@@ -8307,22 +8325,22 @@ function rulesOverweight(p,cfg,total,expo){
    verificabile: non verificabile. */
 function rulesBlockRebalance(p,band){
   const t=normPTier(p.tier);
-  if(!t)return rlBox('na','The asset has no tier: assign it in the asset form');
+  if(!t)return rlBox('na','Il titolo non ha un tier: assegnalo nella sua scheda');
   if(band.state==='na')return rlBox('na',band.detail);
   if(band.state==='ok'&&(band.hits||[]).indexOf(t)>-1){
     const d=band.devs[t];
-    return rlBox('ok','Emergency band on '+t+': '+(d>=0?'+':'−')+nf(Math.abs(d),1)+' points from target');
+    return rlBox('ok','Banda di emergenza su '+t+': '+(d>=0?'+':'−')+nf(Math.abs(d),1)+' punti dal target');
   }
-  return rlBox('man',(band.state==='ok'?'Emergency band on '+band.hits.join(', ')+', not on '+t+'. ':'')+
-    'Tick it if '+t+' has been outside its band for 2 quarters');
+  return rlBox('man',(band.state==='ok'?'Banda di emergenza su '+band.hits.join(', ')+', non su '+t+'. ':'')+
+    'Spuntala se '+t+' è fuori dalla sua banda da 2 trimestri');
 }
 /* B4 motivo 6: perdita dal carico oltre la soglia, confine compreso (−30,0%
    scatta). È una revisione, non una vendita. Senza carico non scatta. */
 function rulesLossReview(p,cfg){
-  if(!(num(p._cost)>0))return rlBox('ko','No cost recorded');
+  if(!(num(p._cost)>0))return rlBox('ko','Nessun carico registrato');
   const pct=Math.round(num(p._pnlPct)*1e6)/1e6;
-  return pct<=cfg.lossReviewPct?rlBox('ok',pctv(pct,1)+' from cost: start a review, it is not a sale')
-    :rlBox('ko',pctv(pct,1)+' from cost');
+  return pct<=cfg.lossReviewPct?rlBox('ok',pctv(pct,1)+' dal carico: avvia una revisione, non è una vendita')
+    :rlBox('ko',pctv(pct,1)+' dal carico');
 }
 /* Esito dei motivi di vendita. eff: {m1…m6: stato effettivo}. Il solo −30%
    avvia una revisione, non una vendita. In profitto e senza alcun motivo
@@ -8331,9 +8349,9 @@ function rulesSellOutcome(eff,pnlPct){
   const yes=Object.keys(eff).filter(k=>eff[k]==='ok');
   const review=yes.length===1&&yes[0]==='m6';
   return {any:yes.length>0&&!review, review:review, reasons:yes,
-    text:!yes.length?'No reason to sell: don\'t sell'
-      :review?'Only the loss review applies: start the review, don\'t sell'
-      :'At least one admitted reason: go through the checks before the order',
+    text:!yes.length?'Nessun motivo di vendita: non vendere'
+      :review?'Vale solo la revisione per la perdita: avvia la revisione, non vendere'
+      :'Almeno un motivo ammesso: passa le verifiche prima dell\'ordine',
     cls:!yes.length?'d':review?'w':'u',
     profitWarn:num(pnlPct)>0&&!yes.length};
 }
@@ -8383,18 +8401,18 @@ function rulesLogAdd(o,op,motive,flags){
 }
 
 /* --- disegno ------------------------------------------------------------- */
-const RL_CHIP={ok:['u','Met'],ko:['d','Not met'],na:['w','Not verifiable'],man:['','To tick']};
-const RL_CHIP_MOT={ok:['u','Present'],ko:['','Absent'],na:['w','Not verifiable'],man:['','To tick']};
-/* Una casella: etichetta (sempre con "auto" o "manual"), dettaglio, stato.
-   Le manuali hanno la spunta; mot = un motivo di vendita (Present/Absent). */
+const RL_CHIP={ok:['u','Rispettata'],ko:['d','Non rispettata'],na:['w','Non verificabile'],man:['','Da spuntare']};
+const RL_CHIP_MOT={ok:['u','Presente'],ko:['','Assente'],na:['w','Non verificabile'],man:['','Da spuntare']};
+/* Una casella: etichetta (sempre con "auto" o "manuale"), dettaglio, stato.
+   Le manuali hanno la spunta; mot = un motivo di vendita (Presente/Assente). */
 function rulesItemHTML(it,ticked,mot,extra){
   const man=it.box.state==='man', eff=rulesEff(it.box,ticked);
-  const c=man&&ticked?['u','Ticked']:(mot?RL_CHIP_MOT:RL_CHIP)[eff];
+  const c=man&&ticked?['u','Spuntata']:(mot?RL_CHIP_MOT:RL_CHIP)[eff];
   const id='rlck-'+it.key;
   return '<div class="rl-item" data-rlstate="'+eff+'"><div class="rl-chk">'+
     (man?'<input type="checkbox" id="'+esc(id)+'" data-rltick="'+esc(it.key)+'"'+(ticked?' checked':'')+'>':'')+
     '<div class="rl-tx">'+(man?'<label class="rl-lb" for="'+esc(id)+'">':'<span class="rl-lb">')+esc(it.label)+
-      '<span class="rl-kind">'+(man?'manual':'auto')+'</span>'+(man?'</label>':'</span>')+
+      '<span class="rl-kind">'+(man?'manuale':'auto')+'</span>'+(man?'</label>':'</span>')+
       (it.box.detail?'<span class="rl-dt'+(it.box.warn?' warn':'')+'">'+esc(it.box.detail)+'</span>':'')+(extra||'')+'</div></div>'+
     '<span class="badge '+c[0]+'">'+esc(c[1])+'</span></div>';
 }
@@ -8403,21 +8421,21 @@ const rulesTicked=k=>!!UI.rulesTicks[k];
 function rulesParamsMissing(cfg,tierW){
   const out=[];
   PTIERS.filter(t=>num(tierW[t])>0).forEach(t=>{
-    if(cfg.tiers[t].minScore==null)out.push(t+': min. total score');
-    if(!cfg.groups[t])out.push(t+': group');
+    if(cfg.tiers[t].minScore==null)out.push(t+': totale minimo');
+    if(!cfg.groups[t])out.push(t+': gruppo');
   });
   return out;
 }
 const RL_LIMITS=[
-  ['ddDown','3-month change, lower limit %'],['ddUp','3-month change, upper limit %'],
-  ['emergencyPts','Emergency band, points'],['lookThrough','Single-asset limit %'],
-  ['sectorMax','Sector limit %'],['countryMax','Country limit %'],
-  ['satMaxTitles','Max assets in Satellite'],['minInitialPct','Min. initial weight %'],
-  ['newPerQuarter','New positions per quarter, fewer than'],['firstEntryFrac','First entry, share of target'],
-  ['waitDays','Wait before buying, days'],['waitDaysIncr','Wait before adding, days'],
-  ['rallyPct','Rally in 3 months, %'],['waitDaysRally','Wait after a rally, days'],
-  ['lossReviewPct','Loss review from cost %'],['reviewDays','Review time, days'],
-  ['taxGov','Government bonds tax %']
+  ['ddDown','Variazione 3 mesi, minimo %'],['ddUp','Variazione 3 mesi, massimo %'],
+  ['emergencyPts','Banda di emergenza, punti'],['lookThrough','Limite per singolo titolo %'],
+  ['sectorMax','Limite per settore %'],['countryMax','Limite per paese %'],
+  ['satMaxTitles','Titoli in Satellite, al massimo'],['minInitialPct','Peso iniziale minimo %'],
+  ['newPerQuarter','Nuovi titoli a trimestre, meno di'],['firstEntryFrac','Primo ingresso, quota del target'],
+  ['waitDays','Attesa per un acquisto, giorni'],['waitDaysIncr','Attesa per un incremento, giorni'],
+  ['rallyPct','Rialzo in 3 mesi, %'],['waitDaysRally','Attesa dopo un rialzo, giorni'],
+  ['lossReviewPct','Revisione per perdita dal carico %'],['reviewDays','Tempo per la revisione, giorni'],
+  ['taxGov','Aliquota titoli di Stato %']
 ];
 function rulesParamsHTML(cfg,tierW){
   const o=(v,cur,lab)=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+lab+'</option>';
@@ -8426,21 +8444,21 @@ function rulesParamsHTML(cfg,tierW){
   return '<div class="note" style="margin-bottom:16px">Il <b>tetto</b> vale per il singolo titolo del tier; il '+
       '<b>totale minimo</b> è il voto totale che serve per entrare in quel tier, sulla tua scala. Campo vuoto: '+
       'nessun tetto, totale non impostato. I <b>gruppi</b> servono al controllo dei pesi Fondamenta e Satellite.</div>'+
-    '<div class="rl-trow hd"><div>Tier</div><div>Cap per asset %</div><div>Min. total score</div><div>Group</div></div>'+
+    '<div class="rl-trow hd"><div>Tier</div><div>Tetto per titolo %</div><div>Totale minimo</div><div>Gruppo</div></div>'+
     PTIERS.map(t=>{ const c=cfg.tiers[t], w=num(tierW[t]);
       return '<div class="rl-trow"><div class="tn"><span class="bdot" style="background:'+PTIER_COLORS[t]+'"></span>'+esc(t)+
           (w>0?' <span class="cellsub">'+nf(w,1)+'%</span>':'')+'</div>'+
-        '<div>'+inp('tiers.'+t+'.cap',c.cap,'no cap',t+' cap')+'</div>'+
-        '<div>'+inp('tiers.'+t+'.minScore',c.minScore,'not set',t+' min. total score')+'</div>'+
-        '<div><select class="rb-in" data-rlg="'+t+'" aria-label="'+esc(t)+' group">'+o('',cfg.groups[t],'—')+
-          RULES_GROUPS.map(g=>o(g,cfg.groups[t],g==='Nessuno'?'None':g)).join('')+'</select></div></div>';
+        '<div>'+inp('tiers.'+t+'.cap',c.cap,'nessuno','Tetto '+t)+'</div>'+
+        '<div>'+inp('tiers.'+t+'.minScore',c.minScore,'nessuno','Totale minimo '+t)+'</div>'+
+        '<div><select class="rb-in" data-rlg="'+t+'" aria-label="Gruppo '+esc(t)+'">'+o('',cfg.groups[t],'—')+
+          RULES_GROUPS.map(g=>o(g,cfg.groups[t],esc(g))).join('')+'</select></div></div>';
     }).join('')+
     '<div class="rl-lims">'+
-      Object.keys(cfg.groupBand).map(g=>'<div class="field"><label>'+esc(g)+' band %</label><div class="rl-pair">'+
-        inp('groupBand.'+g+'.0',cfg.groupBand[g][0],'',g+' band from')+inp('groupBand.'+g+'.1',cfg.groupBand[g][1],'',g+' band to')+
+      Object.keys(cfg.groupBand).map(g=>'<div class="field"><label>Banda '+esc(g)+' %</label><div class="rl-pair">'+
+        inp('groupBand.'+g+'.0',cfg.groupBand[g][0],'','Banda '+g+', da')+inp('groupBand.'+g+'.1',cfg.groupBand[g][1],'','Banda '+g+', a')+
         '</div></div>').join('')+
       RL_LIMITS.map(l=>'<div class="field"><label>'+esc(l[1])+'</label>'+inp(l[0],cfg[l[0]],fnum(RULES_DEFAULT[l[0]]),l[1])+
-        (l[0]==='emergencyPts'?'<button type="button" class="rl-lk" data-rlgo="tier">Open the rebalancing by tier</button>':'')+
+        (l[0]==='emergencyPts'?'<button type="button" class="rl-lk" data-rlgo="tier">Apri il Ribilanciamento per tier</button>':'')+
         '</div>').join('')+
     '</div>';
 }
@@ -8469,11 +8487,11 @@ function rulesCtx(){
   const c={cfg:cfg, act:act, tierW:tierW, total:T.value, expo:computeExposure(act),
     band:rulesEmergencyBand(tierW,rulesTierTargets(),cfg)};
   c.pre=[
-    {key:'pre.ch3m',label:'3-month change between '+pctv(cfg.ddDown,0)+' and '+pctv(cfg.ddUp,0),
+    {key:'pre.ch3m',label:'Variazione a 3 mesi tra '+pctv(cfg.ddDown,0)+' e '+pctv(cfg.ddUp,0),
       box:rulesChange3m(currentHistSeries().pts,Date.now(),cfg)},
-    {key:'pre.fund',label:'Emergency fund complete',box:rulesEmergencyFund(S.goals,goalStatus)},
-    {key:'pre.quarter',label:'Quarterly review or emergency band',box:rulesQuarterly(c.band)},
-    {key:'pre.groups',label:'Fondamenta and Satellite within their bands',box:rulesGroupWeights(tierW,cfg)}
+    {key:'pre.fund',label:'Fondo emergenza completo',box:rulesEmergencyFund(S.goals,goalStatus)},
+    {key:'pre.quarter',label:'Revisione trimestrale o banda di emergenza',box:rulesQuarterly(c.band)},
+    {key:'pre.groups',label:'Fondamenta e Satellite entro le loro bande',box:rulesGroupWeights(tierW,cfg)}
   ];
   return c;
 }
@@ -8483,7 +8501,7 @@ function renderRulesParams(c){
   const open=UI.rulesParOpen==null?miss.length>0:UI.rulesParOpen;
   $('#rlParCard').classList.toggle('open',open);
   $('#rlParHd').setAttribute('aria-expanded',open?'true':'false');
-  $('#rlParSub').textContent=miss.length?miss.length+' to fill in':'complete';
+  $('#rlParSub').textContent=miss.length?miss.length+' da compilare':'completi';
   $('#rlParSub').title=miss.join(' · ');
   /* il campo su cui si sta scrivendo non si riscrive */
   if(host.contains(document.activeElement))return;
@@ -8492,32 +8510,32 @@ function renderRulesParams(c){
 function renderRulesPre(c){
   const host=$('#rlPre'); if(!host)return;
   const it=c.pre.map(i=>({box:i.box,ticked:rulesTicked(i.key)})), n=rulesSummary(it);
-  $('#rlPreSub').textContent=n.ok+' of '+n.total+' met';
+  $('#rlPreSub').textContent=n.ok+' su '+n.total+' rispettate';
   host.innerHTML='<div class="rl-list">'+c.pre.map(i=>rulesItemHTML(i,rulesTicked(i.key))).join('')+'</div>'+
-    '<div class="rl-out '+(n.pass?'u':'d')+'">'+(n.pass?'All met: orders are allowed today':
-      'Not all met: '+esc(rulesSummaryText(n)))+'</div>';
+    '<div class="rl-out '+(n.pass?'u':'d')+'">'+(n.pass?'Tutte rispettate: oggi gli ordini sono ammessi':
+      'Non tutte rispettate: '+esc(rulesSummaryText(n)))+'</div>';
 }
 /* motivi di vendita e verifiche di una posizione */
 function rulesSellItems(p,c){
   const k=x=>'sell.'+p.id+'.'+x, cur=p.currency||BASE;
   const fv=num(p.fairValue)>0?'Fair value '+nfx(num(p.fairValue))+' '+cur+(p.fvMethod?' ('+p.fvMethod+')':'')+
-    ' · price '+nfx(num(p.price))+' '+cur:'No fair value written in the asset form';
+    ' · prezzo '+nfx(num(p.price))+' '+cur:'Nessun fair value scritto nella scheda del titolo';
   return {
     motives:[
-      {key:k('m1'),m:'m1',why:true,label:'Thesis invalidated',box:rlBox('man',p.thInvalid?'Your condition: '+p.thInvalid
-        :'No invalidation condition written in the asset form')},
-      {key:k('m2'),m:'m2',label:'Weight above the tier cap or a concentration limit',box:rulesOverweight(p,c.cfg,c.total,c.expo)},
-      {key:k('m3'),m:'m3',label:'Unfavourable valuation: the thesis does not hold at this price',box:rlBox('man',fv)},
-      {key:k('m4'),m:'m4',label:'Better alternative after 30 days of analysis',box:rlBox('man','')},
-      {key:k('m5'),m:'m5',label:'Block rebalancing or emergency band',box:rulesBlockRebalance(p,c.band)},
-      {key:k('m6'),m:'m6',label:'Down '+nfx(-c.cfg.lossReviewPct,1)+'% or more from cost',box:rulesLossReview(p,c.cfg)}
+      {key:k('m1'),m:'m1',why:true,label:'Tesi invalidata',box:rlBox('man',p.thInvalid?'La tua condizione: '+p.thInvalid
+        :'Nessuna condizione di invalidazione scritta nella scheda del titolo')},
+      {key:k('m2'),m:'m2',label:'Peso sopra il tetto del tier o un limite di concentrazione',box:rulesOverweight(p,c.cfg,c.total,c.expo)},
+      {key:k('m3'),m:'m3',label:'Valutazione sfavorevole: a questo prezzo la tesi non regge',box:rlBox('man',fv)},
+      {key:k('m4'),m:'m4',label:'Alternativa migliore dopo 30 giorni di analisi',box:rlBox('man','')},
+      {key:k('m5'),m:'m5',label:'Ribilanciamento di blocco o banda di emergenza',box:rulesBlockRebalance(p,c.band)},
+      {key:k('m6'),m:'m6',label:'In calo del '+nfx(-c.cfg.lossReviewPct,1)+'% o più dal carico',box:rulesLossReview(p,c.cfg)}
     ],
     checks:[
-      {key:k('q1'),label:'If I didn\'t own it, I would not buy it today at this price',
-        box:rlBox('man','"Would I buy it today?" must have a no for an answer')},
-      {key:k('q2'),label:'The reason is not profit, "it went up too much", news without impact, getting back to even, fear or someone else\'s advice',
+      {key:k('q1'),label:'Se non lo avessi, non lo comprerei oggi a questo prezzo',
+        box:rlBox('man','A «Se non lo avessi, lo comprerei oggi a questo prezzo?» la risposta deve essere no')},
+      {key:k('q2'),label:'Il motivo non è: profitto, «è salito troppo», notizie senza impatto, tornare in pari, paura, consiglio altrui',
         box:rlBox('man','')},
-      {key:k('tax'),label:'Tax cost acceptable for the reason',box:rlBox('man','See the estimate above')}
+      {key:k('tax'),label:'Costo fiscale accettabile rispetto al motivo',box:rlBox('man','Vedi la stima qui sopra')}
     ]
   };
 }
@@ -8528,22 +8546,22 @@ function rulesSellQtyDefault(p,amount){
   return amount>0&&px>0?Math.min(num(p._q),amount/px):num(p._q);
 }
 function rulesTaxHTML(p,t,losses){
-  if(!t)return '<div class="rb-tax"><div class="tx-miss">Enter a quantity greater than zero to see the estimate.</div></div>';
-  if(t.noAvg)return '<div class="rb-tax"><div class="tx-miss">Average cost not available: add it to the asset '+
-    'to see the estimated tax.</div></div>';
+  if(!t)return '<div class="rb-tax"><div class="tx-miss">Scrivi una quantità maggiore di zero per vedere la stima.</div></div>';
+  if(t.noAvg)return '<div class="rb-tax"><div class="tx-miss">Carico medio non disponibile: aggiungilo al titolo '+
+    'per vedere la tassa stimata.</div></div>';
   const cur=p.currency||BASE, gainPos=t.gain>0;
   return '<div class="rb-tax">'+
-    '<div class="tx-r"><span class="k">Current price / avg. cost</span>'+
+    '<div class="tx-r"><span class="k">Prezzo attuale / carico medio</span>'+
       '<span class="v">'+nf(t.price,2)+' / '+nf(t.avg,2)+' '+esc(cur)+'</span></div>'+
-    '<div class="tx-r"><span class="k">'+(t.gain<0?'Estimated capital loss':'Estimated capital gain')+'</span>'+
+    '<div class="tx-r"><span class="k">'+(t.gain<0?'Minusvalenza stimata':'Plusvalenza stimata')+'</span>'+
       '<span class="v mask '+(gainPos?'up':t.gain<0?'down':'')+'">'+(t.gain>=0?'+':'−')+money0(Math.abs(t.gain))+'</span></div>'+
     (gainPos
-      ?'<div class="tx-r"><span class="k">Estimated tax ('+nfx(t.rate,1)+'%)</span>'+
+      ?'<div class="tx-r"><span class="k">Tassa stimata ('+nfx(t.rate,1)+'%)</span>'+
          '<span class="v mask down">−'+money0(t.tax)+'</span></div>'+
-       '<div class="tx-r tot"><span class="k">Net after estimated tax</span><span class="v mask">'+money0(t.net)+'</span></div>'
-      :'<div class="tx-r tot"><span class="k">No estimated tax</span>'+
-         '<span class="v">'+(t.gain<0?'capital loss':'no capital gain')+'</span></div>')+
-    '<div class="tx-r"><span class="k">Realized losses already recorded</span>'+
+       '<div class="tx-r tot"><span class="k">Netto dopo la tassa stimata</span><span class="v mask">'+money0(t.net)+'</span></div>'
+      :'<div class="tx-r tot"><span class="k">Nessuna tassa stimata</span>'+
+         '<span class="v">'+(t.gain<0?'minusvalenza':'nessuna plusvalenza')+'</span></div>')+
+    '<div class="tx-r"><span class="k">Minusvalenze già realizzate</span>'+
       '<span class="v mask">'+(losses<0?'−'+money0(-losses):money0(0))+'</span></div>'+
     '<div class="tx-note">Somma dei realizzati negativi di tutti i titoli, anche chiusi: un\'approssimazione, '+
       'senza il controllo della scadenza di quattro anni delle minusvalenze.'+
@@ -8567,14 +8585,14 @@ function renderRulesSell(c){
     .sort((a,b)=>String(a.ticker||a.name||'').localeCompare(String(b.ticker||b.name||'')));
   if(!list.some(p=>p.id===UI.rulesSell))UI.rulesSell=null;
   sel.disabled=!list.length;
-  sel.innerHTML='<option value="">'+(list.length?'Choose a position…':'No positions')+'</option>'+
+  sel.innerHTML='<option value="">'+(list.length?'Scegli una posizione…':'Nessuna posizione')+'</option>'+
     list.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===UI.rulesSell?' selected':'')+'>'+
       esc(p.ticker||p.name||p.isin||'—')+'</option>').join('');
   const p=list.filter(x=>x.id===UI.rulesSell)[0];
   if(!p){
     host.innerHTML='<div class="empty" style="padding:20px"><div class="sm">'+(list.length
-      ?'Choose a position to see which reasons to sell apply. You can also open it from the position, with <b>Checklist</b>.'
-      :'Add positions to use the sell checklist.')+'</div></div>';
+      ?'Scegli una posizione per vedere quali motivi di vendita valgono. Puoi aprirla anche dalla posizione, con <b>Checklist</b>.'
+      :'Aggiungi delle posizioni per usare la checklist di vendita.')+'</div></div>';
     return;
   }
   const t=normPTier(p.tier), cap=t?c.cfg.tiers[t].cap:null, cur=p.currency||BASE;
@@ -8585,47 +8603,47 @@ function renderRulesSell(c){
   const n=rulesSummary(c.pre.map(i=>({box:i.box,ticked:rulesTicked(i.key)})).concat([gate],
     it.checks.map(i=>({box:i.box,ticked:rulesTicked(i.key)}))));
   const extra={
-    m1:'<input class="inp" data-rlwhy="'+esc(p.id)+'" placeholder="Which condition happened?" value="'+esc(UI.rulesSellWhy[p.id]||'')+'">',
-    m2:ov.amount>0?'<span class="rl-dt">Sell about <b class="mask">'+money0(ov.amount)+'</b> to bring it back to the limit, not to the target</span>':'',
-    m6:eff.m6==='ok'?'<button type="button" class="btn btn-soft btn-sm" data-rlreview="'+esc(p.id)+'">Record review</button>':''
+    m1:'<input class="inp" data-rlwhy="'+esc(p.id)+'" placeholder="Quale condizione si è verificata?" value="'+esc(UI.rulesSellWhy[p.id]||'')+'">',
+    m2:ov.amount>0?'<span class="rl-dt">Vendi circa <b class="mask">'+money0(ov.amount)+'</b> per riportarlo al limite, non al target</span>':'',
+    m6:eff.m6==='ok'?'<button type="button" class="btn btn-soft btn-sm" data-rlreview="'+esc(p.id)+'">Registra revisione</button>':''
   };
   const up=p._pnl>=0;
   host.innerHTML=
     '<div class="rl-facts">'+
-      '<div><div class="l">Asset</div><div class="v">'+esc(p.ticker||p.name||'—')+'</div></div>'+
+      '<div><div class="l">Titolo</div><div class="v">'+esc(p.ticker||p.name||'—')+'</div></div>'+
       '<div><div class="l">Tier</div><div class="v">'+esc(t||'—')+'</div></div>'+
-      '<div><div class="l">Weight / cap</div><div class="v">'+nf(num(p._w),1)+'% / '+(cap==null?'no cap':nfx(cap,1)+'%')+'</div></div>'+
-      '<div><div class="l">Value</div><div class="v mask">'+money0(p._value)+'</div></div>'+
-      '<div><div class="l">Cost</div><div class="v mask">'+money0(p._cost)+'</div></div>'+
-      '<div><div class="l">Return</div><div class="v '+(up?'up':'down')+'">'+(num(p._cost)>0?pctv(num(p._pnlPct),1):'—')+'</div></div>'+
+      '<div><div class="l">Peso / tetto</div><div class="v">'+nf(num(p._w),1)+'% / '+(cap==null?'nessun tetto':nfx(cap,1)+'%')+'</div></div>'+
+      '<div><div class="l">Valore</div><div class="v mask">'+money0(p._value)+'</div></div>'+
+      '<div><div class="l">Carico</div><div class="v mask">'+money0(p._cost)+'</div></div>'+
+      '<div><div class="l">Rendimento</div><div class="v '+(up?'up':'down')+'">'+(num(p._cost)>0?pctv(num(p._pnlPct),1):'—')+'</div></div>'+
     '</div>'+
-    '<div class="sec-t">Reasons to sell · at least one</div>'+
+    '<div class="sec-t">Motivi di vendita · ne serve almeno uno</div>'+
     '<div class="rl-list">'+it.motives.map(m=>rulesItemHTML(m,rulesTicked(m.key),true,extra[m.m])).join('')+'</div>'+
     '<div class="rl-out '+out.cls+'">'+esc(out.text)+'</div>'+
-    (out.profitWarn?'<div class="rl-out w">In profit: "it went up too much" is not a reason</div>':'')+
-    '<div class="sec-t">Before the order</div>'+
+    (out.profitWarn?'<div class="rl-out w">In profitto: «è salito troppo» non è un motivo</div>':'')+
+    '<div class="sec-t">Prima dell\'ordine</div>'+
     '<div class="rl-list">'+it.checks.slice(0,2).map(i=>rulesItemHTML(i,rulesTicked(i.key))).join('')+'</div>'+
-    '<div class="sec-t">Tax estimate</div>'+
+    '<div class="sec-t">Stima fiscale</div>'+
     '<div class="rl-qty">'+
-      '<div class="field"><label for="rlQty">Quantity to sell</label><input id="rlQty" type="text" inputmode="decimal" '+
+      '<div class="field"><label for="rlQty">Quantità da vendere</label><input id="rlQty" type="text" inputmode="decimal" '+
         'data-rlqty="'+esc(p.id)+'" value="'+(UI.rulesSellQty[p.id]!=null?esc(UI.rulesSellQty[p.id])
           :fnum(+rulesSellQtyDefault(p,ov.amount).toFixed(6)))+'">'+
         '<div class="hint">'+(ov.amount>0?'Proposta: la quantità che riporta il peso al limite.':'Proposta: tutta la posizione.')+
           ' Prezzo '+nf(num(p.price),2)+' '+esc(cur)+'.</div></div>'+
-      '<div class="field"><label for="rlTaxSel">Tax rate</label><select class="inp" id="rlTaxSel">'+
-        '<option value="std"'+(UI.rulesTaxSel!=='gov'?' selected':'')+'>Capital gains '+nfx(rbTaxRate(),1)+'%</option>'+
-        '<option value="gov"'+(UI.rulesTaxSel==='gov'?' selected':'')+'>Government bonds '+nfx(c.cfg.taxGov,1)+'%</option>'+
+      '<div class="field"><label for="rlTaxSel">Aliquota</label><select class="inp" id="rlTaxSel">'+
+        '<option value="std"'+(UI.rulesTaxSel!=='gov'?' selected':'')+'>Plusvalenze '+nfx(rbTaxRate(),1)+'%</option>'+
+        '<option value="gov"'+(UI.rulesTaxSel==='gov'?' selected':'')+'>Titoli di Stato '+nfx(c.cfg.taxGov,1)+'%</option>'+
       '</select></div>'+
     '</div>'+
     '<div id="rlTax"></div>'+
-    '<div class="rl-dt" style="font-size:12px;color:var(--muted);margin-top:10px">Where the money should come from, in order:</div>'+
-    '<ol class="rl-steps"><li>new contributions</li><li>positions with a capital loss</li>'+
-      '<li>positions with the smallest gains</li><li>everything else</li></ol>'+
+    '<div class="rl-dt" style="font-size:12px;color:var(--muted);margin-top:10px">Da dove prendere il denaro, in ordine:</div>'+
+    '<ol class="rl-steps"><li>nuovi versamenti</li><li>posizioni in minusvalenza</li>'+
+      '<li>posizioni con le plusvalenze più piccole</li><li>tutto il resto</li></ol>'+
     '<div class="rl-list">'+rulesItemHTML(it.checks[2],rulesTicked(it.checks[2].key))+'</div>'+
-    '<div class="rl-out '+(n.pass?'u':'d')+'">'+(n.pass?'All checks met: the decision is yours'
-      :'Not ready for the order: '+esc(rulesSummaryText(n)))+
-      '<span class="sm">Counts the checks before any order, at least one reason to sell, the two questions and the tax cost.</span></div>'+
-    '<div class="rl-acts"><button type="button" class="btn btn-ghost btn-sm" data-rldecide="sell">Record decision</button>'+
+    '<div class="rl-out '+(n.pass?'u':'d')+'">'+(n.pass?'Tutte le verifiche rispettate: la decisione è tua'
+      :'Non pronto per l\'ordine: '+esc(rulesSummaryText(n)))+
+      '<span class="sm">Conta i controlli prima di ogni ordine, almeno un motivo di vendita, le due domande e il costo fiscale.</span></div>'+
+    '<div class="rl-acts"><button type="button" class="btn btn-ghost btn-sm" data-rldecide="sell">Registra decisione</button>'+
       '<span class="hint">Nel registro, con i motivi presenti o spuntati.</span></div>';
   renderRulesTax(p,c);
 }
@@ -8653,57 +8671,57 @@ function rulesFinalWeight(value,amount,total){
 /* C1 motivo 1: le cinque righe della tesi */
 function rulesThesis(o){
   const miss=THESIS_ROWS.filter(r=>!String(o[r[0]]==null?'':o[r[0]]).trim()).map(r=>r[2]);
-  return miss.length?rlBox('ko',(5-miss.length)+'/5 · missing: '+miss.join(', ')):rlBox('ok','5/5 lines written');
+  return miss.length?rlBox('ko',(5-miss.length)+'/5 · '+(miss.length===1?'manca: ':'mancano: ')+miss.join(', ')):rlBox('ok','5/5 righe scritte');
 }
 /* C1 motivo 2: una condizione che invalida la tesi, con una soglia (una cifra) */
 function rulesInvalidation(o){
   const s=String(o.thInvalid==null?'':o.thInvalid).trim();
-  if(!s)return rlBox('ko','No invalidation condition');
-  return /\d/.test(s)?rlBox('ok',s):rlBox('ko','No measurable threshold, no number in: '+s);
+  if(!s)return rlBox('ko','Nessuna condizione di invalidazione');
+  return /\d/.test(s)?rlBox('ok',s):rlBox('ko','Nessuna soglia misurabile, nessuna cifra in: '+s);
 }
 /* C1 motivo 3: i tre voti */
 function rulesScores(o){
-  const miss=[['quant','QUANT'],['qual','QUAL'],['score','total']].filter(x=>o[x[0]]==null||o[x[0]]==='').map(x=>x[1]);
-  return miss.length?rlBox('ko','Missing: '+miss.join(', ')):rlBox('ok',scoresLine(o));
+  const miss=[['quant','QUANT'],['qual','QUAL'],['score','totale']].filter(x=>o[x[0]]==null||o[x[0]]==='').map(x=>x[1]);
+  return miss.length?rlBox('ko',(miss.length===1?'Manca: ':'Mancano: ')+miss.join(', ')):rlBox('ok',scoresLine(o));
 }
 /* C1 motivo 4: totale ≥ totale minimo del tier. Se non basta, il tier più
    alto compatibile: quello con la soglia più alta fra quelle impostate e non
    sopra il totale. Tier non scelto: ko; soglia non impostata: na. */
 function rulesScoreTier(o,cfg){
   const t=normPTier(o.tier);
-  if(!t)return rlBox('ko','Choose the tier of the asset');
+  if(!t)return rlBox('ko','Scegli il tier del titolo');
   const min=cfg.tiers[t].minScore;
-  if(min==null)return rlBox('na','Min. total score for '+t+' not set in the parameters');
-  if(o.score==null||o.score==='')return rlBox('na','No total score');
+  if(min==null)return rlBox('na','Totale minimo di '+t+' non impostato nei parametri');
+  if(o.score==null||o.score==='')return rlBox('na','Nessun voto totale');
   const sc=num(o.score);
-  if(sc>=min)return rlBox('ok','Total '+nfx(sc)+', '+t+' requires at least '+nfx(min));
+  if(sc>=min)return rlBox('ok','Totale '+nfx(sc)+', '+t+' chiede almeno '+nfx(min));
   const fit=PTIERS.filter(x=>cfg.tiers[x].minScore!=null&&cfg.tiers[x].minScore<=sc)
     .sort((a,b)=>cfg.tiers[b].minScore-cfg.tiers[a].minScore)[0];
-  return rlBox('ko','Total '+nfx(sc)+', '+t+' requires at least '+nfx(min)+': '+
-    (fit?'with '+nfx(sc)+' at most '+fit:'no tier allows a total of '+nfx(sc)),{fit:fit||''});
+  return rlBox('ko','Totale '+nfx(sc)+', '+t+' chiede almeno '+nfx(min)+': '+
+    (fit?'con '+nfx(sc)+' al massimo '+fit:'nessun tier ammette un totale di '+nfx(sc)),{fit:fit||''});
 }
 /* C1 motivo 5: margine di sicurezza dichiarato, fair value e metodo. Un
    margine nullo o negativo si dice, ma la regola chiede che sia dichiarato. */
 function rulesMargin(o,price){
   const fv=num(o.fairValue), m=String(o.fvMethod==null?'':o.fvMethod).trim(), cur=o.currency||BASE;
-  if(!(fv>0)||!m)return rlBox('ko',!(fv>0)&&!m?'No fair value and no method':!(fv>0)?'No fair value':'No valuation method');
+  if(!(fv>0)||!m)return rlBox('ko',!(fv>0)&&!m?'Nessun fair value e nessun metodo':!(fv>0)?'Nessun fair value':'Nessun metodo di valutazione');
   const px=num(price), base='Fair value '+nfx(fv)+' '+cur+' ('+m+')';
-  if(!(px>0))return rlBox('ok',base+'; no price to compare');
+  if(!(px>0))return rlBox('ok',base+'; nessun prezzo per il confronto');
   const mg=(fv-px)/fv*100;
-  return rlBox('ok',base+' · price '+nfx(px)+' '+cur+' · margin '+pctv(mg,1)+(mg<=0?': no margin of safety at this price':''),{margin:mg});
+  return rlBox('ok',base+' · prezzo '+nfx(px)+' '+cur+' · margine '+pctv(mg,1)+(mg<=0?': nessun margine di sicurezza a questo prezzo':''),{margin:mg});
 }
 /* C1 blocco 1: peso finale entro il tetto del tier e sotto il limite per
    singolo titolo. Un tier senza tetto non ha quel limite (scelta
    dell'utente); il tier non scelto o l'importo mancante: non verificabile. */
 function rulesBuyWeight(o,fw,cfg,amount){
-  if(!(num(amount)>0))return rlBox('na','Enter the amount to invest');
+  if(!(num(amount)>0))return rlBox('na','Scrivi l\'importo da investire');
   const t=normPTier(o.tier);
-  if(!t)return rlBox('na','Choose the tier of the asset');
+  if(!t)return rlBox('na','Scegli il tier del titolo');
   const cap=cfg.tiers[t].cap, w=Math.round(num(fw)*1e6)/1e6, lt=w<cfg.lookThrough;
   const capOk=cap==null||w<=cap;
-  return rlBox(capOk&&lt?'ok':'ko','Final weight '+nf(w,2)+'% · '+
-    (cap==null?t+' has no cap':(capOk?'within':'above')+' the '+t+' cap of '+nfx(cap,1)+'%')+' · '+
-    (lt?'below':'not below')+' the '+nfx(cfg.lookThrough,1)+'% single-asset limit',{weight:w});
+  return rlBox(capOk&&lt?'ok':'ko','Peso finale '+nf(w,2)+'% · '+
+    (cap==null?t+' non ha un tetto':(capOk?'entro':'sopra')+' il tetto di '+t+' del '+nfx(cap,1)+'%')+' · '+
+    (lt?'sotto':'non sotto')+' il limite del '+nfx(cfg.lookThrough,1)+'% per singolo titolo',{weight:w});
 }
 /* C1 blocco 2: settori e paesi del titolo dopo l'acquisto. computeExposure
    sulle attive più una riga finta che vale l'importo (un ETF con la
@@ -8711,7 +8729,7 @@ function rulesBuyWeight(o,fw,cfg,amount){
    settore o paese: non verificabile. */
 function rulesBuyExposure(o,amount,rows,total,cfg){
   const a=Math.max(0,num(amount)), fake=Object.assign({},o,{_value:a}), tot=num(total)+a;
-  if(!(tot>0))return rlBox('na','Enter the amount to invest');
+  if(!(tot>0))return rlBox('na','Scrivi l\'importo da investire');
   const ex=computeExposure((rows||[]).concat([fake]));
   const bad=[], good=[], miss=[];
   [['sector',cfg.sectorMax],['country',cfg.countryMax]].forEach(([k,max])=>{
@@ -8719,12 +8737,12 @@ function rulesBuyExposure(o,amount,rows,total,cfg){
       if(c.name==='—'){ if(miss.indexOf(k)<0)miss.push(k); return; }
       if(RL_EXPO_SKIP.indexOf(c.name)>-1)return;
       const pct=Math.round(num(ex[k][c.name])/tot*100*1e6)/1e6;
-      (pct>max?bad:good).push(c.name+' '+nf(pct,1)+'%'+(pct>max?' over the '+nfx(max,1)+'% limit':''));
+      (pct>max?bad:good).push(c.name+' '+nf(pct,1)+'%'+(pct>max?' oltre il limite del '+nfx(max,1)+'%':''));
     });
   });
-  if(bad.length)return rlBox('ko','After the purchase: '+bad.concat(good).join(', '));
-  if(miss.length)return rlBox('na','No '+miss.join(' and ')+' in the asset form');
-  return rlBox('ok',good.length?'After the purchase: '+good.join(', '):'Only aggregate sectors and countries (e.g. World)');
+  if(bad.length)return rlBox('ko','Dopo l\'acquisto: '+bad.concat(good).join(', '));
+  if(miss.length)return rlBox('na','Nessun '+miss.map(k=>k==='sector'?'settore':'paese').join(' né ')+' nella scheda del titolo');
+  return rlBox('ok',good.length?'Dopo l\'acquisto: '+good.join(', '):'Solo settori e paesi aggregati (es. World)');
 }
 /* posizioni che contano come titoli: attive, non conti deposito */
 const rulesHeld=rows=>(rows||[]).filter(p=>p&&!isClosed(p)&&!isDeposit(p)&&num(p._q)>0);
@@ -8733,23 +8751,23 @@ const rulesHeld=rows=>(rows||[]).filter(p=>p&&!isClosed(p)&&!isDeposit(p)&&num(p
    gruppo o titoli senza tier: non verificabile. */
 function rulesSatTitles(o,incr,rows,cfg){
   const t=normPTier(o.tier);
-  if(!t)return rlBox('na','Choose the tier of the asset');
+  if(!t)return rlBox('na','Scegli il tier del titolo');
   const held=rulesHeld(rows);
-  if(held.some(p=>!normPTier(p.tier)))return rlBox('na','Some positions have no tier');
+  if(held.some(p=>!normPTier(p.tier)))return rlBox('na','Alcune posizioni non hanno un tier');
   const used=PTIERS.filter(x=>x===t||held.some(p=>normPTier(p.tier)===x));
   const miss=used.filter(x=>!cfg.groups[x]);
-  if(miss.length)return rlBox('na','Assign the group to: '+miss.join(', '));
+  if(miss.length)return rlBox('na','Assegna il gruppo a: '+miss.join(', '));
   const sat=cfg.groups[t]==='Satellite';
   const n=held.filter(p=>cfg.groups[normPTier(p.tier)]==='Satellite').length+(!incr&&sat?1:0);
-  return rlBox(n<cfg.satMaxTitles?'ok':'ko',n+' assets in Satellite'+(!incr&&sat?' with this one':'')+
-    ' · fewer than '+cfg.satMaxTitles+' allowed'+(sat?'':' · this asset is not in Satellite'),{n:n});
+  return rlBox(n<cfg.satMaxTitles?'ok':'ko',rlPl(n,'titolo','titoli')+' in Satellite'+(!incr&&sat?' con questo':'')+
+    ' · ammessi meno di '+cfg.satMaxTitles+(sat?'':' · questo titolo non è in Satellite'),{n:n});
 }
 /* C1 blocco 3b: peso iniziale di una posizione nuova almeno minInitialPct */
 function rulesMinInitial(fw,incr,cfg,amount){
   if(incr)return null;
-  if(!(num(amount)>0))return rlBox('na','Enter the amount to invest');
+  if(!(num(amount)>0))return rlBox('na','Scrivi l\'importo da investire');
   const w=Math.round(num(fw)*1e6)/1e6;
-  return rlBox(w>=cfg.minInitialPct?'ok':'ko','Initial weight '+nf(w,2)+'% · at least '+nfx(cfg.minInitialPct,2)+'%');
+  return rlBox(w>=cfg.minInitialPct?'ok':'ko','Peso iniziale '+nf(w,2)+'% · almeno '+nfx(cfg.minInitialPct,2)+'%');
 }
 /* trimestre solare di una data ISO, "2026-Q4"; '' se non è una data */
 function rulesQuarter(iso){
@@ -8763,10 +8781,10 @@ function rulesQuarter(iso){
 function rulesNewThisQuarter(rows,incr,todayIso,cfg){
   const q=rulesQuarter(todayIso), already=rulesHeld(rows).filter(p=>rulesQuarter(p.dateAdded)===q);
   const names=already.length?': '+already.map(p=>p.ticker||p.name||'—').join(', '):'';
-  if(incr)return rlBox('ok','An increase is not a new position ('+already.length+' new this quarter'+names+')');
+  if(incr)return rlBox('ok','Un incremento non è una nuova posizione ('+rlPl(already.length,'nuova','nuove')+' in questo trimestre'+names+')');
   const n=already.length+1;
-  return rlBox(n<cfg.newPerQuarter?'ok':'ko',n+' new position'+(n===1?'':'s')+' this quarter with this one · fewer than '+
-    cfg.newPerQuarter+' allowed'+names,{n:n});
+  return rlBox(n<cfg.newPerQuarter?'ok':'ko',rlPl(n,'nuova posizione','nuove posizioni')+' in questo trimestre con questa · ammesse meno di '+
+    cfg.newPerQuarter+names,{n:n});
 }
 /* C1 blocco 5: l'attesa dalla decisione registrata (l'ultima d'acquisto
    ancora da fare, per quel titolo). Fine: la più tarda fra quella salvata e
@@ -8775,21 +8793,21 @@ function rulesBuyWait(o,incr,rally,log,todayIso,cfg){
   const key=rulesKey(o), days=rally?cfg.waitDaysRally:incr?cfg.waitDaysIncr:cfg.waitDays;
   const rows=(log||[]).filter(r=>r&&r.op==='buy'&&!r.done&&r.ticker===key)
     .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-  if(!rows.length)return rlBox('ko','No decision recorded: record it, then wait '+days+' days',{none:true});
+  if(!rows.length)return rlBox('ko','Nessuna decisione registrata: registrala, poi attendi '+rlPl(days,'giorno','giorni'),{none:true});
   const r=rows[0], end=[r.waitUntil,rulesWaitUntil(r.date,'buy',{incr:incr,rally:rally},cfg)].filter(Boolean).sort().pop();
-  return end>todayIso?rlBox('ko','Decision of '+fmtDate(r.date)+': wait until '+fmtDate(end),{end:end})
-    :rlBox('ok','Decision of '+fmtDate(r.date)+': waiting ended on '+fmtDate(end),{end:end});
+  return end>todayIso?rlBox('ko','Decisione del '+fmtDate(r.date)+': attendi fino al '+fmtDate(end),{end:end})
+    :rlBox('ok','Decisione del '+fmtDate(r.date)+': attesa finita il '+fmtDate(end),{end:end});
 }
 /* C1 blocco 6: primo ingresso al massimo firstEntryFrac del peso target del
    titolo (non del tetto). Non vale per gli incrementi. */
 function rulesFirstEntry(o,fw,incr,cfg,amount){
   if(incr)return null;
   const tg=num(o.targetWeight);
-  if(o.targetWeight==null||o.targetWeight===''||!(tg>0))return rlBox('na','No target weight in the asset form');
-  if(!(num(amount)>0))return rlBox('na','Enter the amount to invest');
+  if(o.targetWeight==null||o.targetWeight===''||!(tg>0))return rlBox('na','Nessun peso target nella scheda del titolo');
+  if(!(num(amount)>0))return rlBox('na','Scrivi l\'importo da investire');
   const max=Math.round(tg*cfg.firstEntryFrac*1e6)/1e6, w=Math.round(num(fw)*1e6)/1e6;
-  return rlBox(w<=max?'ok':'ko','Final weight '+nf(w,2)+'% · at most '+nfx(cfg.firstEntryFrac*100,0)+'% of the '+
-    nfx(tg,2)+'% target = '+nfx(max,2)+'%');
+  return rlBox(w<=max?'ok':'ko','Peso finale '+nf(w,2)+'% · al massimo il '+nfx(cfg.firstEntryFrac*100,0)+'% del target del '+
+    nfx(tg,2)+'% = '+nfx(max,2)+'%');
 }
 /* C1 blocco 7: vendite di titoli degli ultimi 30 giorni, dalla più recente.
    I prelievi dai conti deposito non contano. */
@@ -8802,13 +8820,13 @@ function rulesRecentSales(positions,todayIso){
   return out.sort((a,b)=>b.date.localeCompare(a.date));
 }
 function rulesFunds(sales){
-  return rlBox('man',sales.length?'Sales in the last 30 days: '+sales.map(s=>s.name+' '+fmtDate(s.date)).join(', ')+
-    '. The money must not come from them':'No sales in the last 30 days',{warn:sales.length>0});
+  return rlBox('man',sales.length?'Vendite degli ultimi 30 giorni: '+sales.map(s=>s.name+' '+fmtDate(s.date)).join(', ')+
+    '. Il denaro non deve venire da queste':'Nessuna vendita negli ultimi 30 giorni',{warn:sales.length>0});
 }
 /* Esito della scheda Acquisto: ammesso solo con tutte le caselle 'ok' */
 function rulesBuyOutcome(n){
-  return n.pass?{cls:'u',text:'Buy allowed',sub:''}
-    :{cls:'d',text:'Buy not allowed: the contribution goes to the Fondamenta ETFs',sub:rulesSummaryText(n)};
+  return n.pass?{cls:'u',text:'Acquisto ammesso',sub:''}
+    :{cls:'d',text:'Acquisto non ammesso: il versamento va negli ETF di Fondamenta',sub:rulesSummaryText(n)};
 }
 /* tutte le caselle della scheda Acquisto per la sorgente src e amount € */
 function rulesBuyItems(src,amount,c,log,todayIso){
@@ -8817,30 +8835,30 @@ function rulesBuyItems(src,amount,c,log,todayIso){
   const t=normPTier(o.tier);
   return {fw:fw, rally:rally,
     motives:[
-      {key:k('m1'),label:'Thesis in 5 lines',box:rulesThesis(o)},
-      {key:k('m2'),label:'Invalidation condition with a threshold',box:rulesInvalidation(o)},
-      {key:k('m3'),label:'QUANT, QUAL and total scores',box:rulesScores(o)},
-      {key:k('m4'),label:'Total score fits the tier'+(t?' ('+t+')':''),box:rulesScoreTier(o,cfg)},
-      {key:k('m5'),label:'Margin of safety declared',box:rulesMargin(o,src.price)},
-      {key:k('m6'),label:'Key data checked on a primary source',box:rlBox('man','Annual report, filings, official statistics')}
+      {key:k('m1'),label:'Tesi in 5 righe',box:rulesThesis(o)},
+      {key:k('m2'),label:'Condizione di invalidazione con una soglia',box:rulesInvalidation(o)},
+      {key:k('m3'),label:'Voti QUANT, QUAL e totale',box:rulesScores(o)},
+      {key:k('m4'),label:'Voto totale compatibile con il tier'+(t?' ('+t+')':''),box:rulesScoreTier(o,cfg)},
+      {key:k('m5'),label:'Margine di sicurezza dichiarato',box:rulesMargin(o,src.price)},
+      {key:k('m6'),label:'Dato chiave verificato su una fonte primaria',box:rlBox('man','Bilancio annuale, documenti depositati, statistiche ufficiali')}
     ],
     blocks:[
-      {key:k('b1'),label:'Final weight within the tier cap and below the single-asset limit',box:rulesBuyWeight(o,fw,cfg,amount),
+      {key:k('b1'),label:'Peso finale entro il tetto del tier e sotto il limite per singolo titolo',box:rulesBuyWeight(o,fw,cfg,amount),
         note:'La composizione degli ETF è per settore e paese, non per titolo: il look-through del singolo titolo dentro gli ETF non si può calcolare.'},
-      {key:k('b2'),label:'Sector and country within their limits after the purchase',box:rulesBuyExposure(o,amount,c.act,c.total,cfg)},
-      {key:k('b3'),label:'Fewer than '+cfg.satMaxTitles+' assets in Satellite',box:rulesSatTitles(o,src.incr,c.act,cfg)},
-      {key:k('b3w'),label:'Initial weight at least '+nfx(cfg.minInitialPct,2)+'%',box:rulesMinInitial(fw,src.incr,cfg,amount)},
-      {key:k('b4'),label:'Fewer than '+cfg.newPerQuarter+' new positions this quarter',box:rulesNewThisQuarter(c.act,src.incr,todayIso,cfg)},
-      {key:k('b5'),label:'Waiting time after the decision',box:rulesBuyWait(o,src.incr,rally,log,todayIso,cfg)},
-      {key:k('b6'),label:'First entry at most '+nfx(cfg.firstEntryFrac*100,0)+'% of the target weight',box:rulesFirstEntry(o,fw,src.incr,cfg,amount)},
-      {key:k('b7'),label:'The money comes from contributions, not from a sale made to fund it',box:rulesFunds(rulesRecentSales(S.positions,todayIso))}
+      {key:k('b2'),label:'Settore e paese entro i loro limiti dopo l\'acquisto',box:rulesBuyExposure(o,amount,c.act,c.total,cfg)},
+      {key:k('b3'),label:'Meno di '+cfg.satMaxTitles+' titoli in Satellite',box:rulesSatTitles(o,src.incr,c.act,cfg)},
+      {key:k('b3w'),label:'Peso iniziale almeno '+nfx(cfg.minInitialPct,2)+'%',box:rulesMinInitial(fw,src.incr,cfg,amount)},
+      {key:k('b4'),label:'Meno di '+cfg.newPerQuarter+' nuove posizioni in questo trimestre',box:rulesNewThisQuarter(c.act,src.incr,todayIso,cfg)},
+      {key:k('b5'),label:'Attesa dopo la decisione',box:rulesBuyWait(o,src.incr,rally,log,todayIso,cfg)},
+      {key:k('b6'),label:'Primo ingresso al massimo il '+nfx(cfg.firstEntryFrac*100,0)+'% del peso target',box:rulesFirstEntry(o,fw,src.incr,cfg,amount)},
+      {key:k('b7'),label:'Il denaro viene da versamenti, non da una vendita fatta per finanziarlo',box:rulesFunds(rulesRecentSales(S.positions,todayIso))}
     ].filter(b=>b.box)
   };
 }
 /* motivo da registrare: le regole rispettate o spuntate, in breve */
 function rulesMotiveText(items,why){
   const met=items.filter(i=>rulesEff(i.box,rulesTicked(i.key))==='ok').map(i=>i.label+(i.why&&why?': '+why:''));
-  return met.length?met.join(' · '):'No rule met';
+  return met.length?met.join(' · '):'Nessuna regola rispettata';
 }
 function renderRulesBuyBody(c){
   const host=$('#rlBuyBody'); if(!host)return;
@@ -8850,19 +8868,19 @@ function renderRulesBuyBody(c){
   const n=rulesSummary(all), out=rulesBuyOutcome(n);
   const extra=b=>{
     if(b.key.slice(-3)==='.b5')return '<label class="rl-sub"><input type="checkbox" data-rltick="buy.'+esc(src.key)+'.rally"'+
-      (it.rally?' checked':'')+'> It went up more than '+nfx(c.cfg.rallyPct,0)+'% in 3 months: wait '+c.cfg.waitDaysRally+' days</label>'+
-      (b.box.none?'<button type="button" class="btn btn-soft btn-sm" data-rldecide="buy">Record decision</button>':'');
+      (it.rally?' checked':'')+'> È salito di oltre il '+nfx(c.cfg.rallyPct,0)+'% in 3 mesi: attendi '+rlPl(c.cfg.waitDaysRally,'giorno','giorni')+'</label>'+
+      (b.box.none?'<button type="button" class="btn btn-soft btn-sm" data-rldecide="buy">Registra decisione</button>':'');
     if(b.key.slice(-3)==='.b1')return '<span class="rl-dt">'+esc(b.note)+'</span>';
     return '';
   };
   host.innerHTML=
-    '<div class="sec-t">Reasons to buy · all needed</div>'+
+    '<div class="sec-t">Motivi d\'acquisto · servono tutti</div>'+
     '<div class="rl-list">'+it.motives.map(m=>rulesItemHTML(m,rulesTicked(m.key))).join('')+'</div>'+
-    '<div class="sec-t">Checks · final weight '+nf(it.fw,2)+'%</div>'+
+    '<div class="sec-t">Verifiche · peso finale '+nf(it.fw,2)+'%</div>'+
     '<div class="rl-list">'+it.blocks.map(b=>rulesItemHTML(b,rulesTicked(b.key),false,extra(b))).join('')+'</div>'+
     '<div class="rl-out '+out.cls+'">'+esc(out.text)+(out.sub?'<span class="sm">'+esc(out.sub)+'</span>':'')+
-      '<span class="sm">Counts the checks before any order too.</span></div>'+
-    '<div class="rl-acts"><button type="button" class="btn btn-ghost btn-sm" data-rldecide="buy">Record decision</button>'+
+      '<span class="sm">Conta anche i controlli prima di ogni ordine.</span></div>'+
+    '<div class="rl-acts"><button type="button" class="btn btn-ghost btn-sm" data-rldecide="buy">Registra decisione</button>'+
       '<span class="hint">Nel registro, con le regole rispettate come motivo e la data di fine attesa.</span></div>';
 }
 function renderRulesBuy(c){
@@ -8872,54 +8890,54 @@ function renderRulesBuy(c){
   if(!rulesBuySource(UI.rulesBuy,S.watchlist,c.act))UI.rulesBuy=null;
   const o=(k,x)=>'<option value="'+esc(k)+'"'+(k===UI.rulesBuy?' selected':'')+'>'+esc(rulesKey(x)||'—')+'</option>';
   sel.disabled=!wl.length&&!pos.length;
-  sel.innerHTML='<option value="">'+(sel.disabled?'Nothing to buy':'Choose an asset…')+'</option>'+
-    (wl.length?'<optgroup label="Watchlist · new position">'+wl.map(w=>o('w:'+w.id,w)).join('')+'</optgroup>':'')+
-    (pos.length?'<optgroup label="Portfolio · increase">'+pos.map(p=>o('p:'+p.id,p)).join('')+'</optgroup>':'');
+  sel.innerHTML='<option value="">'+(sel.disabled?'Niente da comprare':'Scegli un titolo…')+'</option>'+
+    (wl.length?'<optgroup label="Watchlist · nuova posizione">'+wl.map(w=>o('w:'+w.id,w)).join('')+'</optgroup>':'')+
+    (pos.length?'<optgroup label="Portafoglio · incremento">'+pos.map(p=>o('p:'+p.id,p)).join('')+'</optgroup>':'');
   const src=rulesBuySource(UI.rulesBuy,S.watchlist,c.act);
   if(!src){
     host.innerHTML='<div class="empty" style="padding:20px"><div class="sm">'+(sel.disabled
-      ?'Add assets to the watchlist, or positions, to use the buy checklist.'
-      :'Choose an asset from the watchlist (new position) or from the portfolio (increase).')+'</div></div>';
+      ?'Aggiungi titoli alla Watchlist, o delle posizioni, per usare la checklist di acquisto.'
+      :'Scegli un titolo dalla Watchlist (nuova posizione) o dal portafoglio (incremento).')+'</div></div>';
     return;
   }
   const x=src.o, t=normPTier(x.tier), cap=t?c.cfg.tiers[t].cap:null;
   host.innerHTML=
     '<div class="rl-facts">'+
-      '<div><div class="l">Asset</div><div class="v">'+esc(rulesKey(x)||'—')+'</div></div>'+
-      '<div><div class="l">Operation</div><div class="v">'+(src.incr?'Increase':'New position')+'</div></div>'+
-      '<div><div class="l">Tier / cap</div><div class="v">'+esc(t||'—')+(t?' · '+(cap==null?'no cap':nfx(cap,1)+'%'):'')+'</div></div>'+
-      '<div><div class="l">Scores</div><div class="v">'+esc(scoresLine(x))+'</div></div>'+
-      (src.incr?'<div><div class="l">Current weight</div><div class="v">'+nf(num(x._w),2)+'%</div></div>':'')+
-      '<div><div class="l">Target weight</div><div class="v">'+(x.targetWeight==null||x.targetWeight===''?'—':nfx(num(x.targetWeight),2)+'%')+'</div></div>'+
+      '<div><div class="l">Titolo</div><div class="v">'+esc(rulesKey(x)||'—')+'</div></div>'+
+      '<div><div class="l">Operazione</div><div class="v">'+(src.incr?'Incremento':'Nuova posizione')+'</div></div>'+
+      '<div><div class="l">Tier / tetto</div><div class="v">'+esc(t||'—')+(t?' · '+(cap==null?'nessun tetto':nfx(cap,1)+'%'):'')+'</div></div>'+
+      '<div><div class="l">Voti</div><div class="v">'+esc(scoresLine(x))+'</div></div>'+
+      (src.incr?'<div><div class="l">Peso attuale</div><div class="v">'+nf(num(x._w),2)+'%</div></div>':'')+
+      '<div><div class="l">Peso target</div><div class="v">'+(x.targetWeight==null||x.targetWeight===''?'—':nfx(num(x.targetWeight),2)+'%')+'</div></div>'+
     '</div>'+
-    '<div class="field" style="margin:16px 0 0;max-width:260px"><label for="rlBuyAmt">Amount to invest (€)</label>'+
-      '<input id="rlBuyAmt" type="text" inputmode="decimal" placeholder="e.g. 1.000" value="'+esc(UI.rulesBuyAmt||'')+'"></div>'+
+    '<div class="field" style="margin:16px 0 0;max-width:260px"><label for="rlBuyAmt">Importo da investire (€)</label>'+
+      '<input id="rlBuyAmt" type="text" inputmode="decimal" placeholder="es. 1.000" value="'+esc(UI.rulesBuyAmt||'')+'"></div>'+
     '<div id="rlBuyBody"></div>';
   renderRulesBuyBody(c);
 }
 
 /* --- C2. registro delle decisioni -------------------------------------------- */
-const RL_OP_LBL={buy:['Buy','u'],sell:['Sell','d'],review:['Review','w']};
+const RL_OP_LBL={buy:['Acquisto','u'],sell:['Vendita','d'],review:['Revisione','w']};
 function rulesLogHTML(log,todayIso){
   const rows=(log||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.id).localeCompare(String(a.id)));
-  if(!rows.length)return '<div class="empty" style="padding:20px"><div class="sm">No decisions recorded yet: use '+
-    '<b>Record decision</b> in the checklists above.</div></div>';
-  return '<div class="rl-log-row hd"><div>Asset</div><div>Operation</div><div>Reason (rule)</div><div>Wait ends</div><div>Done</div><div></div></div>'+
+  if(!rows.length)return '<div class="empty" style="padding:20px"><div class="sm">Nessuna decisione registrata: usa '+
+    '<b>Registra decisione</b> nelle checklist qui sopra.</div></div>';
+  return '<div class="rl-log-row hd"><div>Titolo</div><div>Operazione</div><div>Motivo (regola)</div><div>Fine attesa</div><div>Fatto</div><div></div></div>'+
     rows.map(r=>{ const op=RL_OP_LBL[r.op]||['—',''], wait=!r.done&&r.waitUntil&&r.waitUntil>todayIso;
       return '<div class="rl-log-row'+(r.done?' done':'')+'">'+
         '<div class="lg-t"><b>'+esc(r.ticker)+'</b><span class="cellsub">'+fmtDate(r.date)+'</span></div>'+
         '<div><span class="badge '+op[1]+'">'+op[0]+'</span></div>'+
-        '<div class="mo"><input class="inp" data-rlmotive="'+esc(r.id)+'" value="'+esc(r.motive)+'" aria-label="Reason"></div>'+
-        '<div class="wt'+(wait?' wait':'')+'">'+(r.waitUntil?fmtDate(r.waitUntil)+(wait?'<span class="cellsub">waiting</span>':''):'—')+'</div>'+
-        '<div><label class="rl-done"><input type="checkbox" data-rldone="'+esc(r.id)+'"'+(r.done?' checked':'')+'> Done</label></div>'+
-        '<div><button type="button" class="rowbtn" data-rldel="'+esc(r.id)+'" title="Delete">×</button></div></div>';
+        '<div class="mo"><input class="inp" data-rlmotive="'+esc(r.id)+'" value="'+esc(r.motive)+'" aria-label="Motivo"></div>'+
+        '<div class="wt'+(wait?' wait':'')+'">'+(r.waitUntil?fmtDate(r.waitUntil)+(wait?'<span class="cellsub">in attesa</span>':''):'—')+'</div>'+
+        '<div><label class="rl-done"><input type="checkbox" data-rldone="'+esc(r.id)+'"'+(r.done?' checked':'')+'> Fatto</label></div>'+
+        '<div><button type="button" class="rowbtn" data-rldel="'+esc(r.id)+'" title="Elimina">×</button></div></div>';
     }).join('');
 }
 function renderRulesLog(){
   const host=$('#rlLog'); if(!host)return;
   const log=Array.isArray(S.rulesLog)?S.rulesLog:[], today=todayISO();
   const wait=log.filter(r=>!r.done&&r.waitUntil&&r.waitUntil>today).length;
-  $('#rlLogSub').textContent=log.length?log.length+(log.length===1?' decision':' decisions')+(wait?' · '+wait+' waiting':''):'';
+  $('#rlLogSub').textContent=log.length?rlPl(log.length,'decisione','decisioni')+(wait?' · '+wait+' in attesa':''):'';
   if(host.contains(document.activeElement))return;
   host.innerHTML=rulesLogHTML(log,today);
 }
@@ -8952,7 +8970,7 @@ function openRulesSell(id){
   requestAnimationFrame(()=>window.scrollTo({top:Math.max(0,card.getBoundingClientRect().top+window.scrollY-80),
     behavior:reducedMotion()?'auto':'smooth'}));
 }
-/* "Record decision": una riga nel registro col motivo precompilato dalle
+/* "Registra decisione": una riga nel registro col motivo precompilato dalle
    regole rispettate o spuntate e, per un acquisto, la fine dell'attesa */
 function rulesDecide(op){
   const c=rulesCtx();
@@ -8960,11 +8978,11 @@ function rulesDecide(op){
     const src=rulesBuySource(UI.rulesBuy,S.watchlist,c.act); if(!src)return;
     const it=rulesBuyItems(src,num(UI.rulesBuyAmt),c,S.rulesLog,todayISO());
     const r=rulesLogAdd(src.o,'buy',rulesMotiveText(it.motives),{incr:src.incr,rally:it.rally});
-    if(r)toast('Decision recorded: wait until '+fmtDate(r.waitUntil),'ok');
+    if(r)toast('Decisione registrata: attendi fino al '+fmtDate(r.waitUntil),'ok');
   }else{
     const p=c.act.filter(x=>x.id===UI.rulesSell)[0]; if(!p)return;
     const r=rulesLogAdd(p,'sell',rulesMotiveText(rulesSellItems(p,c).motives,UI.rulesSellWhy[p.id]),{});
-    if(r)toast('Decision recorded in the log','ok');
+    if(r)toast('Decisione registrata nel registro','ok');
   }
   renderRegole();
 }
@@ -9011,15 +9029,15 @@ function wireRules(){
   pg.addEventListener('click',e=>{
     const del=e.target.closest('[data-rldel]');
     if(del){
-      if(!confirm('Delete this decision from the log?'))return;
+      if(!confirm('Eliminare questa decisione dal registro?'))return;
       rulesLogDel(del.getAttribute('data-rldel')); renderRegole(); return;
     }
     const d=e.target.closest('[data-rldecide]');
     if(d){ rulesDecide(d.getAttribute('data-rldecide')); return; }
     const b=e.target.closest('[data-rlreview]'); if(!b)return;
     const p=S.positions.filter(x=>x.id===b.getAttribute('data-rlreview'))[0]; if(!p)return;
-    const r=rulesLogAdd(p,'review','Down '+nfx(-rulesCfg(S.settings).lossReviewPct,1)+'% from cost: review',{});
-    if(r)toast('Review recorded: decide by '+fmtDate(r.waitUntil),'ok');
+    const r=rulesLogAdd(p,'review','In calo del '+nfx(-rulesCfg(S.settings).lossReviewPct,1)+'% dal carico: revisione',{});
+    if(r)toast('Revisione registrata: decidi entro il '+fmtDate(r.waitUntil),'ok');
     renderRegole();
   });
 }
