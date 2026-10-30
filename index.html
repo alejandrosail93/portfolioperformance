@@ -2242,6 +2242,7 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
               <div class="sec-t">Export to CSV</div>
               <div class="btnrow">
                 <button class="btn btn-ghost btn-sm" id="btnExportPos">Positions</button>
+                <button class="btn btn-ghost btn-sm" id="btnExportOpen">Open positions</button>
                 <button class="btn btn-ghost btn-sm" id="btnExportTx">Transactions</button>
                 <button class="btn btn-ghost btn-sm" id="btnExportHist">Snapshots</button>
               </div>
@@ -11234,14 +11235,19 @@ function download(name,content,type){
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },400);
 }
 const stamp=()=>new Date().toISOString().slice(0,10);
-function exportPositions(){
-  if(!S.positions.length){ toast('No positions to export','err'); return; }
+/* Il listener di "Positions" passa l'evento come primo argomento: filtra solo
+   un true esplicito, altrimenti anche quel bottone esporterebbe le sole aperte. */
+function exportPositions(soloAperte){
+  const aperte=soloAperte===true;
+  const list=aperte?S.positions.filter(isHeld):S.positions;
+  if(!list.length){ toast(aperte?'No open positions to export':'No positions to export','err'); return; }
+  const n=list.length;
   const head=['Ticker','ISIN','Nome','Categoria','Settore','Paese','Valuta','Piattaforma','Quantità','Prezzo carico',
     'Prezzo attuale','Yield %','TER %','Rischio','Fattore','Tier','QUANT','QUAL','Voto totale',
     'Peso previsto %','In portafoglio dal','Mesi stacco',
     'Chiusa il','Valore EUR','G/P EUR','G/P %','Realizzato EUR'];
   const lines=[head.join(',')];
-  S.positions.forEach(p=>lines.push([
+  list.forEach(p=>lines.push([
     p.ticker,p.isin||'',p.name||'',p.cls||'',p.sector||'',p.country||'',p.currency||'EUR',normPlatform(p.platform),
     p._q,p._avg,num(p.price),p.yield==null?'':num(p.yield),p.ter==null||p.ter===''?'':num(p.ter),Math.round(num(p.risk))||6,
     normFactor(p.factor),p.tier||'',
@@ -11249,8 +11255,8 @@ function exportPositions(){
     p.targetWeight==null?'':num(p.targetWeight),p.dateAdded||'',p.divMonths||'',
     p.closedDate||'',p._value.toFixed(2),p._pnl.toFixed(2),p._pnlPct.toFixed(2),num(p._realized).toFixed(2)
   ].map(csvField).join(',')));
-  download('portafoglio_'+stamp()+'.csv','﻿'+lines.join('\n'),'text/csv;charset=utf-8');
-  toast('Positions exported','ok');
+  download((aperte?'portafoglio_aperte_':'portafoglio_')+stamp()+'.csv','﻿'+lines.join('\n'),'text/csv;charset=utf-8');
+  toast(aperte?(n===1?'1 open position exported':n+' open positions exported'):'Positions exported','ok');
 }
 function exportTx(){
   const rows=[];
@@ -11841,6 +11847,7 @@ function wire(){
     e.target.value='';
   });
   $('#btnExportPos').addEventListener('click',exportPositions);
+  $('#btnExportOpen').addEventListener('click',()=>exportPositions(true));
   $('#btnExportTx').addEventListener('click',exportTx);
   $('#btnExportHist').addEventListener('click',exportHist);
 
