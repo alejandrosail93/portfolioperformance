@@ -55,8 +55,17 @@
   --shadow:0 1px 2px rgba(0,0,0,.5),0 14px 36px rgba(0,0,0,.38);
   --shadow-sm:0 1px 3px rgba(0,0,0,.45);
   --logo-ring:rgba(255,255,255,.10);
+  /* quadrati colorati della Home, livello 3 (colore pieno) e piatto */
+  --tile-su-a:color-mix(in srgb,var(--up) 86%,var(--surface-3));
+  --tile-su-b:var(--up);
+  --on-tile-su:var(--bg);
+  --tile-giu-a:color-mix(in srgb,var(--down) 86%,var(--surface-3));
+  --tile-giu-b:var(--down);
+  --on-tile-giu:var(--bg);
+  --tile-piatto-a:var(--surface-2);
+  --tile-piatto-b:var(--surface-3);
+  --on-tile-piatto:var(--ink);
   --r:16px; --r-sm:11px; --r-lg:22px;
-  --sb-w:250px;
 }
 .thm-sw[data-theme="light"],html[data-theme="light"]{
   color-scheme:light;
@@ -91,6 +100,17 @@
   --shadow:0 1px 2px rgba(15,20,28,.05),0 12px 30px rgba(15,20,28,.08);
   --shadow-sm:0 1px 3px rgba(15,20,28,.07);
   --logo-ring:rgba(15,20,28,.12);
+  /* il rosso pieno non regge né l'inchiostro (4,2:1) né il bianco (3,8:1):
+     il gradiente si scurisce col nero, come nel prototipo, e il testo è bianco */
+  --tile-su-a:color-mix(in srgb,var(--up) 86%,var(--surface-3));
+  --tile-su-b:var(--up);
+  --on-tile-su:var(--ink);
+  --tile-giu-a:color-mix(in srgb,var(--down) 82%,black);
+  --tile-giu-b:color-mix(in srgb,var(--down) 70%,black);
+  --on-tile-giu:white;
+  --tile-piatto-a:var(--surface-2);
+  --tile-piatto-b:var(--surface-3);
+  --on-tile-piatto:var(--ink);
 }
 /* Martin pescatore e Terra e argilla: accento e guadagno sono lo stesso
    colore (turchese, salvia). Linea del grafico e pillole ▲ si distinguono per
@@ -132,6 +152,16 @@
   --shadow:0 1px 2px rgba(0,0,0,.5),0 14px 36px rgba(0,0,0,.38);
   --shadow-sm:0 1px 3px rgba(0,0,0,.45);
   --logo-ring:rgba(255,255,255,.10);
+  /* quadrati colorati della Home, livello 3 (colore pieno) e piatto */
+  --tile-su-a:color-mix(in srgb,var(--up) 86%,var(--surface-3));
+  --tile-su-b:var(--up);
+  --on-tile-su:var(--bg);
+  --tile-giu-a:color-mix(in srgb,var(--down) 86%,var(--surface-3));
+  --tile-giu-b:var(--down);
+  --on-tile-giu:var(--bg);
+  --tile-piatto-a:var(--surface-2);
+  --tile-piatto-b:var(--surface-3);
+  --on-tile-piatto:var(--ink);
 }
 .thm-sw[data-theme="terra"],html[data-theme="terra"]{
   color-scheme:light;
@@ -166,6 +196,131 @@
   --shadow:0 1px 2px rgba(42,42,36,.06),0 12px 30px rgba(42,42,36,.10);
   --shadow-sm:0 1px 3px rgba(42,42,36,.08);
   --logo-ring:rgba(42,42,36,.12);
+  /* salvia e argilla piene sono scure: testo bianco */
+  --tile-su-a:color-mix(in srgb,var(--up) 86%,var(--surface-3));
+  --tile-su-b:var(--up);
+  --on-tile-su:white;
+  --tile-giu-a:color-mix(in srgb,var(--down) 86%,var(--surface-3));
+  --tile-giu-b:var(--down);
+  --on-tile-giu:white;
+  --tile-piatto-a:var(--surface-2);
+  --tile-piatto-b:var(--surface-3);
+  --on-tile-piatto:var(--ink);
+}
+
+/* Glass e Glass light: i token del tema scuro e del chiaro (stessi --up e
+   --down, stesso accento verde acqua), un fondale più profondo, --ink-soft e
+   --muted ritoccati per il vetro, più i token del vetro, delle macchie e dei
+   riflessi dei quadrati. Contrasti dei quadrati: test-quadrati.js. */
+.thm-sw[data-theme="glass"],html[data-theme="glass"]{
+  color-scheme:dark;
+  --bg:#060a11;
+  --bg-2:#0a1322;
+  --surface:#131922;
+  --surface-2:#19202b;
+  --surface-3:#212a37;
+  --line:#27313f;
+  --line-soft:#1b2330;
+  --ink:#e9edf4;
+  --ink-soft:#aab6c6;
+  --muted:#7a869b;
+  --accent:#28ebcf;
+  --accent-2:#20c9e8;
+  --accent-ink:#6df2dc;
+  --accent-soft:rgba(40,235,207,.13);
+  --on-accent:#06241f;
+  --accent-glow:rgba(40,235,207,.28);
+  --gold:#e8b13c;
+  --gold-soft:rgba(232,177,60,.14);
+  --sky:#4fb0ff;
+  --sky-soft:rgba(79,176,255,.14);
+  --up:#34d27b;
+  --up-soft:rgba(52,210,123,.14);
+  --down:#f2565b;
+  --down-soft:rgba(242,86,91,.14);
+  --warn:#e8a33c;
+  --warn-soft:rgba(232,163,60,.14);
+  --topbar:rgba(12,18,28,.55);
+  --sidebar:#0f1621;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 18px 44px rgba(0,0,0,.42);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.45);
+  --logo-ring:rgba(255,255,255,.10);
+  --tile-su-a:color-mix(in srgb,var(--up) 86%,var(--surface-3));
+  --tile-su-b:var(--up);
+  --on-tile-su:var(--bg);
+  --tile-giu-a:color-mix(in srgb,var(--down) 86%,var(--surface-3));
+  --tile-giu-b:var(--down);
+  --on-tile-giu:var(--bg);
+  --tile-piatto-a:var(--surface-2);
+  --tile-piatto-b:var(--surface-3);
+  --on-tile-piatto:var(--ink);
+  /* vetro: le card lasciano passare il 38% del fondale (il 46% nel
+     prototipo: qui sotto le card ci sono testi piccoli in --muted) */
+  --glass:rgba(19,25,34,.62);
+  --glass-2:rgba(38,48,62,.62);
+  --glass-brd:rgba(255,255,255,.11);
+  --glass-hi:rgba(255,255,255,.16);
+  --blob-1:#1fd8be;
+  --blob-2:#2b86e6;
+  --blob-3:#1a8f9e;
+  --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 28px 60px rgba(0,0,0,.52);
+  --tile-sweep:rgba(255,255,255,.34);
+  --tile-shine:rgba(255,255,255,.14);
+}
+.thm-sw[data-theme="glass-light"],html[data-theme="glass-light"]{
+  color-scheme:light;
+  --bg:#edf2f9;
+  --bg-2:#e1e9f5;
+  --surface:#ffffff;
+  --surface-2:#f5f7fb;
+  --surface-3:#e9eef6;
+  --line:#dde4ee;
+  --line-soft:#ecf0f6;
+  --ink:#0f141c;
+  --ink-soft:#485466;
+  --muted:#6e7a8c;
+  --accent:#0a7f72;
+  --accent-2:#0a8fb5;
+  --accent-ink:#07665b;
+  --accent-soft:rgba(10,127,114,.10);
+  --on-accent:#ffffff;
+  --accent-glow:rgba(10,127,114,.25);
+  --gold:#c58a12;
+  --gold-soft:rgba(197,138,18,.12);
+  --sky:#1f78c8;
+  --sky-soft:rgba(31,120,200,.12);
+  --up:#12a150;
+  --up-soft:rgba(18,161,80,.12);
+  --down:#dc3b40;
+  --down-soft:rgba(220,59,64,.12);
+  --warn:#c98410;
+  --warn-soft:rgba(201,132,16,.12);
+  --topbar:rgba(255,255,255,.55);
+  --sidebar:#ffffff;
+  --shadow:0 1px 2px rgba(15,20,28,.05),0 14px 34px rgba(15,20,28,.10);
+  --shadow-sm:0 1px 3px rgba(15,20,28,.07);
+  --logo-ring:rgba(15,20,28,.12);
+  --tile-su-a:color-mix(in srgb,var(--up) 86%,var(--surface-3));
+  --tile-su-b:var(--up);
+  --on-tile-su:var(--ink);
+  --tile-giu-a:color-mix(in srgb,var(--down) 82%,black);
+  --tile-giu-b:color-mix(in srgb,var(--down) 70%,black);
+  --on-tile-giu:white;
+  --tile-piatto-a:var(--surface-2);
+  --tile-piatto-b:var(--surface-3);
+  --on-tile-piatto:var(--ink);
+  /* vetro: bianco smerigliato, macchie pastello; --muted e --ink-soft più
+     scuri del tema chiaro, perché sotto il vetro passa il colore */
+  --glass:rgba(255,255,255,.58);
+  --glass-2:rgba(255,255,255,.78);
+  --glass-brd:rgba(255,255,255,.85);
+  --glass-hi:rgba(255,255,255,.95);
+  --blob-1:#8fead9;
+  --blob-2:#9cc8ff;
+  --blob-3:#b4e4c8;
+  --shadow-lift:0 2px 4px rgba(15,20,28,.06),0 26px 56px rgba(15,20,28,.18);
+  --tile-sweep:rgba(255,255,255,.5);
+  --tile-shine:rgba(255,255,255,.14);
 }
 
 /* ==========================================================================
@@ -175,14 +330,16 @@
 /* overflow-x va su <html>, non su <body>: per spec, se un asse non è `visible`
    l'altro diventa `auto`, quindi `overflow-x:hidden` sul body lo trasformava in
    un secondo contesto di scroll alto quanto l'intera pagina. Gli elementi
-   sticky (topbar, sidebar) restavano ancorati a quel contesto invece che al
+   sticky (la topbar) restavano ancorati a quel contesto invece che al
    viewport e la topbar, che ha un backdrop-filter, campionava lo sfondo alla
-   posizione sbagliata: da qui la pagina che sembrava duplicarsi scorrendo. */
+   posizione sbagliata: da qui la pagina che sembrava duplicarsi scorrendo.
+   Il padding in fondo al body lascia libero lo spazio del dock (16 + 56 px,
+   più la maniglia da 16): l'ultima riga di una tabella non ci finisce sotto. */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:hidden}
 body{
   margin:0;background:var(--bg);color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:88px;
 }
 h1,h2,h3,h4,p{margin:0}
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
@@ -202,31 +359,13 @@ body.is-refreshing .px{animation:pxpulse 1.1s ease-in-out infinite}
 ::-webkit-scrollbar-thumb:hover{background:var(--muted)}
 
 /* ==========================================================================
-   3. LAYOUT: sidebar + main
+   3. LAYOUT: main a una colonna + dock in basso
    ========================================================================== */
-.app{display:grid;grid-template-columns:var(--sb-w) 1fr;min-height:100vh}
-body.sb-collapsed{--sb-w:76px}
+.app{min-height:100vh}
 
-.sidebar{
-  position:sticky;top:0;height:100vh;background:var(--sidebar);
-  border-right:1px solid var(--line);display:flex;flex-direction:column;
-  padding:18px 14px 14px;gap:4px;overflow:hidden;z-index:40;
-}
-.sb-brand{display:flex;align-items:center;gap:11px;padding:4px 8px 18px;min-width:0}
-.sb-logo{
-  width:38px;height:38px;border-radius:12px;flex:none;display:grid;place-items:center;color:var(--on-accent);
-  background:linear-gradient(145deg,var(--accent),var(--accent-2));
-  box-shadow:0 6px 18px var(--accent-glow);
-}
-.sb-brand .bt{min-width:0;overflow:hidden;white-space:nowrap}
-.sb-brand .b1{font-size:15px;font-weight:700;letter-spacing:-.2px}
-.sb-brand .b2{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
-body.sb-collapsed .sb-brand .bt{display:none}
-
-.sb-scroll{flex:1;overflow-y:auto;overflow-x:hidden;margin:0 -6px;padding:0 6px}
+/* voci del foglio "More" (mobile): gruppi e righe con icona e nome */
 .sb-group{font-size:10.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
   color:var(--muted);padding:16px 12px 7px}
-body.sb-collapsed .sb-group{opacity:0;height:22px;padding:0}
 .sb-item{
   display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:var(--r-sm);
   color:var(--ink-soft);font-size:14px;font-weight:600;position:relative;transition:background .14s,color .14s;
@@ -237,28 +376,51 @@ body.sb-collapsed .sb-group{opacity:0;height:22px;padding:0}
 .sb-item.on{background:var(--accent-soft);color:var(--accent-ink)}
 .sb-item.on:before{content:"";position:absolute;left:-14px;top:50%;transform:translateY(-50%);
   width:3px;height:20px;border-radius:0 3px 3px 0;background:var(--accent)}
-.sb-item .badge-n{margin-left:auto;font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;
-  background:var(--surface-3);color:var(--ink-soft)}
-body.sb-collapsed .sb-item .lbl,body.sb-collapsed .sb-item .badge-n{display:none}
-body.sb-collapsed .sb-item{justify-content:center;padding:11px 0}
-.sb-foot{border-top:1px solid var(--line);padding-top:12px;margin-top:8px;display:flex;flex-direction:column;gap:4px}
-.sb-mini{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--r-sm);
-  font-size:12.5px;font-weight:600;color:var(--muted);white-space:nowrap}
-.sb-mini:hover{background:var(--surface-2);color:var(--ink)}
-body.sb-collapsed .sb-mini .lbl{display:none}
-body.sb-collapsed .sb-mini{justify-content:center;padding:9px 0}
-.sb-mini .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.sb-mini[aria-expanded="true"]{background:var(--surface-2);color:var(--ink)}
+
+/* --- dock: il menu principale, in basso al centro, solo icone ---
+   Dodici pulsanti da 44 px costruiti da NAV in buildNav(), con un filo fra i
+   tre gruppi. Il nome della voce sta in title e aria-label; il conteggio
+   (posizioni, watchlist, obiettivi) è un pallino in alto a destra dell'icona.
+   La maniglia sopra il dock lo fa scorrere giù (220 ms): nascosto resta solo
+   lei, una linguetta da 40×16 px in fondo al centro. Lo stato è
+   S.settings.dockHidden; sta sotto modali, drawer, foglio e menu (z 60). */
+.dock-wrap{position:fixed;left:50%;bottom:16px;z-index:60;display:flex;flex-direction:column;align-items:center;
+  transform:translateX(-50%);transition:transform .22s cubic-bezier(.3,.9,.3,1)}
+.dock{display:flex;align-items:center;gap:2px;padding:6px;border-radius:999px;background:var(--sidebar);
+  border:1px solid var(--line);box-shadow:var(--shadow);transition:visibility 0s}
+.dock-in{display:flex;align-items:center;gap:2px}
+.dock-i{position:relative;width:44px;height:44px;border-radius:999px;display:grid;place-items:center;flex:none;
+  color:var(--ink-soft);transition:background .14s,color .14s}
+.dock-i:hover{background:var(--surface-2);color:var(--ink)}
+.dock-i[aria-current="page"]{background:var(--accent-soft);color:var(--accent-ink)}
+.dock-i:focus-visible,.dock-hdl:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dock-sep{width:1px;height:24px;margin:0 6px;background:var(--line);flex:none}
+.dock-n{position:absolute;top:5px;right:4px;min-width:15px;height:15px;padding:0 4px;border-radius:99px;
+  display:grid;place-items:center;font-size:9.5px;font-weight:750;line-height:1;
+  background:var(--accent);color:var(--on-accent);box-shadow:0 0 0 2px var(--sidebar)}
+.dock-n[hidden]{display:none}
+.dock-hdl{position:relative;width:40px;height:16px;border-radius:9px 9px 0 0;display:grid;place-items:center;
+  background:var(--surface-2);border:1px solid var(--line);border-bottom:0;color:var(--ink-soft);margin-bottom:-1px;z-index:1}
+/* bersaglio più alto della linguetta: 40×28 px, senza cambiarne l'aspetto */
+.dock-hdl::before{content:"";position:absolute;left:0;right:0;top:-12px;bottom:0}
+.dock-hdl:hover{color:var(--ink)}
+.dock-hdl svg{transform:rotate(90deg);transition:transform .22s}
+body.dock-hidden .dock-wrap{transform:translate(-50%,100%)}
+body.dock-hidden .dock{visibility:hidden;transition:visibility 0s .22s}
+body.dock-hidden .dock-hdl svg{transform:rotate(-90deg)}
+/* i toast stanno sopra il dock, non ci finiscono sopra */
+@media(min-width:981px){ body:not(.dock-hidden) .toasts{bottom:108px} }
 
 /* --- menu dei temi ---
-   Sta fuori dalla sidebar (overflow:hidden) e dal foglio "More" (che ha un
-   transform): è fixed e lo posiziona placeThemeMenu() accanto al pulsante.
+   Sta fuori dalla card "Appearance" delle Impostazioni: è fixed e lo
+   posiziona placeThemeMenu() accanto al pulsante.
    Ogni campione ha il suo data-theme e i colori del suo tema; il bordo dei
    campioni usa --thm-frame, calcolato qui col grigio del tema attivo. */
 .thm-menu{position:fixed;z-index:190;width:236px;max-width:calc(100vw - 16px);padding:5px;
   border-radius:var(--r-sm);background:var(--surface);border:1px solid var(--line);
   box-shadow:var(--shadow);--thm-frame:var(--muted);animation:thmIn .14s ease-out}
 .thm-menu[hidden]{display:none}
+#btnTheme[aria-expanded="true"]{background:var(--surface-2);color:var(--ink)}
 @keyframes thmIn{from{opacity:0;transform:translateY(4px)}}
 .thm-hd{font-size:10.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
   color:var(--muted);padding:7px 10px 6px}
@@ -290,13 +452,25 @@ body.sb-collapsed .sb-mini{justify-content:center;padding:9px 0}
   position:sticky;top:0;z-index:30;background:var(--topbar);backdrop-filter:saturate(180%) blur(14px);
   -webkit-backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--line);
 }
-.tb-in{display:flex;align-items:center;gap:14px;padding-top:13px;padding-bottom:13px;min-height:64px}
-.tb-title{min-width:0;flex:none}
-.tb-title h1{font-size:19px;font-weight:750;letter-spacing:-.35px;white-space:nowrap}
-.tb-title .sub{font-size:12.5px;color:var(--muted);margin-top:1px;white-space:nowrap}
-.tb-search{
-  flex:1;max-width:340px;margin-left:auto;position:relative;display:flex;align-items:center;
+/* Tre colonne: logo e titolo | ricerca | valore e pulsanti. Le due laterali
+   hanno lo stesso minimo e si spartiscono il resto in parti uguali, quindi la
+   ricerca sta al centro della pagina, non dello spazio che avanza, e non si
+   sposta quando .tb-pv compare o sparisce (watchHero). Fino a 520 px. */
+.tb-in{display:grid;grid-template-columns:minmax(350px,1fr) minmax(0,520px) minmax(350px,1fr);align-items:center;
+  gap:14px;padding-top:10px;padding-bottom:10px;min-height:64px}
+.tb-l{display:flex;align-items:center;gap:12px;min-width:0}
+.tb-logo{
+  width:36px;height:36px;border-radius:11px;flex:none;display:grid;place-items:center;color:var(--on-accent);
+  background:linear-gradient(145deg,var(--accent),var(--accent-2));
+  box-shadow:0 6px 18px var(--accent-glow);
 }
+.tb-title{min-width:0}
+.tb-title h1{font-size:19px;font-weight:750;letter-spacing:-.35px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-title .sub{font-size:12.5px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-search{
+  min-width:0;position:relative;display:flex;align-items:center;
+}
+.tb-r{display:flex;align-items:center;justify-content:flex-end;min-width:0}
 .tb-search svg{position:absolute;left:12px;color:var(--muted);pointer-events:none}
 .tb-search input{
   width:100%;padding:9px 12px 9px 37px;border-radius:var(--r-sm);border:1px solid var(--line);
@@ -304,7 +478,11 @@ body.sb-collapsed .sb-mini{justify-content:center;padding:9px 0}
 }
 .tb-search input:focus{border-color:var(--accent)}
 .tb-search input::placeholder{color:var(--muted)}
-.tb-acts{display:flex;align-items:center;gap:7px;flex:none}
+/* i tre pulsanti della barra: alti 44 px (40 sotto i 980), icone da 20 px */
+.tb-acts{display:flex;align-items:center;gap:10px;flex:none}
+.tb-acts .btn{height:44px;border-radius:12px}
+.tb-acts .btn-ic{width:44px;padding:0}
+.tb-acts #btnAdd{padding:0 16px;font-size:14.5px;gap:7px}
 .tb-pv{display:flex;flex-direction:column;align-items:flex-end;padding-right:12px;margin-right:4px;
   border-right:1px solid var(--line);line-height:1.25}
 .tb-pv .v{font-size:15px;font-weight:750;letter-spacing:-.2px}
@@ -385,6 +563,11 @@ html[data-theme="light"] .seg button.on{background:#fff}
    7. KPI
    ========================================================================== */
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+/* Dashboard: Annual return (#kpis) e le tre card "da sapere oggi"
+   (#todayCards) sono figlie della stessa griglia #kpiRow, quattro in una riga:
+   stessa altezza, Tab nell'ordine visivo. Due colonne sotto i 1120 px, una
+   sotto i 641 (la card dell'obiettivo su 390 px a due colonne è stretta). */
+#kpis,#todayCards{display:contents}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;min-width:0}
 .kpi .l{font-size:11.5px;font-weight:650;letter-spacing:.3px;color:var(--muted);
   display:flex;align-items:center;gap:6px;text-transform:uppercase}
@@ -392,10 +575,8 @@ html[data-theme="light"] .seg button.on{background:#fff}
   overflow-wrap:break-word}
 .kpi .s{font-size:12.5px;color:var(--muted);margin-top:4px;font-weight:550}
 /* "da sapere oggi": tre card come le KPI, con un'icona nell'angolo; sono
-   pulsanti (data-nav), quindi anche da tastiera. Una colonna sotto i 900px,
-   nell'ordine dividendi, obiettivo, segnale. */
-.today{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-@media(max-width:900px){.today{grid-template-columns:1fr}}
+   pulsanti (data-nav), quindi anche da tastiera. Nell'ordine dividendi,
+   obiettivo, segnale, dopo Annual return. */
 .tcard{position:relative;display:block;width:100%;text-align:left;transition:border-color .14s}
 .tcard:hover{border-color:var(--surface-3)}
 .tcard:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -438,26 +619,94 @@ body.pf-empty .tb-pv{display:none}
 .pillv.down{background:var(--down-soft)}
 .pillv.flat{background:var(--surface-3);color:var(--ink-soft)}
 .pillv.sm{font-size:11px;font-weight:650;padding:1px 7px}
+.pillv .pa{font-weight:600;margin-left:2px}
 .pillv[hidden]{display:none}
 
 /* privacy blur */
 body.privacy .mask{filter:blur(9px);pointer-events:none;user-select:none}
 
 /* ==========================================================================
-   8. HERO CHART (performance)
+   8. HOME — tre quadrati: valore, giornata per piattaforma, grafico
    ========================================================================== */
-.hero-val{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
-.hero-val .big{font-size:38px;font-weight:780;letter-spacing:-1.4px;line-height:1}
-/* Il blocco del valore si restringe e va a capo al suo interno prima di
-   spingere sotto i selettori Valore/Rendimento e 1M…MAX: fra 1366 e 1440 px
-   la pillola "oggi" scende sotto quella del periodo, da 1920 px sta accanto.
-   La pillola non va mai a capo: se non c'è posto è l'etichetta a scendere. */
-.hero-l{flex:1 1 440px;min-width:0}
-.hero-val .meta{display:flex;align-items:center;flex-wrap:wrap;gap:4px 9px;padding-bottom:4px;font-size:13.5px;font-weight:650;
-  flex:1 1 200px;min-width:0}
-/* posizioni e ora dei prezzi, sotto il valore */
-.hero-sub{font-size:12.5px;color:var(--muted);font-weight:550;margin-top:9px}
+/* #heroCard è il contenitore (lo osserva watchHero). Da 1121 px tre quadrati
+   in fila; sotto, valore e giornata affiancati e il grafico a tutta
+   larghezza, rettangolo alto 260; sotto i 641 px una colonna. Nessun testo
+   sotto i 12 px. */
+.top3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.top3>.card{aspect-ratio:1/1;display:flex;flex-direction:column;min-width:0;padding:20px;container-type:inline-size}
+
+/* --- quadrati colorati (1 e 2) ---
+   Il colore lo dà data-lv, scritto da tileLevel(): flat, up1…up3, down1…down3.
+   Ogni livello è un gradiente a due punti (--tile-a in alto a sinistra, più
+   tenue; --tile-b in basso a destra, più pieno) di --up o --down mescolati a
+   --surface-3; il livello 3 è il colore pieno, con i token del tema
+   (--tile-su-*, --tile-giu-*). Il testo è --on-tile: --ink per i livelli 1 e
+   2, per il 3 il token del tema scelto misurando il contrasto
+   (test-quadrati.js). Due strati (.qd-l): il nuovo livello compare sopra il
+   vecchio con una dissolvenza di 400 ms, solo opacity. */
+[data-lv="flat"]{--tile-a:var(--tile-piatto-a);--tile-b:var(--tile-piatto-b);--on-tile:var(--on-tile-piatto)}
+[data-lv="up1"]{--tile-a:color-mix(in srgb,var(--up) 10%,var(--surface-3));--tile-b:color-mix(in srgb,var(--up) 24%,var(--surface-3));--on-tile:var(--ink)}
+[data-lv="up2"]{--tile-a:color-mix(in srgb,var(--up) 28%,var(--surface-3));--tile-b:color-mix(in srgb,var(--up) 44%,var(--surface-3));--on-tile:var(--ink)}
+[data-lv="up3"]{--tile-a:var(--tile-su-a);--tile-b:var(--tile-su-b);--on-tile:var(--on-tile-su)}
+[data-lv="down1"]{--tile-a:color-mix(in srgb,var(--down) 10%,var(--surface-3));--tile-b:color-mix(in srgb,var(--down) 24%,var(--surface-3));--on-tile:var(--ink)}
+[data-lv="down2"]{--tile-a:color-mix(in srgb,var(--down) 28%,var(--surface-3));--tile-b:color-mix(in srgb,var(--down) 44%,var(--surface-3));--on-tile:var(--ink)}
+[data-lv="down3"]{--tile-a:var(--tile-giu-a);--tile-b:var(--tile-giu-b);--on-tile:var(--on-tile-giu)}
+.qd{position:relative;isolation:isolate;color:var(--on-tile);transition:color .4s ease}
+.qd-bg{position:absolute;inset:-1px;z-index:-1;border-radius:inherit;overflow:hidden;pointer-events:none}
+.qd-l{position:absolute;inset:0;opacity:0;background:linear-gradient(145deg,var(--tile-a),var(--tile-b))}
+.qd-l.prev{opacity:1}
+.qd-l.on{opacity:1;z-index:1;transition:opacity .4s ease}
+/* dentro il quadrato tutto il testo è --on-tile: pillole e righe secondarie
+   prendono il colore del testo, la direzione la dicono ▲/▼ e il segno */
+.qd .pillv,.qd .pillv.up,.qd .pillv.down,.qd .pillv.flat{color:inherit;background:none;
+  box-shadow:inset 0 0 0 1.5px currentColor;font-size:12.5px}
+.qd .hero-sub{color:inherit}
+.t-lbl{font-size:12px;font-weight:750;letter-spacing:.6px;text-transform:uppercase}
+.t-big{font-size:34px;font-size:clamp(28px,12cqw,46px);font-weight:780;letter-spacing:-1.2px;line-height:1.05;
+  margin-top:12px;overflow-wrap:anywhere}
+.t-chg{display:flex;align-items:center;flex-wrap:wrap;gap:6px 9px;margin-top:12px;font-size:13px;font-weight:650}
+.t-rows{margin-top:auto;padding-top:14px;display:grid;gap:3px;font-size:13px;font-weight:600}
+.t-rows .k{font-weight:550}
+/* posizioni e ora dei prezzi */
+.hero-sub{font-size:12.5px;color:var(--muted);font-weight:550;margin-top:6px}
 .hero-sub:empty{display:none}
+
+/* quadrato 2: la giornata per piattaforma, quattro schede */
+.dp-tabs{display:flex;gap:2px;margin-top:12px;border-bottom:1px solid color-mix(in srgb,currentColor 35%,transparent)}
+.dp-tabs button{flex:1 1 auto;min-height:32px;padding:4px 5px;font-size:12.5px;font-weight:600;white-space:nowrap;
+  color:inherit;border-radius:8px 8px 0 0;margin-bottom:-1px;border-bottom:2px solid transparent}
+.dp-tabs button[aria-selected="true"]{font-weight:780;border-bottom-color:currentColor}
+.dp-tabs button:focus-visible,.dp-panel:focus-visible{outline:2px solid currentColor;outline-offset:1px}
+.dp-panel{flex:1;display:flex;flex-direction:column;min-height:0;padding-top:14px;border-radius:6px}
+.dp-amt{font-size:34px;font-size:clamp(28px,11cqw,44px);font-weight:780;letter-spacing:-1px;line-height:1.05}
+.dp-pct{font-size:18px;font-weight:750;margin-top:4px}
+.dp-row{font-size:13px;font-weight:600;margin-top:8px}
+.dp-bw{margin-top:auto;padding-top:12px;display:grid;gap:6px}
+.dp-tk{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:650;min-width:0}
+.dp-tk .k{flex:none;font-weight:550;min-width:38px}
+.dp-tk>img{margin:0;border-radius:5px}
+.dp-tk .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dp-tk .pc{margin-left:auto;flex:none;font-variant-numeric:tabular-nums}
+.dp-note{font-size:12px;font-weight:600;margin-top:6px}
+.dp-empty{margin:auto 0;font-size:14px;font-weight:650}
+
+/* quadrato 3: il grafico, con modalità sopra e intervalli sotto; il grafico
+   prende l'altezza che resta (minimo 160 px, la misura renderHero()) */
+.hc-hd{display:flex;align-items:center;gap:10px}
+.hc-hd h2{font-size:14.5px;font-weight:700;letter-spacing:-.15px}
+.hc-hd .seg{margin-left:auto}
+.hc .seg button{min-height:28px;padding:4px 10px;font-size:12px}
+#heroRange{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));width:100%;margin-top:6px}
+#heroRange button{padding:4px 0}
+.hc-delta{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin-top:8px;font-size:12.5px;font-weight:650;min-height:22px}
+.hc-delta .lb{color:var(--muted);font-weight:550}
+.top3>.hc{padding:16px 18px}
+.hc .chart-host{flex:1 1 0;min-height:160px;margin-top:4px}
+.note.hc-note{margin-top:6px;padding:4px 10px;font-size:12px;line-height:1.4}
+.hc-note>summary{display:block;cursor:pointer;list-style:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:4px}
+.hc-note>summary::-webkit-details-marker{display:none}
+.hc-note[open]>summary{white-space:normal}
+.hc-note>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .chart-host{position:relative;width:100%}
 .chart-host svg{width:100%;display:block;overflow:visible}
 .ct-tip{
@@ -632,7 +881,7 @@ html[data-theme="terra"] .field textarea,html[data-theme="terra"] .inp{backgroun
 .mt18{margin-top:18px}
 
 /* pagine */
-.page{display:none;padding-top:24px;padding-bottom:90px;animation:slide .22s ease}
+.page{display:none;padding-top:24px;padding-bottom:28px;animation:slide .22s ease}
 .page.on{display:block}
 @keyframes slide{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
 
@@ -665,9 +914,6 @@ html[data-theme="martin"] .toast{background:var(--surface-2)}
 .sheet.on{transform:none}
 .sheet .grab{width:38px;height:4px;border-radius:4px;background:var(--surface-3);margin:4px auto 12px}
 .sheet .sb-item{font-size:15px;padding:13px 14px}
-.sheet-foot{border-top:1px solid var(--line);margin-top:10px;padding-top:6px}
-.sheet-foot .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.sb-item[aria-expanded="true"]{background:var(--surface-2);color:var(--ink)}
 
 /* ==========================================================================
    13b. COMPONENTI DASHBOARD — filtri, donut, contributo, tabella, drawer
@@ -1270,10 +1516,19 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
 @media(max-width:1120px){
   .g2-wide,.g2-dash{grid-template-columns:1fr}
   .kpis{grid-template-columns:repeat(2,1fr)}
+  /* valore e giornata affiancati, il grafico sotto a tutta larghezza */
+  .top3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .top3>.hc{grid-column:1/-1;aspect-ratio:auto}
+  .hc .chart-host{flex:none;height:260px;min-height:0}
+}
+@media(max-width:640px){
+  .top3{grid-template-columns:minmax(0,1fr)}
+  .top3>.qd{aspect-ratio:auto;min-height:250px}
+  #kpiRow{grid-template-columns:minmax(0,1fr)}
 }
 @media(max-width:980px){
-  .app{grid-template-columns:1fr}
-  .sidebar{display:none}
+  /* su telefono e tablet il menu è la tabbar con il foglio "More" */
+  .dock-wrap{display:none}
   .tabbar{display:block}
   .wrap{padding:0 16px}
   body{padding-bottom:66px}
@@ -1282,12 +1537,16 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   .hm-hd{font-size:9.5px;letter-spacing:.3px}
   .hm-yl{font-size:10.5px;padding-right:6px}
   .hm-tiles{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
-  .tb-in{min-height:58px;padding-top:10px;padding-bottom:10px;gap:10px}
+  .tb-in{grid-template-columns:minmax(0,1fr) auto;min-height:58px;padding-top:9px;padding-bottom:9px;gap:10px}
+  .tb-logo{width:32px;height:32px;border-radius:10px}
   .tb-title h1{font-size:17px}
+  .tb-acts .btn{height:40px}
+  .tb-acts .btn-ic{width:40px}
+  .tb-acts #btnAdd{padding:0 13px}
   .tb-search{display:none}
   .tb-pv{display:none}
   .g2{grid-template-columns:1fr}
-  .hero-val .big{font-size:30px;letter-spacing:-1px}
+  .top3>.card{padding:16px}
   .card-bd{padding:16px}
   .card-hd{padding:14px 16px}
   thead th:first-child,tbody td:first-child{padding-left:16px}
@@ -1359,11 +1618,8 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   /* 9 fattori non stanno in orizzontale: etichette in verticale, dal basso */
   #factorBar{gap:5px;height:230px}
   #factorBar .lv{writing-mode:vertical-rl;transform:rotate(180deg);width:auto;height:64px;text-align:end}
-  /* gli 8 range del grafico (1G…MAX) col padding pieno sono larghi 383 px e
-     sbordavano dalla card: griglia a tutta larghezza, padding solo verticale */
-  .hero-ctl{margin-left:0!important;width:100%}
-  #heroRange{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));width:100%}
-  #heroRange button{padding:6px 0}
+  /* gli 8 range del grafico (1G…MAX) stanno già su una griglia a tutta
+     larghezza, padding solo verticale (sezione 8) */
   /* le 7 schede dell'allocazione non stanno in una riga: griglia 4+3 a tutta larghezza */
   .card-hd .right.wide-sm{margin-left:0;width:100%}
   #allocSeg{display:grid;grid-template-columns:repeat(4,1fr);width:100%}
@@ -1418,6 +1674,96 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
 .hm-t .nm{font-size:10px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ==========================================================================
+   14b. TEMI GLASS — Glass e Glass light (prompt-home-quadrati-dock-glass.md)
+   ========================================================================== */
+/* Fondale: gradiente e tre macchie sfocate dietro tutto, solo nei temi glass.
+   Le macchie si muovono piano (20-30 s, solo transform), ferme con "Riduci
+   movimento". La grana è un SVG in un data: URI, nessuna richiesta. */
+.fondale{display:none}
+html[data-theme^="glass"] .fondale{display:block;position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;
+  background:linear-gradient(160deg,var(--bg),var(--bg-2))}
+.blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.42}
+.blob-a{width:46vmax;height:46vmax;left:-12vmax;top:-14vmax;background:var(--blob-1)}
+.blob-b{width:40vmax;height:40vmax;right:-10vmax;top:18vmax;background:var(--blob-2);opacity:.36}
+.blob-c{width:36vmax;height:36vmax;left:22vw;bottom:-16vmax;background:var(--blob-3);opacity:.34}
+html[data-theme="glass-light"] .blob{opacity:.6}
+.fondale::after{content:"";position:absolute;inset:0;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* Vetro: sfondo semitrasparente a gradiente, bordo e filo di luce su tutte le
+   card; il blur solo su barra in alto, dock, quadrati, KPI, menu dei temi,
+   modali e foglio "More". Le altre card (tabelle, pagine lunghe) restano
+   senza blur, per non appesantire lo scorrimento. */
+html[data-theme^="glass"] .card,html[data-theme^="glass"] .kpi,html[data-theme^="glass"] .goal,
+html[data-theme^="glass"] .modal,html[data-theme^="glass"] .sheet,html[data-theme^="glass"] .thm-menu,
+html[data-theme^="glass"] .dock{
+  background:linear-gradient(145deg,var(--glass-2),var(--glass));border-color:var(--glass-brd);
+  box-shadow:var(--shadow),inset 0 1px 0 var(--glass-hi)}
+html[data-theme^="glass"] .topbar{background:var(--topbar);border-bottom-color:var(--glass-brd)}
+html[data-theme^="glass"] .dock-hdl{background:var(--glass-2);border-color:var(--glass-brd)}
+html[data-theme^="glass"] .topbar,html[data-theme^="glass"] .dock,html[data-theme^="glass"] .top3>.card,
+html[data-theme^="glass"] .kpi,html[data-theme^="glass"] .thm-menu,html[data-theme^="glass"] .modal,
+html[data-theme^="glass"] .sheet{
+  -webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5)}
+/* senza backdrop-filter le superfici tornano piene e leggibili */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  html[data-theme^="glass"] .card,html[data-theme^="glass"] .kpi,html[data-theme^="glass"] .goal,
+  html[data-theme^="glass"] .modal,html[data-theme^="glass"] .sheet,html[data-theme^="glass"] .thm-menu,
+  html[data-theme^="glass"] .dock{background:var(--surface)}
+  html[data-theme^="glass"] .topbar{background:var(--bg)}
+}
+/* quadrati colorati: riflesso di vetro in alto a sinistra (--tile-shine, nel
+   calcolo dei contrasti di test-quadrati.js) e, all'apertura, un riflesso
+   diagonale che passa una volta (--tile-sweep) */
+html[data-theme^="glass"] .qd-bg::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:radial-gradient(110% 62% at 14% 0%,var(--tile-shine),transparent 66%)}
+html[data-theme^="glass"] .qd-bg::after{content:"";position:absolute;top:-10%;bottom:-10%;left:-30%;width:60%;z-index:3;
+  pointer-events:none;opacity:0;background:linear-gradient(105deg,transparent 30%,var(--tile-sweep) 50%,transparent 70%);
+  transform:translateX(-120%) skewX(-12deg)}
+/* Glass light: "Strong drift" del ribilanciamento. L'arancio fisso del tema
+   scuro sul vetro chiaro non si legge: fra --warn e --down, coi token. */
+html[data-theme="glass-light"] .badge.o{background:color-mix(in srgb,var(--warn) 12%,transparent);
+  color:color-mix(in srgb,var(--warn) 45%,var(--down))}
+html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,var(--warn) 45%,var(--down))}
+
+/* Animazioni dei temi glass, solo senza "Riduci movimento": macchie lente,
+   ingresso a cascata delle card di primo livello di ogni pagina (ritardo da
+   nth-child, niente JS), sollevamento di 4 px di KPI e quadrati al passaggio
+   del mouse, riflesso diagonale sul quadrato colorato all'apertura. */
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme^="glass"] .blob{will-change:transform}
+  html[data-theme^="glass"] .blob-a{animation:drift1 26s ease-in-out infinite alternate}
+  html[data-theme^="glass"] .blob-b{animation:drift2 30s ease-in-out infinite alternate}
+  html[data-theme^="glass"] .blob-c{animation:drift3 22s ease-in-out infinite alternate}
+  html[data-theme^="glass"] .page.on>*{animation:glassRise .7s cubic-bezier(.22,1,.36,1) backwards}
+  html[data-theme^="glass"] .page.on>:nth-child(2){animation-delay:70ms}
+  html[data-theme^="glass"] .page.on>:nth-child(3){animation-delay:140ms}
+  html[data-theme^="glass"] .page.on>:nth-child(4){animation-delay:210ms}
+  html[data-theme^="glass"] .page.on>:nth-child(5){animation-delay:280ms}
+  html[data-theme^="glass"] .page.on>:nth-child(n+6){animation-delay:350ms}
+  html[data-theme^="glass"] .kpi,html[data-theme^="glass"] .top3>.card{
+    transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s cubic-bezier(.22,1,.36,1),border-color .14s}
+  /* i quadrati colorati tengono anche la dissolvenza del testo (.qd) */
+  html[data-theme^="glass"] .top3>.qd{
+    transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s cubic-bezier(.22,1,.36,1),border-color .14s,color .4s ease}
+  html[data-theme^="glass"] .qd:not([data-lv="flat"]) .qd-bg::after{animation:glassSweep 1.5s cubic-bezier(.4,0,.2,1) .9s backwards}
+}
+@media (prefers-reduced-motion:no-preference) and (hover:hover){
+  html[data-theme^="glass"] .kpi:hover,html[data-theme^="glass"] .top3>.card:hover{
+    transform:translateY(-4px);box-shadow:var(--shadow-lift),inset 0 1px 0 var(--glass-hi)}
+}
+@keyframes drift1{to{transform:translate(16vmax,12vmax) scale(1.12)}}
+@keyframes drift2{to{transform:translate(-18vmax,-10vmax) scale(.92)}}
+@keyframes drift3{to{transform:translate(14vmax,-12vmax) scale(1.1)}}
+@keyframes glassRise{from{opacity:0;transform:translateY(14px)}}
+@keyframes glassSweep{
+  0%{opacity:0;transform:translateX(-120%) skewX(-12deg)}
+  15%{opacity:1}
+  85%{opacity:1}
+  100%{opacity:0;transform:translateX(320%) skewX(-12deg)}
+}
+
+/* ==========================================================================
    MOVIMENTO RIDOTTO — preferenza di sistema "Riduci movimento"
    ========================================================================== */
 /* Animazioni e transizioni decorative durano un istante. Resta il giro della
@@ -1431,6 +1777,11 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   .spin svg{animation:spin 1.8s linear infinite!important}
   /* i valori in aggiornamento restano attenuati, fermi */
   body.is-refreshing .px{animation:none;opacity:.6}
+  /* cambio di colore dei quadrati immediato */
+  .qd,.qd-l.on{transition:none}
+  /* il dock compare e sparisce subito, senza scorrere */
+  .dock-wrap,.dock-hdl svg{transition:none}
+  body.dock-hidden .dock{transition:none}
 }
 
 @media print{
@@ -1442,62 +1793,51 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   .hm-bar{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .hm-wrap{overflow:visible}
   .hm{min-width:0}
-  .sidebar,.topbar,.tabbar,.btn{display:none!important}
+  .dock-wrap,.topbar,.tabbar,.btn{display:none!important}
   .page{display:block!important;page-break-after:always}
   body{background:#fff}
 }
 </style>
 </head>
 <body>
+<!-- fondale dei temi glass: nascosto negli altri temi -->
+<div class="fondale" aria-hidden="true"><i class="blob blob-a"></i><i class="blob blob-b"></i><i class="blob blob-c"></i></div>
 
 <div class="app">
-
-  <!-- ===================== SIDEBAR ===================== -->
-  <aside class="sidebar">
-    <div class="sb-brand">
-      <div class="sb-logo">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
-          <path d="M14.47 4.39A8 8 0 0 1 19.82 13.66"/>
-          <path d="M17.35 17.94A8 8 0 0 1 6.65 17.94" opacity=".88"/>
-          <path d="M4.18 13.66A8 8 0 0 1 9.53 4.39" opacity=".7"/>
-        </svg>
-      </div>
-      <div class="bt">
-        <div class="b1">Portfolio</div>
-        <div class="b2">Investor Toolkit</div>
-      </div>
-    </div>
-    <div class="sb-scroll" id="sbNav"></div>
-    <div class="sb-foot">
-      <button class="sb-mini" id="btnTheme" aria-haspopup="menu" aria-expanded="false" aria-controls="themeMenu"><span class="ic"></span><span class="lbl">Theme</span></button>
-      <button class="sb-mini" id="btnCollapse"><span class="ic"></span><span class="lbl">Collapse menu</span></button>
-      <div class="sb-mini" id="cloudMini" style="display:none;color:var(--accent-ink)">
-        <span class="ic">☁</span><span class="lbl">Cloud on</span></div>
-    </div>
-  </aside>
 
   <!-- ===================== MAIN ===================== -->
   <div class="main">
 
     <header class="topbar">
       <div class="tb-in wrap">
-        <div class="tb-title">
-          <h1 id="pgTitle">Dashboard</h1>
-          <div class="sub" id="pgSub">—</div>
+        <div class="tb-l">
+          <div class="tb-logo" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+              <path d="M14.47 4.39A8 8 0 0 1 19.82 13.66"/>
+              <path d="M17.35 17.94A8 8 0 0 1 6.65 17.94" opacity=".88"/>
+              <path d="M4.18 13.66A8 8 0 0 1 9.53 4.39" opacity=".7"/>
+            </svg>
+          </div>
+          <div class="tb-title">
+            <h1 id="pgTitle">Dashboard</h1>
+            <div class="sub" id="pgSub">—</div>
+          </div>
         </div>
         <div class="tb-search">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-          <input type="text" id="globalSearch" placeholder="Search asset…">
+          <input type="text" id="globalSearch" placeholder="Search asset…" aria-label="Search asset">
         </div>
-        <div class="tb-pv">
-          <div class="v mask num px" id="tbValue">—</div>
-          <div class="d" id="tbChange">—</div>
-        </div>
-        <div class="tb-acts">
-          <button class="btn btn-ghost btn-ic btn-sm" id="btnRefresh" title="Refresh prices and FX rates"></button>
-          <button class="btn btn-ghost btn-ic btn-sm" id="btnPrivacy" title="Show/hide values"></button>
-          <button class="btn btn-primary btn-sm" id="btnAdd"><span class="ic"></span><span class="hide-sm">Position</span></button>
+        <div class="tb-r">
+          <div class="tb-pv">
+            <div class="v mask num px" id="tbValue">—</div>
+            <div class="d" id="tbChange">—</div>
+          </div>
+          <div class="tb-acts">
+            <button class="btn btn-ghost btn-ic" id="btnRefresh" title="Refresh prices and FX rates" aria-label="Refresh prices and FX rates"></button>
+            <button class="btn btn-ghost btn-ic" id="btnPrivacy" title="Show/hide values" aria-label="Show/hide values"></button>
+            <button class="btn btn-primary" id="btnAdd"><span class="ic"></span><span class="hide-sm">Position</span></button>
+          </div>
         </div>
       </div>
     </header>
@@ -1521,41 +1861,57 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
             </div>
           </div>
         </div>
-        <div class="card" id="heroCard">
-          <div class="card-bd">
-            <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px">
-              <div class="hero-l">
-                <div style="font-size:12px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Portfolio value</div>
-                <div class="hero-val">
-                  <div class="big num px mask" id="heroValue">—</div>
-                  <div class="meta">
-                    <span class="pillv flat mask" id="heroChg">—</span>
-                    <span style="color:var(--muted);font-weight:550" id="heroChgLbl"></span>
-                    <span class="pillv sm flat mask" id="heroDay" hidden></span>
-                  </div>
-                </div>
-                <div class="hero-sub" id="heroMeta"></div>
-              </div>
-              <div class="hero-ctl" style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <span class="seg" id="heroMode">
-                  <button data-m="value" class="on">Value</button>
-                  <button data-m="pnl">Return</button>
-                </span>
-                <span class="seg" id="heroRange">
-                  <button data-r="1G">1D</button><button data-r="1S">1W</button>
-                  <button data-r="1M">1M</button><button data-r="6M">6M</button>
-                  <button data-r="YTD">YTD</button><button data-r="1A" class="on">1Y</button>
-                  <button data-r="3A">3Y</button><button data-r="MAX">MAX</button>
-                </span>
-              </div>
+        <div class="top3" id="heroCard">
+          <!-- 1. valore e rendimento totale; colore da tileLevel(T.pnlPct,'total') -->
+          <div class="card qd" id="tileValue" data-lv="flat">
+            <div class="qd-bg" aria-hidden="true"><i class="qd-l on" data-lv="flat"></i><i class="qd-l" data-lv="flat"></i></div>
+            <div class="t-lbl">Portfolio value</div>
+            <div class="t-big num px mask" id="heroValue">—</div>
+            <div class="t-chg">
+              <span class="pillv flat" id="heroChg">—</span>
+              <span id="heroChgLbl">total return</span>
+            </div>
+            <div class="t-rows">
+              <div><span class="k">Invested</span> <span class="num mask" id="tileInvested">—</span></div>
+              <div id="tileDivRow" hidden><span class="k">Dividends + realized</span> <span class="num mask" id="tileDivReal"></span></div>
+              <div class="hero-sub" id="heroMeta"></div>
+            </div>
+          </div>
+          <!-- 2. la giornata, tutto il portafoglio e per piattaforma -->
+          <div class="card qd" id="tileDay" data-lv="flat">
+            <div class="qd-bg" aria-hidden="true"><i class="qd-l on" data-lv="flat"></i><i class="qd-l" data-lv="flat"></i></div>
+            <div class="t-lbl" id="dayTitle">Today by platform</div>
+            <div class="dp-tabs" id="dayTabs" role="tablist" aria-labelledby="dayTitle"></div>
+            <div class="dp-panel" id="dayPanel" role="tabpanel" tabindex="0"></div>
+          </div>
+          <!-- 3. il grafico: modalità, intervalli, variazione del periodo -->
+          <div class="card hc">
+            <div class="hc-hd">
+              <h2 id="heroTitle">Performance</h2>
+              <span class="seg" id="heroMode">
+                <button data-m="value" class="on">Value</button>
+                <button data-m="pnl">Return</button>
+              </span>
+            </div>
+            <span class="seg" id="heroRange">
+              <button data-r="1G">1D</button><button data-r="1S">1W</button>
+              <button data-r="1M">1M</button><button data-r="6M">6M</button>
+              <button data-r="YTD">YTD</button><button data-r="1A" class="on">1Y</button>
+              <button data-r="3A">3Y</button><button data-r="MAX">MAX</button>
+            </span>
+            <div class="hc-delta">
+              <span class="pillv flat" id="heroDelta" hidden></span>
+              <span class="lb" id="heroDeltaLbl"></span>
             </div>
             <div class="chart-host" id="heroChart"></div>
             <div id="heroNote"></div>
           </div>
         </div>
 
-        <div class="kpis mt18" id="kpis"></div>
-        <div class="today mt18" id="todayCards"></div>
+        <div class="kpis mt18" id="kpiRow">
+          <div id="kpis"></div>
+          <div id="todayCards"></div>
+        </div>
 
         <div class="grid g2-dash mt18">
           <div class="card alloc-card">
@@ -2155,7 +2511,12 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
 
       <!-- ============ IMPOSTAZIONI (base, si completa nel pezzo 7) ============ -->
       <section class="page wrap" id="pg-impostazioni">
-        <div class="grid g2">
+        <div class="card" id="appearCard">
+          <div class="card-hd"><h2><span class="chip a" id="chipTheme"></span> Appearance</h2>
+            <div class="right"><button class="btn btn-ghost btn-sm" id="btnTheme" aria-haspopup="menu" aria-expanded="false" aria-controls="themeMenu"><span class="ic"></span><span class="lbl">Theme</span></button></div></div>
+          <div class="card-bd"><div class="note">Il tema vale per tutta l'app e viaggia con le altre impostazioni: backup e sincronizzazione cloud lo portano con sé.</div></div>
+        </div>
+        <div class="grid g2 mt18">
           <div class="card">
             <div class="card-hd"><h2><span class="chip a" id="chipData"></span> Data</h2></div>
             <div class="card-bd">
@@ -2284,12 +2645,19 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   </div>
 </div>
 
+<!-- ===================== DOCK (desktop) ===================== -->
+<!-- i pulsanti li scrive buildNav() da NAV; la maniglia lo nasconde e lo riapre -->
+<div class="dock-wrap">
+  <button type="button" class="dock-hdl" id="dockToggle" aria-controls="dock" aria-expanded="true"
+    aria-label="Hide menu" title="Hide menu"></button>
+  <nav class="dock" id="dock" aria-label="Main"><div class="dock-in" id="dockNav"></div></nav>
+</div>
+
 <!-- ===================== MOBILE ===================== -->
 <nav class="tabbar"><div class="tabbar-in" id="tabNav"></div></nav>
 <div class="ov" id="sheetOv" style="background:rgba(4,6,10,.5)"></div>
-<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetNav"></div>
-  <div class="sheet-foot"><button class="sb-item" id="btnThemeM" aria-haspopup="menu" aria-expanded="false" aria-controls="themeMenu"><span class="ic"></span><span class="lbl">Theme</span></button></div></div>
-<!-- menu dei temi: lo aprono #btnTheme (sidebar) e #btnThemeM (foglio "More" su mobile) -->
+<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetNav"></div></div>
+<!-- menu dei temi: lo apre #btnTheme, nella card "Appearance" delle Impostazioni -->
 <div class="thm-menu" id="themeMenu" role="menu" aria-label="Theme" hidden></div>
 
 <!-- ===================== DRAWER (dettaglio posizione) ===================== -->
@@ -2578,8 +2946,6 @@ const P={
   moon:'<path d="M20.5 14.3A8.5 8.5 0 1 1 9.7 3.5a6.8 6.8 0 0 0 10.8 10.8z"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M2 12h2M20 12h2M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5"/>',
   check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-  collapse:'<path d="M15 6l-6 6 6 6"/><path d="M20 4v16"/>',
-  expand:'<path d="M9 6l6 6-6 6"/><path d="M4 4v16"/>',
   chev:'<path d="M9 6l6 6-6 6"/>',
   more:'<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>',
   x:'<path d="M6 6l12 12M18 6L6 18"/>',
@@ -2955,7 +3321,7 @@ function blankState(){
   return {
     v:3, positions:[], watchlist:[], goals:[], targets:{}, history:[], countries:[],
     fx:{EUR:1}, lastUpdate:0, updatedAt:0, rulesLog:[],
-    settings:{theme:'dark',privacy:false,collapsed:false,riskFree:2,proxy:'',
+    settings:{theme:'dark',privacy:false,dockHidden:false,riskFree:2,proxy:'',
               rebalanceBands:[10,20,30],capGainTax:26,
               scenBench:'6040',scenSel:'inflEU',scenSens:{},benchKey:'URTH',rules:rulesCfg(),tierPlan:tplanCfg(),
               sim:simDefaults(),distMode:'count'}
@@ -2976,6 +3342,8 @@ const UI={
   rulesSell:null, rulesTicks:{}, rulesParOpen:null, rulesSellQty:{}, rulesSellWhy:{}, rulesTaxSel:'std',
   rulesBuy:null, rulesBuyAmt:'',
   histSrc:'snap', editGoal:null, heatM:null, heatSort:'ret',
+  /* scheda aperta nel quadrato "Today by platform" (non salvata) */
+  dayPlatform:'all',
   txFilters:{pos:'',type:''}
 };
 
@@ -3159,8 +3527,8 @@ function scoresLine(o){
 }
 const money=(n,d)=>'€ '+nf(n,d==null?2:d);
 const money0=n=>'€ '+Math.round(n||0).toLocaleString('it-IT');
-/* intero col segno, "+€ 13.290" / "−€ 59": hero in modalità Rendimento e KPI,
-   e countUp() che li fa salire. Il segno è quello del numero, anche per −0
+/* intero col segno, "+€ 13.290" / "−€ 59": quadrati della Home (giornata,
+   dividendi + realizzato) e altre card. Il segno è quello del numero, anche per −0
    ("−€ 0"): un valore negativo che parte da zero non passa da "+€ 0". */
 function signedEur0(x){
   if(typeof x!=='number'||!isFinite(x))return '–';
@@ -3585,6 +3953,47 @@ function enrich(){
      best:sorted[0]||null,worst:sorted[sorted.length-1]||null};
   return T;
 }
+/* La giornata per piattaforma, per il secondo quadrato della Home. Riceve le
+   posizioni attive già arricchite da enrich() e somma, per tutto il
+   portafoglio (all), per Fineco, Directa e Scalable Capital e per i titoli
+   senza piattaforma (none): variazione di oggi (day, somma di p._day),
+   valore, numero di posizioni (n) e quante hanno il dato (nData), migliore e
+   peggiore per p._dayPct fra quelle col dato. La percentuale è la regola di
+   T.dayPct: day/(value−day), 0 se il denominatore non è positivo, quindi per
+   "all" coincide con T.day e T.dayPct. Ha il dato una posizione con
+   prevClose maggiore di zero: le altre valgono 0 e sono contate a parte
+   ("data on N of M"). Un conto deposito ha la variazione vera, zero: conta
+   fra quelle col dato ma non concorre a migliore e peggiore. Pura. */
+const DAY_PF=['all','Fineco','Directa','Scalable Capital','none'];
+function dayByPlatform(positions){
+  const out={};
+  DAY_PF.forEach(k=>{ out[k]={day:0,pct:0,value:0,n:0,nData:0,best:null,worst:null}; });
+  (positions||[]).forEach(p=>{
+    if(!p||isClosed(p))return;
+    const k=normPlatform(p.platform)||'none', dep=isDeposit(p);
+    const has=dep||(p.prevClose!=null&&num(p.prevClose)>0), dp=num(p._dayPct);
+    [out.all,out[k]].forEach(o=>{
+      o.day+=num(p._day); o.value+=num(p._value); o.n++;
+      if(!has)return;
+      o.nData++;
+      if(dep)return;
+      if(!o.best||dp>num(o.best._dayPct))o.best=p;
+      if(!o.worst||dp<num(o.worst._dayPct))o.worst=p;
+    });
+  });
+  DAY_PF.forEach(k=>{ const o=out[k]; o.pct=(o.value-o.day)>0?o.day/(o.value-o.day)*100:0; });
+  return out;
+}
+/* Livello di colore dei quadrati 1 e 2: flat, up1…up3, down1…down3. Piatto
+   sotto lo 0,005% in valore assoluto, come la pillola di renderHero(). Le
+   soglie del giorno e del rendimento totale sono qui, in punti percentuali. */
+const TILE_DAY=[.5,1.5], TILE_TOTAL=[5,15];
+function tileLevel(pct,kind){
+  const v=pct==null||pct===''?NaN:Number(pct);
+  if(!isFinite(v)||Math.abs(v)<.005)return 'flat';
+  const s=kind==='total'?TILE_TOTAL:TILE_DAY, a=Math.abs(v);
+  return (v>0?'up':'down')+(a<s[0]?1:a<s[1]?2:3);
+}
 
 /* ==========================================================================
    6. GRAFICI SVG — area/linea con hover, riusabile
@@ -3955,18 +4364,20 @@ const THEMES=[
   {v:'dark',  n:'Dark',            dark:true},
   {v:'light', n:'Light',           dark:false},
   {v:'martin',n:'Martin pescatore',dark:true},
-  {v:'terra', n:'Terra e argilla', dark:false}
+  {v:'terra', n:'Terra e argilla', dark:false},
+  {v:'glass', n:'Glass',           dark:true},
+  {v:'glass-light',n:'Glass light',dark:false}
 ];
 const themeOf=v=>THEMES.find(t=>t.v===v)||THEMES[0];
 function applyTheme(){
   const t=themeOf(S.settings.theme);
   document.documentElement.setAttribute('data-theme',t.v);
-  [['#btnTheme',17],['#btnThemeM',20]].forEach(([sel,sz])=>{
-    const b=$(sel); if(!b)return;
-    b.querySelector('.ic').innerHTML=ic(t.dark?'moon':'sun',sz);
+  const b=$('#btnTheme');
+  if(b){
+    b.querySelector('.ic').innerHTML=ic(t.dark?'moon':'sun',17);
     b.querySelector('.lbl').textContent='Theme: '+t.n;
     b.title='Theme: '+t.n;
-  });
+  }
   $$('#themeMenu [data-theme-v]').forEach(x=>
     x.setAttribute('aria-checked',x.getAttribute('data-theme-v')===t.v?'true':'false'));
 }
@@ -3983,12 +4394,13 @@ function themeMenuHTML(cur){
       '<span class="thm-n">'+esc(t.n)+'</span>'+
       '<span class="thm-ck" aria-hidden="true">'+ic('check',16)+'</span></button>').join('');
 }
-/* sopra il pulsante; con la sidebar compressa alla sua destra, allineato in
-   basso. Sempre dentro la finestra, a 8 px dai bordi. */
+/* sopra il pulsante, allineato a sinistra; se sopra non c'è posto (la card
+   "Appearance" è in cima alle Impostazioni, sotto la barra) si apre sotto,
+   invece di coprire il pulsante. Sempre dentro la finestra, a 8 px dai bordi. */
 function placeThemeMenu(m,btn){
   const r=btn.getBoundingClientRect(), pad=8, w=m.offsetWidth, h=m.offsetHeight;
-  const side=btn.id==='btnTheme'&&document.body.classList.contains('sb-collapsed');
-  let x=side?r.right+8:r.left, y=side?r.bottom-h:r.top-h-6;
+  let x=r.left, y=r.top-h-6;
+  if(y<pad&&r.bottom+6+h<=innerHeight-pad)y=r.bottom+6;
   x=Math.max(pad,Math.min(x,innerWidth-w-pad));
   y=Math.max(pad,Math.min(y,innerHeight-h-pad));
   m.style.left=Math.round(x)+'px'; m.style.top=Math.round(y)+'px';
@@ -4022,12 +4434,18 @@ function themeMenuKey(e){
 }
 function applyPrivacy(){
   document.body.classList.toggle('privacy',!!S.settings.privacy);
-  $('#btnPrivacy').innerHTML=ic(S.settings.privacy?'eyeoff':'eye',17);
+  $('#btnPrivacy').innerHTML=ic(S.settings.privacy?'eyeoff':'eye',20);
 }
-function applyCollapsed(){
-  document.body.classList.toggle('sb-collapsed',!!S.settings.collapsed);
-  const b=$('#btnCollapse');
-  b.querySelector('.ic').innerHTML=ic(S.settings.collapsed?'expand':'collapse',17);
+/* Dock in basso: aperto o nascosto (S.settings.dockHidden). La maniglia dice
+   cosa farà al clic; il chevron punta giù a dock aperto, su a dock nascosto. */
+function applyDock(){
+  const hid=!!S.settings.dockHidden, b=$('#dockToggle');
+  document.body.classList.toggle('dock-hidden',hid);
+  if(!b)return;
+  const t=hid?'Show menu':'Hide menu';
+  b.setAttribute('aria-expanded',hid?'false':'true');
+  b.setAttribute('aria-label',t); b.title=t;
+  if(!b.firstChild)b.innerHTML=ic('chev',14);
 }
 /* "Riduci movimento" del sistema: niente scorrimenti animati né numeri che
    salgono. Si legge ogni volta, perché la preferenza può cambiare a pagina
@@ -4062,12 +4480,13 @@ const NAV=[
 const ALL_NAV=NAV.reduce((a,g)=>a.concat(g.items),[]);
 const navItem=k=>ALL_NAV.filter(x=>x.k===k)[0]||ALL_NAV[0];
 
+/* Dock (desktop): solo icone, nome in title e aria-label, un filo fra i
+   gruppi; tabbar e foglio "More" per i telefoni */
 function buildNav(){
-  $('#sbNav').innerHTML=NAV.map(g=>
-    '<div class="sb-group">'+esc(g.g)+'</div>'+
-    g.items.map(it=>'<button class="sb-item" data-nav="'+it.k+'" title="'+esc(it.l)+'">'+ic(it.i,19)+
-      '<span class="lbl">'+esc(it.l)+'</span><span class="badge-n" data-count="'+it.k+'" hidden></span></button>').join('')
-  ).join('');
+  $('#dockNav').innerHTML=NAV.map(g=>
+    g.items.map(it=>'<button type="button" class="dock-i" data-nav="'+it.k+'" title="'+esc(it.l)+'" aria-label="'+esc(it.l)+'">'+
+      ic(it.i,20)+'<span class="dock-n" data-count="'+it.k+'" aria-hidden="true" hidden></span></button>').join('')
+  ).join('<span class="dock-sep" aria-hidden="true"></span>');
   const tabs=ALL_NAV.filter(x=>x.tab);
   $('#tabNav').innerHTML=tabs.map(it=>'<button class="tab" data-nav="'+it.k+'">'+ic(it.i,20)+'<span>'+esc(it.l)+'</span></button>').join('')+
     '<button class="tab" id="tabMore">'+ic('more',20)+'<span>More</span></button>';
@@ -4087,6 +4506,9 @@ function go(k){
   const it=navItem(k); UI.page=it.k;
   $$('.page').forEach(p=>p.classList.toggle('on',p.id==='pg-'+it.k));
   $$('[data-nav]').forEach(b=>b.classList.toggle('on',b.getAttribute('data-nav')===it.k));
+  $$('#dockNav [data-nav]').forEach(b=>{
+    if(b.getAttribute('data-nav')===it.k)b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+  });
   $('#pgTitle').textContent=it.l; $('#pgSub').textContent=it.sub||'';
   if(location.hash.slice(1)!==it.k) history.replaceState(null,'','#'+it.k);
   window.scrollTo({top:0,left:0,behavior:reducedMotion()?'auto':'smooth'});
@@ -4143,7 +4565,7 @@ function rangeCut(series,r){
   const cut=series.filter(p=>p.t>=from);
   return cut.length>=2?cut:series.slice(-2);
 }
-/* Numeri che salgono all'apertura: il valore dell'hero e le prime tre KPI,
+/* Numeri che salgono all'apertura: il valore del primo quadrato della Home,
    una volta per caricamento, in 650 ms. Il testo giusto c'è già: l'animazione
    parte al primo fotogramma, da zero, con lo stesso formattatore, e l'ultimo
    fotogramma scrive esattamente fmt(to). Ogni disegno successivo dello stesso
@@ -4175,10 +4597,129 @@ function countUp(el,to,fmt,ms){
   };
   requestAnimationFrame(step);
 }
+/* Pillola di una variazione: ▲/▼, percentuale e importo fra parentesi.
+   Neutra, senza freccia né segno, se la variazione arrotondata è zero o non
+   c'è nessuna posizione: a portafoglio vuoto T.pnlPct vale 0, non null, e la
+   pillola diventava verde, "▲ 0,00% (+€0)". La usano il primo quadrato
+   (rendimento totale) e il grafico (variazione del periodo). Con la privacy
+   si sfoca solo l'importo (mask): percentuale e colore restano. */
+function pillChange(el,deltaPct,deltaAbs){
+  const ref=deltaPct==null?deltaAbs:deltaPct;
+  const flat=!S.positions.length||ref==null||
+    ((deltaPct==null||Math.abs(deltaPct)<.005)&&(deltaAbs==null||Math.abs(deltaAbs)<.5));
+  const good=ref>=0;
+  el.className='pillv px '+(flat?'flat':(good?'up':'down'));
+  el.innerHTML=(flat?'':(good?'▲':'▼')+' ')+(deltaPct!=null?nf(Math.abs(deltaPct),2)+'%':'')+
+    (deltaAbs!=null?'<span class="pa mask">('+(flat?'':(good?'+':'−'))+money0(Math.abs(deltaAbs)).replace('€ ','€')+')</span>':'');
+}
+/* Colore di un quadrato: data-lv sul quadrato (testo, --on-tile) e sullo
+   strato che entra. Lo strato nuovo compare sopra il vecchio con una
+   dissolvenza di opacity (400 ms, nessuna con "Riduci movimento"). */
+function setTileLevel(tile,lv){
+  if(!tile||tile.getAttribute('data-lv')===lv)return;
+  tile.setAttribute('data-lv',lv);
+  const ls=tile.querySelectorAll('.qd-l'); if(!ls||ls.length<2)return;
+  const cur=ls[0].classList.contains('on')?ls[0]:ls[1], nxt=cur===ls[0]?ls[1]:ls[0];
+  nxt.classList.remove('prev'); nxt.setAttribute('data-lv',lv);
+  void nxt.offsetWidth;                 /* parte da opacity 0, poi la dissolvenza */
+  cur.classList.remove('on'); cur.classList.add('prev');
+  nxt.classList.add('on');
+}
+/* Quadrato 1: il valore di oggi e il rendimento totale, sempre gli stessi
+   qualunque siano intervallo e modalità del grafico. Sotto, il capitale
+   investito, dividendi + realizzato (solo se non zero) e la riga di posizioni
+   e prezzi. Il colore segue il rendimento totale. */
+function renderValueTile(){
+  countUp($('#heroValue'),T.value,money0);
+  pillChange($('#heroChg'),T.pnlPct,T.pnl);
+  $('#heroChgLbl').textContent='total return';
+  const inv=$('#tileInvested'); if(inv)inv.textContent=money0(T.cost);
+  const dr=num(T.dividends)+num(T.realized), row=$('#tileDivRow');
+  if(row){ row.hidden=Math.abs(dr)<.5; $('#tileDivReal').textContent=signedEur0(dr); }
+  renderHeroMeta();
+  setTileLevel($('#tileValue'),S.positions.length?tileLevel(T.pnlPct,'total'):'flat');
+}
+/* Quadrato 2: la giornata di tutto il portafoglio e di ciascuna piattaforma,
+   in quattro schede (role tablist). La scheda aperta è UI.dayPlatform. */
+function dayTabs(){
+  return [{k:'all',l:'All',s:''}].concat(PLATFORMS.map(p=>({k:p.k,l:p.k.split(' ')[0],s:p.s})));
+}
+function renderDayTile(){
+  const bar=$('#dayTabs'), panel=$('#dayPanel'); if(!bar||!panel)return;
+  const tabs=dayTabs();
+  if(!tabs.some(t=>t.k===UI.dayPlatform))UI.dayPlatform='all';
+  const cur=UI.dayPlatform;
+  /* i pulsanti si scrivono una volta: ridisegnarli toglierebbe il focus */
+  if(!$$('#dayTabs [role="tab"]').length)bar.innerHTML=tabs.map((t,i)=>
+    '<button type="button" role="tab" id="dpTab'+i+'" data-pf="'+esc(t.k)+'" aria-controls="dayPanel" aria-selected="false" tabindex="-1">'+
+    (t.s?'<span aria-hidden="true">'+t.s+'</span> ':'')+esc(t.l)+'</button>').join('');
+  $$('#dayTabs [role="tab"]').forEach(b=>{
+    const on=b.getAttribute('data-pf')===cur;
+    b.setAttribute('aria-selected',on?'true':'false'); b.setAttribute('tabindex',on?'0':'-1');
+    if(on)panel.setAttribute('aria-labelledby',b.id);
+  });
+  const all=dayByPlatform(activePositions()), o=all[cur];
+  let h, lv='flat';
+  if(!o.n){
+    h='<div class="dp-empty">'+(cur==='all'?'No positions':'No positions on '+esc(cur))+'</div>';
+  }else if(!o.nData&&!o.day){
+    h='<div class="dp-empty">Refresh prices to see it</div>';
+  }else{
+    const z=Math.abs(o.pct)<.005&&Math.abs(o.day)<.5;
+    lv=tileLevel(o.pct,'day');
+    const tk=(k,p)=>'<div class="dp-tk"><span class="k">'+k+'</span>'+logoOnlyHTML(p,18)+
+      '<span class="nm">'+esc(tkLabel(p))+'</span><span class="pc num px">'+pctv(num(p._dayPct))+'</span></div>';
+    /* migliore e peggiore solo se si sono mossi: "Best +0,00%" non dice niente */
+    const bw=[], mosso=q=>q&&Math.abs(num(q._dayPct))>=.005;
+    if(o.best&&o.best===o.worst){ if(mosso(o.best))bw.push(tk(num(o.best._dayPct)>0?'Best':'Worst',o.best)); }
+    else{ if(mosso(o.best))bw.push(tk('Best',o.best)); if(mosso(o.worst))bw.push(tk('Worst',o.worst)); }
+    if(o.nData<o.n)bw.push('<div class="dp-note">data on '+o.nData+' of '+o.n+' positions</div>');
+    if(cur==='all'&&Math.abs(all.none.day)>=.5)
+      bw.push('<div class="dp-note">No platform <span class="num mask">'+signedEur0(all.none.day)+'</span></div>');
+    h='<div class="dp-amt num px mask">'+(Math.round(o.day)===0?'€ 0':signedEur0(o.day))+'</div>'+
+      '<div class="dp-pct num px">'+(z?nf(0,2)+'%':pctv(o.pct))+'</div>'+
+      '<div class="dp-row">'+(cur==='all'?o.n+(o.n===1?' position':' positions'):
+        'value <span class="num mask">'+money0(o.value)+'</span> · '+nf(T.value>0?o.value/T.value*100:0,1)+'% of portfolio')+'</div>'+
+      (bw.length?'<div class="dp-bw">'+bw.join('')+'</div>':'');
+  }
+  panel.innerHTML=h;
+  setTileLevel($('#tileDay'),lv);
+}
+function pickDayTab(k){ UI.dayPlatform=k; renderDayTile(); }
+/* frecce: scheda precedente o successiva (in giro), Home e Fine: prima e
+   ultima. Il focus segue la scheda, che si apre subito. */
+function dayTabsKey(e){
+  const tabs=$$('#dayTabs [role="tab"]'), n=tabs.length; if(!n)return;
+  let i=tabs.indexOf(document.activeElement);
+  if(i<0)i=Math.max(0,tabs.findIndex(b=>b.getAttribute('aria-selected')==='true'));
+  const j=e.key==='ArrowRight'?(i+1)%n:e.key==='ArrowLeft'?(i-1+n)%n:e.key==='Home'?0:e.key==='End'?n-1:null;
+  if(j==null)return;
+  e.preventDefault();
+  pickDayTab(tabs[j].getAttribute('data-pf'));
+  tabs[j].focus();
+}
+function renderTiles(){ renderValueTile(); renderDayTile(); }
+/* Altezza del grafico: quella che resta nel terzo quadrato, mai sotto i 160
+   px; sotto i 1121 px il CSS la fissa a 260. Il vecchio disegno si toglie
+   prima di misurare, altrimenti terrebbe il posto. */
+function heroChartHeight(host){
+  if(!host)return 250;
+  host.innerHTML='';
+  return Math.max(160,Math.round(host.clientHeight||0));
+}
+/* Nota del grafico (dailyNote, histCoverageNote) nel quadrato: su una riga,
+   tagliata coi puntini; un clic (o Invio) la apre intera. Così il grafico
+   resta alto almeno 160 px anche a 1121 px. */
+function foldNote(html){
+  const m=String(html||'').match(/^<div class="note"[^>]*>([\s\S]*)<\/div>$/);
+  return m?'<details class="note hc-note"><summary>'+m[1]+'</summary></details>':String(html||'');
+}
+/* Quadrato 3: il grafico. Il titolo segue la modalità; la pillola è la
+   variazione del periodo scelto, nascosta se la serie non c'è. */
 function renderHero(){
   const mode=UI.heroMode;
-  countUp($('#heroValue'),mode==='value'?T.value:T.pnl,mode==='value'?money0:signedEur0);
-  const chg=$('#heroChg'), lbl=$('#heroChgLbl');
+  const dl=$('#heroDelta'), lbl=$('#heroDeltaLbl'), ttl=$('#heroTitle');
+  if(ttl)ttl.textContent=mode==='value'?'Performance':'Return';
 
   /* 1G e 1S dalla serie giornaliera; 1M anche, appena ci sono le chiusure
      giornaliere (con la serie mensile un mese sono due punti); gli altri dalla
@@ -4187,43 +4728,23 @@ function renderHero(){
   const D=(r==='1G'||r==='1S'||r==='1M')?heroDailySeries(r):null;
   const H=(D||r==='1G'||r==='1S')?null:heroHistSeries();
   const series=D?D.pts:(H?rangeCut(H.pts,r):[]);
-  let deltaPct=null,deltaAbs=null;
   if(series.length>=2){
+    let deltaPct=null,deltaAbs=null;
     const a=series[0],b=series[series.length-1];
     if(mode==='value'){ deltaAbs=b.value-a.value; deltaPct=a.value>0?(b.value/a.value-1)*100:null; }
     else { const ra=a.cost>0?(a.value/a.cost-1)*100:0, rb=b.cost>0?(b.value/b.cost-1)*100:0;
            deltaPct=rb-ra; deltaAbs=(b.value-b.cost)-(a.value-a.cost); }
     lbl.textContent=D&&D.info.range==='1G'?(D.info.label==='today'?'today\'s session':'session of '+D.info.label)
-      :'over the period · since '+fmtDate(new Date(a.t).toISOString());
+      :'since '+fmtDate(new Date(a.t).toISOString());
+    pillChange(dl,deltaPct,deltaAbs); dl.hidden=false;
   }else{
-    deltaAbs=T.pnl; deltaPct=T.pnlPct; lbl.textContent='total return';
+    dl.hidden=true; dl.innerHTML=''; lbl.textContent='';
   }
-  /* neutra, senza freccia né segno, se la variazione arrotondata è zero o non
-     c'è nessuna posizione: a portafoglio vuoto T.pnlPct vale 0, non null, e la
-     pillola diventava verde, "▲ 0,00% (+€0)" */
-  const ref=deltaPct==null?deltaAbs:deltaPct;
-  const flat=!S.positions.length||ref==null||
-    ((deltaPct==null||Math.abs(deltaPct)<.005)&&(deltaAbs==null||Math.abs(deltaAbs)<.5));
-  const good=ref>=0;
-  chg.className='pillv px mask '+(flat?'flat':(good?'up':'down'));
-  chg.innerHTML=(flat?'':(good?'▲':'▼')+' ')+(deltaPct!=null?nf(Math.abs(deltaPct),2)+'%':'')+
-    (deltaAbs!=null?'<span style="opacity:.75;font-weight:600;margin-left:2px">('+(flat?'':(good?'+':'−'))+money0(Math.abs(deltaAbs)).replace('€ ','€')+')</span>':'');
-  /* variazione di oggi accanto, solo se i prezzi la danno */
-  const dy=$('#heroDay');
-  if(T.day||T.dayPct){
-    const z=Math.abs(T.dayPct)<.005;
-    dy.className='pillv sm px mask '+(z?'flat':(T.dayPct>0?'up':'down'));
-    dy.textContent='today '+(z?nf(0,2)+'%':pctv(T.dayPct));
-    dy.hidden=false;
-  }else dy.hidden=true;
-  /* sotto: quante posizioni e quando sono arrivati i prezzi. Il conteggio
-     stava nella card "Valore totale", tolta perché ripeteva l'hero. */
-  renderHeroMeta();
 
   const pts=series.map(p=>({t:p.t,v:mode==='value'?p.value:(p.cost>0?(p.value/p.cost-1)*100:0),gap:p.gap}));
-  const hn=$('#heroNote'); if(hn)hn.innerHTML=D?dailyNote(D.info):(H&&H.src==='calc'?histCoverageNote(H.info):'');
+  const hn=$('#heroNote'); if(hn)hn.innerHTML=foldNote(D?dailyNote(D.info):(H&&H.src==='calc'?histCoverageNote(H.info):''));
   const opt={
-    height:250,
+    height:heroChartHeight($('#heroChart')),
     color:mode==='value'?'var(--accent)':(pts.length&&pts[pts.length-1].v>=0?'var(--up)':'var(--down)'),
     zeroLine:mode!=='value',
     fmtY:v=>mode==='value'?(Math.abs(v)>=1000?Math.round(v/1000)+'k':Math.round(v)):nf(v,1)+'%',
@@ -4444,26 +4965,16 @@ function kpiPersonal(){
   return {l:'Annual return',v:pctv(use*100),cls:use>=0?'up':'down',mask:1,px:1,tip:tip.join('\n'),
     s:R.annual!=null?'yours, with contributions'+twr:'since '+fmtDate(R.firstDate)+' · not annualized'};
 }
-/* Il valore totale non c'è: è il numero grande dell'hero, e il conteggio delle
-   posizioni sta sotto di lui. */
+/* Sotto i quadrati resta una sola KPI, Annual return (XIRR): capitale
+   investito e guadagno sono nel primo quadrato, la variazione di oggi nel
+   secondo. Prima delle tre card "da sapere oggi", nella stessa griglia. */
 function renderKpis(){
-  const cards=[
-    {l:'Invested capital',v:money0(T.cost),n:T.cost,f:money0,
-      s:T.dividends?'+ '+money0(T.dividends)+' dividends received':'cost basis',mask:1},
-    {l:'Gain / Loss',v:signedEur0(T.pnl),n:T.pnl,f:signedEur0,
-      s:pctv(T.pnlPct)+(T.realized?' · '+money0(T.realized)+' realized':''),cls:T.pnl>=0?'up':'down',mask:1,px:1},
-    {l:'Today\'s change',v:signedEur0(T.day),n:T.day,f:signedEur0,
-      s:T.day||T.dayPct?pctv(T.dayPct):'refresh prices to see it',cls:T.day>=0?'up':'down',mask:1,px:1},
-    kpiPersonal()
-  ];
+  const cards=[kpiPersonal()];
   $('#kpis').innerHTML=cards.map(c=>
     '<div class="kpi"><div class="l">'+esc(c.l)+
     (c.tip?'<span class="qhelp" title="'+esc(c.tip)+'">?</span>':'')+'</div>'+
     '<div class="v num '+(c.cls||'')+(c.px?' px':'')+(c.mask?' mask':'')+'">'+c.v+'</div>'+
     '<div class="s'+(c.px?' px':'')+(c.mask?' mask':'')+'">'+c.s+'</div></div>').join('');
-  /* le card con un numero (n) salgono all'apertura; la KPI personale no */
-  const vs=$$('#kpis .kpi>.v');
-  cards.forEach((c,i)=>{ if(c.f&&vs[i])countUp(vs[i],c.n,c.f); });
   $('#tbValue').textContent=money0(T.value);
   const tc=$('#tbChange');
   tc.className='d px '+(T.pnl>=0?'up':'down');
@@ -11310,7 +11821,7 @@ function restoreBackup(file){
     S.settings=Object.assign(blankState().settings,data.settings||{});
     S.fx=Object.assign({EUR:1},data.fx||{});
     normalizeState();
-    save(); applyTheme(); applyPrivacy(); applyCollapsed();
+    save(); applyTheme(); applyPrivacy(); applyDock();
     buildCountryList(); buildSectorList(); renderAll();
     toast('Backup restored: '+n+(n===1?' position':' positions'),'ok');
   };
@@ -11394,9 +11905,8 @@ function supaHeaders(extra){
   return h;
 }
 function setSyncStatus(t){ const e=$('#syStatus'); if(e)e.textContent=t||''; }
+/* stato del cloud: solo nella card "Cloud sync" delle Impostazioni */
 function updateCloudBadge(){
-  const e=$('#cloudMini'); if(!e)return;
-  e.style.display=syncOn()?'':'none';
   const sub=$('#cloudSub'); if(sub)sub.textContent=syncOn()?'connected':'not configured';
 }
 function pullCloud(){
@@ -11432,7 +11942,7 @@ function applyRemote(remote){
   /* come all'avvio e nel ripristino del backup: i dati di un'altra versione
      dell'app arrivano con le etichette normalizzate */
   normalizeState();
-  applyTheme(); applyPrivacy(); applyCollapsed(); buildCountryList(); buildSectorList(); renderAll();
+  applyTheme(); applyPrivacy(); applyDock(); buildCountryList(); buildSectorList(); renderAll();
 }
 function syncOnStartup(){
   if(!syncOn())return;
@@ -11505,7 +12015,7 @@ function cardSafe(fn){
 function renderPage(k){
   markEmpty();
   if(k==='dashboard'){
-    renderHero(); renderKpis(); renderToday(); populateFilters(); renderAlloc(); renderContrib(); renderTable();
+    renderTiles(); renderHero(); renderKpis(); renderToday(); populateFilters(); renderAlloc(); renderContrib(); renderTable();
   }
   /* card indipendenti: un errore in una non deve lasciare vuote quelle dopo
      (un errore nella mappa di performance bloccava correlazione e distribuzioni) */
@@ -11541,25 +12051,25 @@ function renderAll(){
    ========================================================================== */
 function wire(){
   /* --- menu dei temi --- */
-  ['#btnTheme','#btnThemeM'].forEach(sel=>$(sel).addEventListener('click',e=>{
+  $('#btnTheme').addEventListener('click',e=>{
     const b=e.currentTarget;
     if(themeMenuFrom===b){ closeThemeMenu(true); return; }
     closeThemeMenu(false); openThemeMenu(b);
-  }));
+  });
   $('#themeMenu').addEventListener('click',e=>{
     const it=e.target.closest('[data-theme-v]'); if(it)pickTheme(it.getAttribute('data-theme-v'));
   });
   $('#themeMenu').addEventListener('keydown',themeMenuKey);
   /* clic fuori: il focus torna al pulsante solo se non l'ha preso un altro elemento */
   document.addEventListener('click',e=>{
-    if(!themeMenuFrom||e.target.closest('#themeMenu,#btnTheme,#btnThemeM'))return;
+    if(!themeMenuFrom||e.target.closest('#themeMenu,#btnTheme'))return;
     const a=document.activeElement;
     closeThemeMenu(!a||a===document.body||$('#themeMenu').contains(a));
   });
   window.addEventListener('resize',()=>closeThemeMenu(false));
-  $('#btnCollapse').addEventListener('click',()=>{
-    S.settings.collapsed=!S.settings.collapsed; applyCollapsed(); save();
-    setTimeout(()=>renderPage(UI.page),260);
+  /* --- dock: la maniglia lo nasconde e lo riapre --- */
+  $('#dockToggle').addEventListener('click',()=>{
+    S.settings.dockHidden=!S.settings.dockHidden; applyDock(); save();
   });
   $('#btnPrivacy').addEventListener('click',()=>{
     S.settings.privacy=!S.settings.privacy; applyPrivacy(); save();
@@ -11578,12 +12088,17 @@ function wire(){
   $('#wcAdd').addEventListener('click',()=>openPos(null));
   $('#btnWipe').addEventListener('click',()=>{
     if(!confirm('Erase all data in this dashboard? This cannot be undone.'))return;
-    S=blankState(); save(); applyTheme(); applyPrivacy(); renderAll(); toast('Data erased');
+    S=blankState(); save(); applyTheme(); applyPrivacy(); applyDock(); renderAll(); toast('Data erased');
   });
   $$('#heroRange button').forEach(b=>b.addEventListener('click',()=>{
     $$('#heroRange button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
     UI.heroRange=b.getAttribute('data-r'); loadHeroIntraday(); renderHero();
   }));
+  /* --- quadrato "Today by platform": clic e frecce sulle schede --- */
+  $('#dayTabs').addEventListener('click',e=>{
+    const b=e.target.closest('[role="tab"]'); if(b)pickDayTab(b.getAttribute('data-pf'));
+  });
+  $('#dayTabs').addEventListener('keydown',dayTabsKey);
   $$('#heroMode button').forEach(b=>b.addEventListener('click',()=>{
     $$('#heroMode button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
     UI.heroMode=b.getAttribute('data-m'); renderHero();
@@ -11923,9 +12438,9 @@ function wire(){
 /* ==========================================================================
    15. AVVIO
    ========================================================================== */
-$('#btnRefresh').innerHTML=ic('refresh',17);
+$('#btnRefresh').innerHTML=ic('refresh',20);
 $('#contribRefresh').innerHTML=ic('refresh',15);
-$('#btnAdd').querySelector('.ic').innerHTML=ic('plus',16);
+$('#btnAdd').querySelector('.ic').innerHTML=ic('plus',20);
 $('#wcDemo .wc-ic').innerHTML=ic('pie',19);
 $('#wcCsv .wc-ic').innerHTML=ic('inbox',19);
 $('#wcAdd .wc-ic').innerHTML=ic('plus',19);
@@ -11973,11 +12488,12 @@ $('#chipImp').innerHTML=ic('inbox',17);
 $('#chipCtr').innerHTML=ic('fx',17);
 $('#chipBackup').innerHTML=ic('db',17);
 $('#chipCloud').innerHTML=ic('refresh',17);
+$('#chipTheme').innerHTML=ic('sun',17);
 $('#btnAddWatch').querySelector('.ic').innerHTML=ic('plus',15);
 $('#btnHist').querySelector('.ic').innerHTML=ic('refresh',15);
 $$('.modal .x[data-close]').forEach(b=>b.innerHTML=ic('x',16));
 loadSync(); load(); loadPHist(); loadMHist(); loadDHist(); loadBHist(); buildNav(); initPosForm(); initWatchForm(); syncTxLabels(); wire();
-applyTheme(); applyPrivacy(); applyCollapsed();
+applyTheme(); applyPrivacy(); applyDock();
 enrich();
 go(location.hash.slice(1)||'dashboard');
 watchHero();
