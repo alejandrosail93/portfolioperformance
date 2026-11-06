@@ -545,17 +545,13 @@ html[data-theme="light"] .seg button.on{background:#fff}
 .grid{display:grid;gap:18px}
 .g2{grid-template-columns:1fr 1fr}
 .g2-wide{grid-template-columns:1.35fr .65fr}
-/* dashboard: Allocazione + Contributo, col Contributo un po' più largo
-   (filtri, ordinamento e totale). Con 1.25/.75 la legenda resta accanto alla
-   ciambella fino a 1120px, dove la griglia va su una colonna. Le 7 schede
-   dell'Allocazione stanno nella riga del titolo da 1280px in su: fra 1121 e
-   1460px solo perché il padding orizzontale dei selettori nelle testate
-   scende a 7px. Con 13px servono 625px, e a 1280 ce ne sono 549 (misurati
-   con i margini laterali della pagina). La stessa regola tiene su una riga
-   anche la testata del Contributo, che a 1440 ci stava per 1px. Sotto i 560px
-   le schede vanno su una griglia 4+3. */
-.g2-dash{grid-template-columns:1.25fr .75fr}
-@media(min-width:1121px) and (max-width:1460px){
+/* dashboard: Allocazione + Contributo, due colonne uguali (da 524 px a 1121
+   fino a 623 px da 1320 in su, perché la pagina non supera i 1320). Le 7
+   schede dell'Allocazione hanno il padding orizzontale a 7px da 1121px in su
+   (con 13px servono 625px, più di una colonna); se non c'è spazio accanto al
+   titolo, la riga delle schede va a capo sotto di lui (card-hd è flex-wrap). */
+.g2-dash{grid-template-columns:1fr 1fr}
+@media(min-width:1121px){
   .g2-dash .card-hd .seg button{padding-left:7px;padding-right:7px}
 }
 
@@ -659,13 +655,20 @@ body.privacy .mask{filter:blur(9px);pointer-events:none;user-select:none}
 /* dentro il quadrato tutto il testo è --on-tile: pillole e righe secondarie
    prendono il colore del testo, la direzione la dicono ▲/▼ e il segno */
 .qd .pillv,.qd .pillv.up,.qd .pillv.down,.qd .pillv.flat{color:inherit;background:none;
-  box-shadow:inset 0 0 0 1.5px currentColor;font-size:12.5px}
+  box-shadow:inset 0 0 0 1.5px currentColor;font-size:14.5px}
 .qd .hero-sub{color:inherit}
-.t-lbl{font-size:12px;font-weight:750;letter-spacing:.6px;text-transform:uppercase}
-.t-big{font-size:34px;font-size:clamp(28px,12cqw,46px);font-weight:780;letter-spacing:-1.2px;line-height:1.05;
-  margin-top:12px;overflow-wrap:anywhere}
-.t-chg{display:flex;align-items:center;flex-wrap:wrap;gap:6px 9px;margin-top:12px;font-size:13px;font-weight:650}
-.t-rows{margin-top:auto;padding-top:14px;display:grid;gap:3px;font-size:13px;font-weight:600}
+.t-lbl{font-size:13px;font-weight:750;letter-spacing:.6px;text-transform:uppercase}
+.t-big{font-size:44px;font-size:clamp(30px,19cqw,76px);font-weight:780;letter-spacing:-1.6px;line-height:1.02;
+  margin-top:10px;white-space:nowrap}
+/* importi lunghi: la classe la dà fitCls() dal testo, così il numero non esce
+   dal quadrato. Larghezze misurate (em, peso 780): 8 caratteri 4,33; 9: 4,96;
+   10-11: 5,84; 12-13: 7,1. Ogni scalino resta sotto l'86 % del contenitore
+   (fit0: 9 caratteri; fit1: 10-11; fit2: 12 o più). */
+.t-big.fit0,.dp-amt.fit0{font-size:clamp(28px,17cqw,68px)}
+.t-big.fit1,.dp-amt.fit1{font-size:clamp(26px,14cqw,60px)}
+.t-big.fit2,.dp-amt.fit2{font-size:clamp(22px,11.5cqw,50px)}
+.t-chg{display:flex;align-items:center;flex-wrap:wrap;gap:6px 9px;margin-top:12px;font-size:15px;font-weight:650}
+.t-rows{margin-top:auto;padding-top:14px;display:grid;gap:3px;font-size:14px;font-weight:600}
 .t-rows .k{font-weight:550}
 /* posizioni e ora dei prezzi */
 .hero-sub{font-size:12.5px;color:var(--muted);font-weight:550;margin-top:6px}
@@ -678,16 +681,26 @@ body.privacy .mask{filter:blur(9px);pointer-events:none;user-select:none}
 .dp-tabs button[aria-selected="true"]{font-weight:780;border-bottom-color:currentColor}
 .dp-tabs button:focus-visible,.dp-panel:focus-visible{outline:2px solid currentColor;outline-offset:1px}
 .dp-panel{flex:1;display:flex;flex-direction:column;min-height:0;padding-top:14px;border-radius:6px}
-.dp-amt{font-size:34px;font-size:clamp(28px,11cqw,44px);font-weight:780;letter-spacing:-1px;line-height:1.05}
-.dp-pct{font-size:18px;font-weight:750;margin-top:4px}
-.dp-row{font-size:13px;font-weight:600;margin-top:8px}
+.dp-amt{font-size:44px;font-size:clamp(30px,19cqw,76px);font-weight:780;letter-spacing:-1.4px;line-height:1.02;white-space:nowrap}
+.dp-pct{font-size:22px;font-size:clamp(20px,7.5cqw,32px);font-weight:750;margin-top:4px}
+.dp-row{font-size:14px;font-weight:600;margin-top:8px}
 .dp-bw{margin-top:auto;padding-top:12px;display:grid;gap:6px}
-.dp-tk{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:650;min-width:0}
+.dp-tk{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:650;min-width:0}
 .dp-tk .k{flex:none;font-weight:550;min-width:38px}
 .dp-tk>img{margin:0;border-radius:5px}
 .dp-tk .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dp-tk .pc{margin-left:auto;flex:none;font-variant-numeric:tabular-nums}
 .dp-note{font-size:12px;font-weight:600;margin-top:6px}
+/* quadrato stretto (≈1121-1250 px di pagina): con le due note in fondo ("data
+   on N of M", "No platform") gli spazi interni scendono, così il caso peggiore
+   non arriva sul bordo */
+@container (max-width:340px){
+  .dp-panel{padding-top:8px}
+  .dp-pct{margin-top:0}
+  .dp-row{margin-top:4px}
+  .dp-bw{padding-top:6px;gap:4px}
+  .dp-note{margin-top:2px}
+}
 .dp-empty{margin:auto 0;font-size:14px;font-weight:650}
 
 /* quadrato 3: il grafico, con modalità sopra e intervalli sotto; il grafico
@@ -4629,7 +4642,16 @@ function setTileLevel(tile,lv){
    qualunque siano intervallo e modalità del grafico. Sotto, il capitale
    investito, dividendi + realizzato (solo se non zero) e la riga di posizioni
    e prezzi. Il colore segue il rendimento totale. */
+/* Corpo dei numeri grandi dei quadrati: il massimo fino a 8 caratteri
+   ("€ 47.060", "+€ 1.240"), poi a scalini (9: fit0, 10-11: fit1, 12 o più:
+   fit2), così un importo lungo non esce dal quadrato. Lo decide il testo
+   finale, non quello a metà del conteggio. */
+function fitCls(txt){
+  const n=String(txt==null?'':txt).length;
+  return n<=8?'':n===9?' fit0':n<=11?' fit1':' fit2';
+}
 function renderValueTile(){
+  const hv=$('#heroValue'); if(hv)hv.className='t-big num px mask'+fitCls(money0(T.value));
   countUp($('#heroValue'),T.value,money0);
   pillChange($('#heroChg'),T.pnlPct,T.pnl);
   $('#heroChgLbl').textContent='total return';
@@ -4676,7 +4698,8 @@ function renderDayTile(){
     if(o.nData<o.n)bw.push('<div class="dp-note">data on '+o.nData+' of '+o.n+' positions</div>');
     if(cur==='all'&&Math.abs(all.none.day)>=.5)
       bw.push('<div class="dp-note">No platform <span class="num mask">'+signedEur0(all.none.day)+'</span></div>');
-    h='<div class="dp-amt num px mask">'+(Math.round(o.day)===0?'€ 0':signedEur0(o.day))+'</div>'+
+    const amt=Math.round(o.day)===0?'€ 0':signedEur0(o.day);
+    h='<div class="dp-amt num px mask'+fitCls(amt)+'">'+amt+'</div>'+
       '<div class="dp-pct num px">'+(z?nf(0,2)+'%':pctv(o.pct))+'</div>'+
       '<div class="dp-row">'+(cur==='all'?o.n+(o.n===1?' position':' positions'):
         'value <span class="num mask">'+money0(o.value)+'</span> · '+nf(T.value>0?o.value/T.value*100:0,1)+'% of portfolio')+'</div>'+
