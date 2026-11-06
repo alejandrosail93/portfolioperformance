@@ -2577,7 +2577,7 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
               Restano legate alla singola riga: Data, Operazione, Quantità, Prezzo unitario, Commissione e i due Dividendi.</div>
             <div class="field"><input type="file" id="csvFile" accept=".csv,text/csv,text/plain" style="padding:9px"></div>
             <div class="field"><label>…or paste here</label>
-              <textarea id="csvPaste" placeholder="Ticker;Nome;Categoria;Settore;Paese;Valuta;Prezzo attuale;Yield %;Rischio;Fattore;Peso Previsto %;Data;Operazione;Quantità;Prezzo unitario;Commissione;Dividendo totale;Dividendo per azione&#10;AAPL;Apple Inc.;Stocks;Technology;USA;USD;212;0,5;7;Growth;10;15/03/2024;Acquisto;25;150;4,95;;&#10;AAPL;;;;;;;;;;;12/08/2025;;25;;;;0,24&#10;AAPL;;;;;;;;;;;03/02/2026;Vendita;10;212;4,95;;"></textarea></div>
+              <textarea id="csvPaste" placeholder="Ticker;Nome;Alias;Categoria;Settore;Paese;Valuta;Prezzo attuale;Yield %;Rischio;Fattore;Peso Previsto %;Data;Operazione;Quantità;Prezzo unitario;Commissione;Dividendo totale;Dividendo per azione&#10;AAPL;Apple Inc.;Apple;Stocks;Technology;USA;USD;212;0,5;7;Growth;10;15/03/2024;Acquisto;25;150;4,95;;&#10;AAPL;;;;;;;;;;;;12/08/2025;;25;;;;0,24&#10;AAPL;;;;;;;;;;;;03/02/2026;Vendita;10;212;4,95;;"></textarea></div>
             <button class="btn btn-ghost btn-sm" id="csvParse">Read columns</button>
             <div id="csvReport"></div>
             <div id="mapArea" style="display:none;margin-top:18px">
@@ -2761,6 +2761,8 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
         <button type="button" class="btn btn-ghost btn-sm" id="fwLogoNone">Initials only</button>
         <input type="file" id="fwLogoFile" accept="image/*" hidden><input type="hidden" id="fwLogo"></div>
       <div class="hint">Resta sul tuo computer. PNG, JPG o SVG, anche non quadrato.</div></div>
+    <div class="field"><label>Alias</label><input id="fwAlias" maxlength="30" placeholder="e.g. Apple">
+      <div class="hint">Il tuo nome breve per liste e grafici. Se è vuoto si usa il ticker.</div></div>
     <div class="frow">
       <div class="field"><label>Category</label><select id="fwCls"></select></div>
       <div class="field"><label>Currency</label><select id="fwCur"></select></div>
@@ -2849,6 +2851,8 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
           <button type="button" class="btn btn-ghost btn-sm" id="fLogoNone">Initials only</button>
           <input type="file" id="fLogoFile" accept="image/*" hidden><input type="hidden" id="fLogo"></div>
         <div class="hint" id="pfLogoHint">Resta sul tuo computer. PNG, JPG o SVG, anche non quadrato.</div></div>
+      <div class="field" id="pfAlias"><label>Alias</label><input id="fAlias" maxlength="30" placeholder="e.g. Apple">
+        <div class="hint">Il tuo nome breve per liste e grafici. Se è vuoto si usa il ticker.</div></div>
       <div class="frow">
         <div class="field" id="pfCls"><label>Category</label><select id="fCls"></select></div>
         <div class="field"><label>Currency</label><select id="fCur"></select></div>
@@ -3184,6 +3188,9 @@ function normComposition(text,norm){
    cifre che ne esce si applica l'algoritmo di Luhn. Spazi e minuscole non
    contano: "ie00 b4l5 y983" è lo stesso codice di IE00B4L5Y983. */
 function normIsin(v){ return String(v==null?'':v).replace(/\s+/g,'').toUpperCase(); }
+/* Alias: il nome breve scelto dall'utente. Testo libero: solo spazi in eccesso
+   tolti, niente maiuscole forzate né troncamenti */
+function normAlias(v){ return String(v==null?'':v).replace(/\s+/g,' ').trim(); }
 function isinValid(s){
   const v=normIsin(s);
   if(!/^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(v))return false;
@@ -3382,6 +3389,8 @@ function normalizeState(){
     });
     /* Tier: solo se c'è, così i dati di prima restano identici */
     if(o.tier!=null){ const v=normPTier(o.tier); if(v!==o.tier){o.tier=v;dirty=true;} }
+    /* Alias: stesso schema, solo se c'è */
+    if(o.alias!=null){ const v=normAlias(o.alias); if(v!==o.alias){o.alias=v;dirty=true;} }
   };
   (S.positions||[]).forEach(fix);
   (S.watchlist||[]).forEach(fix);
@@ -3563,9 +3572,18 @@ const $$=s=>Array.from(document.querySelectorAll(s));
 const AV=['#6c7cff','#e8b13c','#e0679b','#a072f0','#1f9d55','#f2565b','#4b9bff','#f08a3c','#c9a27a','#c98ae0'];
 function avColor(t){ let h=0; const s=String(t||'?'); for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0; return AV[Math.abs(h)%AV.length]; }
 function avInitials(p){ const t=(p.ticker||p.name||'?').replace(/[^A-Za-z0-9]/g,''); return t.slice(0,2).toUpperCase()||'?'; }
-/* Come si chiama un titolo nelle liste (Allocazione, Contributo): il ticker, e
-   il nome solo se manca. Il nome per esteso va nel suggerimento della riga. */
-function tkLabel(o){ o=o||{}; return String(o.ticker||'').trim()||String(o.name||'').trim()||'—'; }
+/* Come si chiama un titolo in liste, tabelle, menu e grafici: l'alias scelto
+   dall'utente, se no il ticker, e il nome solo se mancano entrambi. Il nome per
+   esteso va nel suggerimento della riga. Per Yahoo, cache e chiavi resta il
+   ticker: l'alias non va mai in rete. */
+function tkLabel(o){ o=o||{}; return normAlias(o.alias)||String(o.ticker||'').trim()||String(o.name||'').trim()||'—'; }
+/* Il suggerimento accanto all'etichetta: il nome se dice qualcosa in più, e
+   con un alias anche il ticker fra parentesi ("Apple Inc. (AAPL)"). Vuoto se
+   non c'è niente da aggiungere. */
+function tkFull(o){
+  o=o||{}; const l=tkLabel(o), n=String(o.name||'').trim(), t=String(o.ticker||'').trim();
+  const nm=n&&n!==l?n:'', tk=normAlias(o.alias)&&t&&t!==l?t:''; return nm&&tk?nm+' ('+tk+')':(nm||tk);
+}
 
 /* Loghi delle aziende e degli emittenti di ETF (cartella Favicon/): SVG già
    ripuliti, con la mappa nomi/ticker → chiave. Il blocco fra i marcatori lo
@@ -5685,7 +5703,7 @@ function fillTierSelect(sel,cur){
 function matchFilters(p,f){
   if(f.search){
     const q=f.search.toLowerCase();
-    if((String(p.ticker||'')+' '+String(p.name||'')+' '+String(p.isin||'')).toLowerCase().indexOf(q)<0)return false;
+    if((String(p.alias||'')+' '+String(p.ticker||'')+' '+String(p.name||'')+' '+String(p.isin||'')).toLowerCase().indexOf(q)<0)return false;
   }
   if(f.cls&&(p.cls||'')!==f.cls)return false;
   if(f.sector&&(p.sector||'')!==f.sector)return false;
@@ -5904,7 +5922,7 @@ function renderContrib(){
   host.innerHTML=arr.map(p=>{
     const v=p[k], up=v>=0, col=up?'var(--up)':'var(--down)';
     const w=up?(maxPos>0?v/maxPos*100:0):(maxNeg>0?-v/maxNeg*100:0);
-    return '<div class="cr" data-id="'+p.id+'" style="cursor:pointer"'+(p.name&&p.name!==tkLabel(p)?' title="'+esc(p.name)+'"':'')+'>'+
+    return '<div class="cr" data-id="'+p.id+'" style="cursor:pointer"'+(tkFull(p)?' title="'+esc(tkFull(p))+'"':'')+'>'+
       '<div class="top"><span class="n">'+avatarHTML(p,{size:20,radius:6,font:9})+'<span class="nt">'+esc(tkLabel(p))+'</span></span>'+
       (day?'<span class="pc px '+(p._dayPct>=0?'up':'down')+'">'+pctv(p._dayPct)+'</span>':'')+
       '<span class="a px mask '+(up?'up':'down')+'">'+(up?'+':'−')+money0(Math.abs(v))+'</span></div>'+
@@ -5923,6 +5941,8 @@ function sortedPositions(){
   const k=UI.sortK,dir=UI.sortDir;
   return filteredPositions().slice().sort((a,b)=>{
     let x=a[k],y=b[k];
+    /* il titolo si ordina per come si vede: alias, ticker, nome */
+    if(k==='ticker'){ x=tkLabel(a); y=tkLabel(b); }
     if(k==='ticker'||k==='cls'||k==='_action'){
       x=String(x||'').toLowerCase(); y=String(y||'').toLowerCase();
       return x<y?-dir:x>y?dir:0;
@@ -5965,7 +5985,8 @@ function renderTable(){
       const dep=isDeposit(p), dash='<span class="cellsub">—</span>';
       return '<tr class="clk" data-id="'+p.id+'">'+
         '<td><div class="tk">'+avatarHTML(p)+
-          '<div class="tk-tx"><div class="t1">'+esc(dep?tkLabel(p):(p.ticker||'—'))+(p._usesTx?' <span class="cellsub" title="'+
+          '<div class="tk-tx"><div class="t1"'+(!dep&&normAlias(p.alias)&&p.ticker&&normAlias(p.alias)!==p.ticker?' title="'+esc(p.ticker)+'"':'')+'>'+
+            esc(dep?tkLabel(p):(normAlias(p.alias)||p.ticker||'—'))+(p._usesTx?' <span class="cellsub" title="'+
             (dep?'balance derived from transactions':'quantity and average cost derived from transactions')+'">⇄</span>':'')+'</div>'+
           '<div class="t2">'+esc(dep?'Deposit account':(p.name||p.cls||''))+'</div></div></div></td>'+
         '<td class="hide-sm"><span class="badge">'+esc(p.cls||'Uncategorized')+'</span></td>'+
@@ -6106,6 +6127,7 @@ const DESC_FIELDS=[
   {k:'ticker',      id:'Ticker',      get:v=>v.trim().toUpperCase()},
   {k:'isin',        id:'Isin',        get:normIsin},
   {k:'name',        id:'Name',        get:v=>v.trim()},
+  {k:'alias',       id:'Alias',       get:v=>normAlias(v)},
   {k:'logo',        id:'Logo',        get:v=>validLogo(v),        put:v=>v||''},
   {k:'cls',         id:'Cls',         get:v=>normCls(v),
     set:(pre,v)=>setClsSelect('#'+pre+'Cls',v||'Stocks')},
@@ -6315,7 +6337,7 @@ function isinFind(pre){
 /* Quali campi della scheda valgono per un tipo (true = da mostrare). Pura.
    Un conto non ha ticker, ISIN, logo, categoria (è sempre Cash), prezzi,
    rendimenti, fattore, rischio né composizione; ha il tasso annuo. */
-const POS_SECURITY_ONLY=['ticker','isin','logo','cls','price','avg','risk','yield','ter','factor','divMonths','comp','rules'];
+const POS_SECURITY_ONLY=['ticker','isin','alias','logo','cls','price','avg','risk','yield','ter','factor','divMonths','comp','rules'];
 const POS_DEPOSIT_ONLY=['rate'];
 const POS_COMMON=['name','qty','currency','dateAdded','sector','country','tier','emergency','target','platform','note'];
 function posFormFields(kind){
@@ -6327,7 +6349,7 @@ function posFormFields(kind){
 }
 /* gli elementi della scheda dei campi che dipendono dal tipo (la
    composizione la governa toggleComp, solo per gli ETF) */
-const POS_FIELD_IDS={ticker:['pfTickerRow'],isin:['pfTickerRow','isinResults'],
+const POS_FIELD_IDS={ticker:['pfTickerRow'],isin:['pfTickerRow','isinResults'],alias:['pfAlias'],
   logo:['fLogoPrev','pfLogoAct','pfLogoHint'],cls:['pfCls'],price:['pfPrice'],avg:['pfAvg'],
   risk:['pfRisk'],yield:['pfYieldRow'],ter:['pfYieldRow'],factor:['pfFactor'],
   divMonths:['pfDivMonths'],rate:['pfRate'],rules:['fRules']};
@@ -6556,7 +6578,7 @@ function savePos(){
    Chi ha semplicemente venduto deve registrare la vendita (vedi openSellAll). */
 function deletePos(id){
   const p=S.positions.filter(x=>x.id===id)[0]; if(!p)return;
-  if(!confirm('Delete "'+(p.ticker||p.name)+'" and ALL its history '+
+  if(!confirm('Delete "'+tkLabel(p)+'" and ALL its history '+
     '(including transactions and realized gains)?\n\nThis cannot be undone. '+
     'If you only sold the asset, close the position instead of deleting it.'))return;
   S.positions=S.positions.filter(x=>x.id!==id);
@@ -6718,9 +6740,10 @@ function openDrawer(id){
     '<div class="dw-hd">'+
       avatarHTML(p,{size:40,radius:12,font:14})+
       '<div style="flex:1;min-width:0">'+
-        '<div style="font-size:16.5px;font-weight:730;letter-spacing:-.2px">'+esc(p.ticker||p.name||'—')+'</div>'+
+        '<div style="font-size:16.5px;font-weight:730;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(tkLabel(p))+'</div>'+
         '<div style="font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
           esc(dep?'Deposit account'+(hasRate?' · gross rate '+nf(rate,2)+'%':''):(p.name||''))+'</div>'+
+        (!dep&&p.ticker&&tkLabel(p)!==p.ticker?'<div id="dwTicker" style="font-size:11px;color:var(--muted);letter-spacing:.3px;margin-top:2px">Ticker '+esc(p.ticker)+'</div>':'')+
         (p.isin?'<div id="dwIsin" style="font-size:11px;color:var(--muted);letter-spacing:.3px;margin-top:2px">ISIN '+esc(p.isin)+'</div>':'')+
       '</div>'+
       '<span class="badge '+a.c+'" title="'+esc(a.t)+'">'+a.s+' '+esc(a.l)+'</span>'+
@@ -6889,7 +6912,7 @@ function expoLeafItems(lvlKey,key){
   const out=[];
   activePositions().forEach(p=>{
     expoParts(p,lvlKey).forEach(c=>{
-      if(c.name===key&&c.v>0)out.push({name:p.ticker||p.name||'—',
+      if(c.name===key&&c.v>0)out.push({name:tkLabel(p),
         full:p.name||'',id:p.id,pos:p,value:c.v,total:p._value});
     });
   });
@@ -7125,7 +7148,7 @@ function perfItems(rows,size){
   /* a parità di valore (lo stesso titolo su due piattaforme, o lo stesso
      volume) decide il nome: il confronto riceve {r,v}, non la riga. Prima
      leggeva a.p, che non c'è, e la mappa andava in errore */
-  const nome=x=>String(x.r.p.ticker||x.r.p.name||'');
+  const nome=x=>tkLabel(x.r.p);
   const per=k=>(a,b)=>b[k]-a[k]||nome(a).localeCompare(nome(b));
   const val=rows.map(r=>({r:r,v:r.p._value}));
   if(size!=='volume')return {items:val.sort(per('v')).map(x=>({r:x.r,value:size==='uguale'?1:x.v})),coda:[]};
@@ -7222,7 +7245,7 @@ function renderPerfMap(){
     const w=Math.max(0,rc.w), h=Math.max(0,rc.h);
     const c=it.nd?null:heatCell(r.ret,cap,pal);
     const TL=perfTileLayout(w,h,!!logoSrc(p));
-    const title=[p.name&&p.name!==p.ticker?p.name:'',tkLabel(p),perfPct(r.ret)+' '+PERF_LBL[per],
+    const title=[tkFull(p),tkLabel(p),perfPct(r.ret)+' '+PERF_LBL[per],
       'weight '+nf(p._w,1)+'%',priv?'':'value '+money0(p._value),
       priv?'':(r.vol?'today\'s volume '+moneyShort(r.vol):'volume n/a')].filter(Boolean).join(' · ');
     return '<div class="tile ptile'+(TL.kind==='micro'?' micro':(TL.kind==='tiny'?' tiny':''))+(c?'':' nd')+'"'+
@@ -7257,7 +7280,7 @@ function renderPerfMap(){
   const show=el=>{
     const r=byId[el.getAttribute('data-id')]; if(!r||!tip)return;
     const p=r.p;
-    tip.innerHTML='<div class="d">'+esc(p.name||tkLabel(p))+'</div>'+
+    tip.innerHTML='<div class="d">'+esc(tkFull(p)||p.name||tkLabel(p))+'</div>'+
       '<div class="v">'+esc(tkLabel(p))+' · '+esc(perfPct(r.ret))+' <span style="font-weight:500;color:var(--muted)">'+PERF_LBL[per]+'</span></div>'+
       '<div class="d">weight '+nf(p._w,1)+'% · value <span class="mask">'+money0(p._value)+'</span></div>'+
       '<div class="d">'+(r.vol?'today\'s volume <span class="mask">'+moneyShort(r.vol)+'</span>':'volume n/a')+'</div>';
@@ -7295,15 +7318,15 @@ function renderCorrelation(){
   }
   const rows=elig.slice().sort((a,b)=>b._value-a._value).slice(0,12);
   const qr=tickerReturns(rows);
-  const head='<tr><th></th>'+rows.map(r=>'<th>'+esc(r.ticker)+'</th>').join('')+'</tr>';
-  const body=rows.map(ri=>'<tr><th>'+esc(ri.ticker)+'</th>'+rows.map(rj=>{
+  const head='<tr><th></th>'+rows.map(r=>'<th>'+esc(tkLabel(r))+'</th>').join('')+'</tr>';
+  const body=rows.map(ri=>'<tr><th>'+esc(tkLabel(ri))+'</th>'+rows.map(rj=>{
     if(ri.id===rj.id)return '<td><div class="corr-cell" style="background:var(--surface-3)">1,00</div></td>';
     const a=qr.per[ri.ticker],b=qr.per[rj.ticker],xs=[],ys=[];
     for(let i=0;i<a.length;i++) if(a[i]!=null&&b[i]!=null){ xs.push(a[i]); ys.push(b[i]); }
     if(xs.length<12)return '<td><div class="corr-cell" style="background:var(--surface-3);color:var(--muted)" title="not enough overlapping history">n/a</div></td>';
     const r=pearson(xs,ys);
     if(r==null)return '<td><div class="corr-cell" style="background:var(--surface-3);color:var(--muted)">n/a</div></td>';
-    return '<td><div class="corr-cell" style="background:'+corrRgba(r)+'" title="'+esc(ri.ticker)+' vs '+esc(rj.ticker)+': '+nf(r,2)+' over '+xs.length+' overlapping months">'+nf(r,2)+'</div></td>';
+    return '<td><div class="corr-cell" style="background:'+corrRgba(r)+'" title="'+esc(tkLabel(ri))+' vs '+esc(tkLabel(rj))+': '+nf(r,2)+' over '+xs.length+' overlapping months">'+nf(r,2)+'</div></td>';
   }).join('')+'</tr>').join('');
   wrap.innerHTML='<div class="corr-wrap"><table class="corr-table">'+head+body+'</table></div>'+
     (elig.length>12?'<div class="statusline">Showing the top 12 positions by weight with enough history.</div>':'')+
@@ -7781,7 +7804,7 @@ function healthSignals(sc){
   const n=sc.n, total=sc.total, cats=sc.cats, topCat=sc.topCat, overall=sc.overall;
   const top=activePositions().slice().sort((a,b)=>b._value-a._value)[0];
   const topW=top?top._value/total*100:0, al=[];
-  const nm=p=>esc(p.ticker||p.name||'—');
+  const nm=p=>esc(tkLabel(p));
   if(topW>25)al.push(['bad','!','<b>'+nm(top)+'</b> is '+topW.toFixed(0)+'% of the portfolio. Above 25% the specific risk grows.']);
   else if(topW>18)al.push(['warn','!','<b>'+nm(top)+'</b> is the largest position ('+topW.toFixed(0)+'%). Keep an eye on it.']);
   if(topCat>60)al.push(['bad','!','The largest category holds '+topCat.toFixed(0)+'% of capital: low diversification across asset classes.']);
@@ -8164,7 +8187,7 @@ function scModel(){
     if(b.missSec.length)why.push(b.missSec[0]?'sector «'+b.missSec[0]+'» not calibrated':'missing sector');
     if(b.missReg.length)why.push(b.missReg[0]?'country «'+b.missReg[0]+'» not mapped':'missing country');
     if(!b.fxKnown)why.push('currency '+(p.currency||'?')+' not calibrated');
-    if(why.length){ m.fb.push({id:p.id,ticker:p.ticker||p.name||'—',why:why.join(' · ')}); m.fbW+=p._w; }
+    if(why.length){ m.fb.push({id:p.id,ticker:tkLabel(p),why:why.join(' · ')}); m.fbW+=p._w; }
     bet.push({p:p,b:b});
   });
   /* i pesi vengono da enrich() e sommano a 100 per costruzione: se non lo
@@ -8499,7 +8522,7 @@ function rbUnits(){
   if(UI.rbMode==='tier')return tplanUnits();
   if(UI.rbMode==='pos'){
     return activePositions().slice().sort((a,b)=>b._value-a._value).map(p=>({
-      key:p.id, label:p.ticker||p.name||'—', sub:p.name&&p.ticker?p.name:'',
+      key:p.id, label:tkLabel(p), sub:p.name&&p.name!==tkLabel(p)?p.name:'',
       value:p._value, id:p.id, p:p,
       get:()=>p.targetWeight==null||p.targetWeight===''?null:num(p.targetWeight),
       set:v=>{ p.targetWeight=v; }
@@ -9127,12 +9150,12 @@ function renderRulesTax(p,c){
 function renderRulesSell(c){
   const sel=$('#rlSellSel'), host=$('#rlSell'); if(!host)return;
   const list=c.act.filter(p=>!isDeposit(p)).slice()
-    .sort((a,b)=>String(a.ticker||a.name||'').localeCompare(String(b.ticker||b.name||'')));
+    .sort((a,b)=>tkLabel(a).toLowerCase().localeCompare(tkLabel(b).toLowerCase()));
   if(!list.some(p=>p.id===UI.rulesSell))UI.rulesSell=null;
   sel.disabled=!list.length;
   sel.innerHTML='<option value="">'+(list.length?'Scegli una posizione…':'Nessuna posizione')+'</option>'+
     list.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===UI.rulesSell?' selected':'')+'>'+
-      esc(p.ticker||p.name||p.isin||'—')+'</option>').join('');
+      esc(tkLabel(p)!=='—'?tkLabel(p):(p.isin||'—'))+'</option>').join('');
   const p=list.filter(x=>x.id===UI.rulesSell)[0];
   if(!p){
     host.innerHTML='<div class="empty" style="padding:20px"><div class="sm">'+(list.length
@@ -9155,7 +9178,7 @@ function renderRulesSell(c){
   const up=p._pnl>=0;
   host.innerHTML=
     '<div class="rl-facts">'+
-      '<div><div class="l">Titolo</div><div class="v">'+esc(p.ticker||p.name||'—')+'</div></div>'+
+      '<div><div class="l">Titolo</div><div class="v">'+esc(tkLabel(p))+'</div></div>'+
       '<div><div class="l">Tier</div><div class="v">'+esc(t||'—')+'</div></div>'+
       '<div><div class="l">Peso / tetto</div><div class="v">'+nf(num(p._w),1)+'% / '+(cap==null?'nessun tetto':nfx(cap,1)+'%')+'</div></div>'+
       '<div><div class="l">Valore</div><div class="v mask">'+money0(p._value)+'</div></div>'+
@@ -9325,7 +9348,7 @@ function rulesQuarter(iso){
    non apre una posizione: non è bloccato. */
 function rulesNewThisQuarter(rows,incr,todayIso,cfg){
   const q=rulesQuarter(todayIso), already=rulesHeld(rows).filter(p=>rulesQuarter(p.dateAdded)===q);
-  const names=already.length?': '+already.map(p=>p.ticker||p.name||'—').join(', '):'';
+  const names=already.length?': '+already.map(p=>tkLabel(p)).join(', '):'';
   if(incr)return rlBox('ok','Un incremento non è una nuova posizione ('+rlPl(already.length,'nuova','nuove')+' in questo trimestre'+names+')');
   const n=already.length+1;
   return rlBox(n<cfg.newPerQuarter?'ok':'ko',rlPl(n,'nuova posizione','nuove posizioni')+' in questo trimestre con questa · ammesse meno di '+
@@ -9360,7 +9383,7 @@ function rulesRecentSales(positions,todayIso){
   const from=rulesAddDays(todayIso,-30), out=[];
   (positions||[]).forEach(p=>{ if(!p||isDeposit(p))return;
     (p.tx||[]).forEach(t=>{ const d=String(t&&t.date||'').slice(0,10);
-      if(t&&t.type==='sell'&&d>=from&&d<=todayIso)out.push({name:p.ticker||p.name||'—',date:d}); });
+      if(t&&t.type==='sell'&&d>=from&&d<=todayIso)out.push({name:tkLabel(p),date:d}); });
   });
   return out.sort((a,b)=>b.date.localeCompare(a.date));
 }
@@ -9430,10 +9453,12 @@ function renderRulesBuyBody(c){
 }
 function renderRulesBuy(c){
   const sel=$('#rlBuySel'), host=$('#rlBuy'); if(!host)return;
-  const wl=(S.watchlist||[]).slice().sort((a,b)=>rulesKey(a).localeCompare(rulesKey(b)));
-  const pos=c.act.filter(p=>!isDeposit(p)).slice().sort((a,b)=>rulesKey(a).localeCompare(rulesKey(b)));
+  /* si mostra l'alias se c'è; la chiave del registro resta rulesKey */
+  const lbl=x=>normAlias(x&&x.alias)||rulesKey(x);
+  const wl=(S.watchlist||[]).slice().sort((a,b)=>lbl(a).localeCompare(lbl(b)));
+  const pos=c.act.filter(p=>!isDeposit(p)).slice().sort((a,b)=>lbl(a).localeCompare(lbl(b)));
   if(!rulesBuySource(UI.rulesBuy,S.watchlist,c.act))UI.rulesBuy=null;
-  const o=(k,x)=>'<option value="'+esc(k)+'"'+(k===UI.rulesBuy?' selected':'')+'>'+esc(rulesKey(x)||'—')+'</option>';
+  const o=(k,x)=>'<option value="'+esc(k)+'"'+(k===UI.rulesBuy?' selected':'')+'>'+esc(lbl(x)||'—')+'</option>';
   sel.disabled=!wl.length&&!pos.length;
   sel.innerHTML='<option value="">'+(sel.disabled?'Niente da comprare':'Scegli un titolo…')+'</option>'+
     (wl.length?'<optgroup label="Watchlist · nuova posizione">'+wl.map(w=>o('w:'+w.id,w)).join('')+'</optgroup>':'')+
@@ -9448,7 +9473,7 @@ function renderRulesBuy(c){
   const x=src.o, t=normPTier(x.tier), cap=t?c.cfg.tiers[t].cap:null;
   host.innerHTML=
     '<div class="rl-facts">'+
-      '<div><div class="l">Titolo</div><div class="v">'+esc(rulesKey(x)||'—')+'</div></div>'+
+      '<div><div class="l">Titolo</div><div class="v">'+esc(lbl(x)||'—')+'</div></div>'+
       '<div><div class="l">Operazione</div><div class="v">'+(src.incr?'Incremento':'Nuova posizione')+'</div></div>'+
       '<div><div class="l">Tier / tetto</div><div class="v">'+esc(t||'—')+(t?' · '+(cap==null?'nessun tetto':nfx(cap,1)+'%'):'')+'</div></div>'+
       '<div><div class="l">Voti</div><div class="v">'+esc(scoresLine(x))+'</div></div>'+
@@ -9619,7 +9644,8 @@ function renderWatchlist(){
         PTIER_COLORS[tr]+'"></span>'+esc(tr)+'</span>':'');
     return '<tr data-id="'+w.id+'" class="clk">'+
       '<td><div class="tk">'+avatarHTML(w)+
-        '<div class="tk-tx"><div class="t1">'+esc(w.ticker||'—')+'</div>'+
+        '<div class="tk-tx"><div class="t1"'+(normAlias(w.alias)&&w.ticker&&normAlias(w.alias)!==w.ticker?' title="'+esc(w.ticker)+'"':'')+'>'+
+          esc(normAlias(w.alias)||w.ticker||'—')+'</div>'+
         '<div class="t2">'+esc(w.name||w.isin||w.cls||'')+'</div>'+
         (tags?'<div class="wl-tags">'+tags+'</div>':'')+'</div></div></td>'+
       '<td class="hide-sm"><span class="badge">'+esc(w.cls||'Uncategorized')+'</span></td>'+
@@ -9687,7 +9713,7 @@ function saveWatch(){
 }
 function deleteWatch(id){
   const w=S.watchlist.filter(x=>x.id===id)[0]; if(!w)return;
-  if(!confirm('Delete "'+(w.ticker||w.name)+'" from the watchlist?'))return;
+  if(!confirm('Delete "'+tkLabel(w)+'" from the watchlist?'))return;
   S.watchlist=S.watchlist.filter(x=>x.id!==id);
   save(); closeAll(); renderAll(); toast('Asset deleted');
 }
@@ -9707,7 +9733,7 @@ function watchToPortfolio(){
   S.positions.push(p);
   if(id)S.watchlist=S.watchlist.filter(x=>x.id!==id);
   save(); closeAll(); renderAll();
-  toast((p.ticker||p.name||p.isin)+' moved to the portfolio','ok');
+  toast((tkLabel(p)!=='—'?tkLabel(p):p.isin)+' moved to the portfolio','ok');
   if(p.ticker)refreshOne(p);
 }
 function refreshWatchOne(w){
@@ -9758,7 +9784,7 @@ function nextDividends(positions,today){
     const pm=payoutMonths(p);
     if(!pm.months.length){ unassigned++; return; }
     const per=inc/pm.months.length;
-    pm.months.forEach(m=>{ (by[m]=by[m]||[]).push({name:p.ticker||p.name||'—',amount:per}); });
+    pm.months.forEach(m=>{ (by[m]=by[m]||[]).push({name:tkLabel(p),amount:per}); });
   });
   for(let i=0;i<12;i++){
     const m=(cm-1+i)%12+1, items=by[m];
@@ -9781,7 +9807,7 @@ function renderDividends(){
     const inc=annualIncome(p);
     return '<div class="rb-row">'+
       '<div class="rb-cat"><span class="dot" style="background:'+PAL[i%PAL.length]+'"></span>'+
-        '<span class="nm">'+esc(p.ticker||p.name||'—')+'</span></div>'+
+        '<span class="nm">'+esc(tkLabel(p))+'</span></div>'+
       '<div class="rb-num mask">'+money0(p._value)+'</div>'+
       '<div><input class="rb-in" data-divid="'+p.id+'" type="text" inputmode="decimal" value="'+fnum(num(p.yield)||0)+'"></div>'+
       '<div class="rb-act num mask'+(inc>0?' up':'')+'" id="dinc-'+p.id+'">'+money0(inc)+'</div>'+
@@ -9840,7 +9866,7 @@ function renderDivCalendar(){
     if(!pm.months.length){ unassigned+=inc; nUnassigned++; return; }
     nAssigned++;
     const per=inc/pm.months.length;
-    pm.months.forEach(m=>{ buckets[m-1]+=per; detail.push({m:m,name:p.ticker||p.name,amount:per,src:pm.src}); });
+    pm.months.forEach(m=>{ buckets[m-1]+=per; detail.push({m:m,name:tkLabel(p),amount:per,src:pm.src}); });
   });
   const max=Math.max.apply(null,buckets.concat([1]));
   const totalCal=buckets.reduce((a,b)=>a+b,0);
@@ -10641,7 +10667,7 @@ function heatTickers(mIdx){
     const a=m[mIdx-1], b=m[mIdx];
     if(a==null||b==null||!isFinite(a)||!isFinite(b)||a===0)return;
     if(!heldInMonth(p,mIdx))return;
-    out.push({id:p.id,ticker:p.ticker,name:p.name||'',ret:b/a-1,closed:isClosed(p)});
+    out.push({id:p.id,ticker:p.ticker,label:tkLabel(p),name:p.name||'',ret:b/a-1,closed:isClosed(p)});
   });
   return out;
 }
@@ -10768,7 +10794,7 @@ function renderHeatMonth(){
      dell'aggregato, riusare la scala del portafoglio appiattirebbe i colori */
   const cap=heatCap(rows.map(r=>r.ret)), pal=heatPal();
   rows=rows.slice().sort(UI.heatSort==='abc'
-    ? (a,b)=>String(a.ticker).localeCompare(String(b.ticker),'it')
+    ? (a,b)=>String(a.label||a.ticker).localeCompare(String(b.label||b.ticker),'it')
     : (a,b)=>b.ret-a.ret);
   const neg=rgbCss(pal.down), neu=rgbCss(pal.neutral), pos=rgbCss(pal.up);
   body.innerHTML=
@@ -10782,8 +10808,8 @@ function renderHeatMonth(){
     '<div class="hm-tiles">'+rows.map(r=>{
       const c=heatCell(r.ret,cap,pal);
       return '<div class="hm-t" style="background:'+rgbCss(c.bg)+';color:'+heatFg(c.fg)+'" '+
-        'title="'+esc(r.ticker+(r.name?' · '+r.name:''))+'">'+
-        '<div class="tk">'+esc(r.ticker)+(r.closed?' ·':'')+'</div>'+
+        'title="'+esc((r.label||r.ticker)+(r.name&&r.name!==(r.label||r.ticker)?' · '+r.name:'')+(r.label&&r.label!==r.ticker?' ('+r.ticker+')':''))+'">'+
+        '<div class="tk">'+esc(r.label||r.ticker)+(r.closed?' ·':'')+'</div>'+
         '<div class="rt">'+esc(pctIt(r.ret))+'</div>'+
         (r.name?'<div class="nm">'+esc(r.name)+'</div>':'')+'</div>';
     }).join('')+'</div>'+
@@ -10822,8 +10848,8 @@ function renderClosed(){
     rows.map(p=>{
       const s=closedSummary(p);
       return '<tr>'+
-        '<td><div style="font-weight:650">'+esc(p.ticker||p.name||'—')+'</div>'+
-          (p.name&&p.ticker?'<div class="cellsub">'+esc(p.name)+'</div>':'')+'</td>'+
+        '<td><div style="font-weight:650">'+esc(tkLabel(p))+'</div>'+
+          (p.name&&p.name!==tkLabel(p)?'<div class="cellsub">'+esc(p.name)+'</div>':'')+'</td>'+
         '<td>'+(s.from?fmtDate(s.from):'—')+'<div class="cellsub">'+
           (s.to?'closed on '+fmtDate(s.to):'')+'</div></td>'+
         '<td class="num mask">'+money0(s.bought)+'</td>'+
@@ -10847,18 +10873,18 @@ function allTxRows(){
   const rows=[];
   S.positions.forEach(p=>(p.tx||[]).forEach(t=>{ if(t&&t.type)rows.push({p:p,t:t}); }));
   return rows.sort((a,b)=>String(b.t.date).localeCompare(String(a.t.date))||
-    String(a.p.ticker||'').localeCompare(String(b.p.ticker||''),'en'));
+    tkLabel(a.p).localeCompare(tkLabel(b.p),'en'));
 }
 const TX_BADGE={buy:'u',sell:'d',div:'g',fee:'',int:'g'};
 function populateTxFilters(all){
   const sp=$('#txFltPos'), st=$('#txFltType'); if(!sp||!st)return;
   const seen={},opts=[];
   all.forEach(({p})=>{ if(!seen[p.id]){ seen[p.id]=1; opts.push(p); } });
-  opts.sort((a,b)=>String(a.ticker||a.name||'').localeCompare(String(b.ticker||b.name||''),'en'));
+  opts.sort((a,b)=>tkLabel(a).toLowerCase().localeCompare(tkLabel(b).toLowerCase(),'en'));
   if(UI.txFilters.pos&&!seen[UI.txFilters.pos])UI.txFilters.pos='';
   sp.innerHTML='<option value="">Asset: all</option>'+opts.map(p=>
     '<option value="'+esc(p.id)+'"'+(UI.txFilters.pos===p.id?' selected':'')+'>'+
-    esc(p.ticker||p.name||'—')+'</option>').join('');
+    esc(tkLabel(p))+'</option>').join('');
   /* con un conto deposito acquisti e vendite comprendono versamenti e
      prelievi, e compaiono gli interessi; senza, il menu resta quello di sempre */
   const dep=all.some(({p,t})=>isDeposit(p)||t.type==='int');
@@ -10901,8 +10927,8 @@ function renderTxAll(){
       const hasPrice=hasQty||(t.type==='div'&&t.amount==null);
       const dash='<span class="cellsub">–</span>';
       return '<tr class="clk" data-txpos="'+esc(p.id)+'">'+
-        '<td><div style="font-weight:650">'+esc(p.ticker||p.name||'—')+'</div>'+
-          (p.name&&p.ticker?'<div class="cellsub">'+esc(p.name)+'</div>':'')+'</td>'+
+        '<td><div style="font-weight:650">'+esc(tkLabel(p))+'</div>'+
+          (p.name&&p.name!==tkLabel(p)?'<div class="cellsub">'+esc(p.name)+'</div>':'')+'</td>'+
         '<td><span class="badge '+(TX_BADGE[t.type]||'')+'">'+k.s+' '+esc(txLabel(t,p))+'</span></td>'+
         '<td class="num">'+(t.date?fmtDate(t.date):dash)+'</td>'+
         '<td class="num">'+(hasQty?qtyf(num(t.qty)):dash)+'</td>'+
@@ -11452,7 +11478,7 @@ function parseCSV(text){
   return rows.filter(r=>r.some(c=>c.trim()!==''));
 }
 const CSV_FIELDS=[
-  ['ticker','Ticker / Symbol *'],['isin','ISIN'],['name','Name'],['cls','Category'],['sector','Sector'],
+  ['ticker','Ticker / Symbol *'],['isin','ISIN'],['name','Name'],['alias','Alias'],['cls','Category'],['sector','Sector'],
   ['country','Country / Region'],['currency','Currency'],['platform','Platform'],['qty','Quantity *'],['avg','Average / trade price *'],
   ['price','Current price'],['yield','Dividend yield %'],['ter','TER %'],['risk','Risk 3–9'],['factor','Factor'],
   ['tier','Tier'],['quant','QUANT score'],['qual','QUAL score'],['score','Total score'],
@@ -11465,6 +11491,8 @@ const CSV_HINTS={
   ticker:['ticker','simbolo','symbol','strumento','titolo'],
   isin:['isin','codice isin'],
   name:['nome','name','descrizione','description'],
+  /* parole più lunghe di 'nome' e 'name': "Nome breve" e "Short name" vanno qui */
+  alias:['alias','sigla','nome breve','nome corto','short name','nickname','soprannome'],
   cls:['categoria','classe','asset','tipo','class','category'],
   sector:['settore','sector','comparto','industry'],
   country:['paese','country','area','geograf','region','nazione','stato','nation'],
@@ -11621,6 +11649,7 @@ function csvRead(){
 function csvPosFields(){
   return [
     ['name','Name',v=>v],
+    ['alias','Alias',v=>normAlias(v)],
     ['cls','Category',v=>normCls(v)],
     ['sector','Sector',v=>normSector(v)],
     ['country','Country / Region',v=>rememberCountry(v)],
@@ -11786,13 +11815,13 @@ function exportPositions(soloAperte){
   const list=aperte?S.positions.filter(isHeld):S.positions;
   if(!list.length){ toast(aperte?'No open positions to export':'No positions to export','err'); return; }
   const n=list.length;
-  const head=['Ticker','ISIN','Nome','Categoria','Settore','Paese','Valuta','Piattaforma','Quantità','Prezzo carico',
+  const head=['Ticker','ISIN','Nome','Alias','Categoria','Settore','Paese','Valuta','Piattaforma','Quantità','Prezzo carico',
     'Prezzo attuale','Yield %','TER %','Rischio','Fattore','Tier','QUANT','QUAL','Voto totale',
     'Peso previsto %','In portafoglio dal','Mesi stacco',
     'Chiusa il','Valore EUR','G/P EUR','G/P %','Realizzato EUR'];
   const lines=[head.join(',')];
   list.forEach(p=>lines.push([
-    p.ticker,p.isin||'',p.name||'',p.cls||'',p.sector||'',p.country||'',p.currency||'EUR',normPlatform(p.platform),
+    p.ticker,p.isin||'',p.name||'',p.alias||'',p.cls||'',p.sector||'',p.country||'',p.currency||'EUR',normPlatform(p.platform),
     p._q,p._avg,num(p.price),p.yield==null?'':num(p.yield),p.ter==null||p.ter===''?'':num(p.ter),Math.round(num(p.risk))||6,
     normFactor(p.factor),p.tier||'',
     ...['quant','qual','score'].map(k=>p[k]==null||p[k]===''?'':num(p[k])),
