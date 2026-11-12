@@ -1,0 +1,1434 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Castello del portafoglio</title>
+<style>
+/* Castello del portafoglio: pagina separata da index.html, offline, senza
+   dipendenze di rete (Three.js r128 e OrbitControls sono in castello/vendor/).
+   Legge le posizioni salvate dalla piattaforma in localStorage e non scrive nulla.
+   Layout: scena 3D a tutta pagina. Sopra comandi e zone, a sinistra l'elenco,
+   a destra diagnosi e scheda, in basso la legenda. Su telefono i pannelli
+   diventano un foglio a schede sotto la scena. */
+:root{
+  color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#DDEEF7; --ink:#0E1B3D; --muted:#4E5D7C;
+  --panel:rgba(255,255,255,.9); --panel-solid:#FFFFFF; --line:rgba(14,27,61,.16); --soft:rgba(14,27,61,.06);
+  --gold:#E3A81C; --gold-ink:#2E2100; --gain:#0A6A8E; --loss:#B93A0A; --alert:#B4231F; --good:#1E6B45; --focus:#1D4ED8;
+  --shadow:0 8px 28px rgba(14,27,61,.16);
+  --font-display:ui-rounded,'SF Pro Rounded','Segoe UI',system-ui,sans-serif;
+  --font-body:system-ui,-apple-system,'Segoe UI',sans-serif;
+  --sh:44%;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0A1226; --ink:#EAF0FF; --muted:#A3B0CE;
+    --panel:rgba(14,22,44,.88); --panel-solid:#101A35; --line:rgba(234,240,255,.2); --soft:rgba(234,240,255,.07);
+    --gold:#F2BE3A; --gold-ink:#241A00; --gain:#52C6E4; --loss:#FF8F55; --alert:#FF8A80; --good:#6FD6A0; --focus:#8AB4FF;
+    --shadow:0 8px 28px rgba(0,0,0,.45);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0A1226; --ink:#EAF0FF; --muted:#A3B0CE;
+  --panel:rgba(14,22,44,.88); --panel-solid:#101A35; --line:rgba(234,240,255,.2); --soft:rgba(234,240,255,.07);
+  --gold:#F2BE3A; --gold-ink:#241A00; --gain:#52C6E4; --loss:#FF8F55; --alert:#FF8A80; --good:#6FD6A0; --focus:#8AB4FF;
+  --shadow:0 8px 28px rgba(0,0,0,.45);
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:13px;line-height:1.4;overflow:hidden}
+*{box-sizing:border-box}
+/* Privacy: come nella piattaforma, gli importi sfocati se S.settings.privacy è acceso */
+body.privacy .mask{filter:blur(7px);user-select:none;-webkit-user-select:none}
+#app{position:relative;width:100%;height:100%;overflow:hidden}
+#stage{position:absolute;inset:0;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:grab}
+#gl:active{cursor:grabbing}
+#gl.pick{cursor:pointer}
+#lead{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;white-space:nowrap;font:600 10.5px/1 var(--font-body);padding:3px 5px;border-radius:5px;background:var(--panel-solid);border:1px solid var(--line);color:var(--ink);will-change:transform;font-variant-numeric:tabular-nums}
+.lbl b{font-weight:600}
+.lbl .more{display:none;font-weight:500;color:var(--muted)}
+.lbl.det .more{display:inline}
+.fl{display:inline-block;width:7px;height:8px;margin-left:3px;background:var(--alert);clip-path:polygon(0 0,100% 50%,0 100%)}
+.lbl.dim{opacity:.28}
+.lbl.sel{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold);z-index:2}
+.lbl.out{border-style:dashed}
+.lbl.army{background:var(--ink);color:var(--bg);border-color:transparent;font-size:11px;padding:4px 7px}
+.lbl.title{font:600 12px/1 var(--font-display);letter-spacing:.06em;text-transform:uppercase;background:var(--gold);color:var(--gold-ink);border-color:transparent;padding:5px 9px}
+.lbl.water{font-weight:500;font-style:italic}
+#tip{position:absolute;z-index:4;pointer-events:none;padding:7px 10px;border-radius:8px;background:var(--panel-solid);border:1px solid var(--line);box-shadow:var(--shadow);font-size:12px;max-width:300px;font-variant-numeric:tabular-nums}
+#tip b{font-family:var(--font-display);font-weight:600}
+#tip small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.ui{position:absolute;inset:0;z-index:2;pointer-events:none;display:grid;gap:8px;
+  grid-template-columns:292px minmax(0,1fr) 322px;grid-template-rows:auto auto minmax(0,1fr) auto;
+  grid-template-areas:"top top top" "zones zones zones" "left center right" "foot foot foot";
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.ui>*{min-width:0;min-height:0}
+.top{grid-area:top;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.brand{display:flex;align-items:center;gap:9px;pointer-events:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:7px 12px;box-shadow:var(--shadow);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);min-width:0}
+.brand>div{min-width:0}
+.logo{position:relative;width:24px;height:13px;background:var(--gold);border-radius:2px;margin-top:6px;flex:none}
+.logo::before,.logo::after{content:"";position:absolute;top:-6px;width:6px;height:6px;background:var(--gold);border-radius:1px}
+.logo::before{left:0;box-shadow:9px 0 0 var(--gold)}.logo::after{right:0}
+h1{margin:0;font:600 18px/1.1 var(--font-display);letter-spacing:.005em;white-space:nowrap}
+.stato{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stato:empty{display:none}
+.stato .avv{color:var(--alert);font-weight:600}
+.actions{display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto;align-items:center;margin-left:auto}
+.btn,.search input,.seg{font:600 12px/1 var(--font-body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:9px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.btn,.search input{padding:9px 11px}
+.btn{cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--panel-solid)}
+.btn[aria-pressed="true"]{background:var(--gold);color:var(--gold-ink);border-color:transparent}
+.btn.primary{background:var(--gold);color:var(--gold-ink);border-color:transparent}
+.seg{display:inline-flex;padding:3px;gap:2px;pointer-events:auto}
+.seg button{font:inherit;color:var(--ink);background:transparent;border:0;border-radius:6px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+.seg button:hover{background:var(--soft)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg .cap{align-self:center;padding:0 4px 0 7px;color:var(--muted);font-weight:500}
+:is(.btn,.seg button,.search input,.row,.dx,.x,summary,#gl,.tabs button):focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.search input{width:168px;font-weight:500}
+.search input::placeholder{color:var(--muted)}
+.zones{grid-area:zones;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;pointer-events:auto;justify-self:start;max-width:100%}
+.zones::-webkit-scrollbar{display:none}
+.zones .btn{flex:none;padding:7px 11px}
+.lcol,.rcol,.ccol{display:flex;flex-direction:column;gap:8px}
+.lcol{grid-area:left}.rcol{grid-area:right}.ccol{grid-area:center;justify-content:flex-end;align-items:center}
+#free{flex:1;align-self:stretch;min-height:120px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);pointer-events:auto;display:flex;flex-direction:column;min-height:0}
+.ph{display:flex;align-items:center;gap:8px;padding:10px 12px 6px;font:600 11px/1 var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pb{overflow:auto;padding:0 8px 10px;scrollbar-width:thin;min-height:0}
+#paneList{flex:1}
+#paneDiag{flex:1}
+details.panel>summary{cursor:pointer;list-style:none;padding:10px 12px;font:600 11px/1 var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+details.panel>summary::-webkit-details-marker{display:none}
+details.panel>summary::after{content:"+";font-size:16px;line-height:.6}
+details.panel[open]>summary::after{content:"–"}
+
+.grp{margin:8px 4px 3px;display:flex;justify-content:space-between;gap:8px;font:600 11.5px/1.2 var(--font-display);letter-spacing:.02em}
+.grp em{font-style:normal;color:var(--muted);font:500 11px/1.2 var(--font-body);font-variant-numeric:tabular-nums}
+.row{display:grid;grid-template-columns:14px 70px minmax(0,1fr) 48px 44px;gap:7px;align-items:center;width:100%;text-align:left;font:inherit;color:var(--ink);background:transparent;border:0;border-radius:7px;padding:4px 5px;cursor:pointer}
+.row:hover,.row.hov{background:var(--soft)}
+.row.sel{background:var(--gold);color:var(--gold-ink)}
+.row.sel .nm,.row.sel .pc{color:inherit}
+.sw{width:12px;height:12px;border-radius:2px;border:1px solid var(--line)}
+.sw.etf{height:7px;width:14px}
+.sw.out{border-style:dashed;border-color:var(--muted)}
+.row .tk{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .nm{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.row .pc{font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;text-align:right}
+.row .ty{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.sel .ty{color:inherit}
+.empty{color:var(--muted);padding:2px 5px 6px;font-size:12px}
+
+.dsec{padding:2px 4px 8px}
+.dsec h2{margin:6px 0 2px;font:600 15px/1.2 var(--font-display);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.dsec h2 span{font:500 11.5px/1.2 var(--font-body);color:var(--muted);font-variant-numeric:tabular-nums}
+.liq{margin:4px 0 6px;font-size:12px;color:var(--muted)}
+.rl{font:600 10.5px/1 var(--font-body);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:8px 0 3px}
+.dx{display:grid;grid-template-columns:16px minmax(0,1fr);gap:6px;width:100%;text-align:left;font:inherit;color:var(--ink);background:transparent;border:0;border-radius:7px;padding:4px 5px;cursor:pointer;font-variant-numeric:tabular-nums}
+.dx:hover{background:var(--soft)}
+.dx i{font-style:normal;font-weight:600;color:var(--alert)}
+.dx.ok{cursor:default}
+.dx.ok:hover{background:transparent}
+.dx.ok i{color:var(--good)}
+.dx.ok.avv i{color:var(--alert)}
+.dx b{font-weight:600}
+.dx small{color:var(--muted);font-size:11.5px}
+
+.card{padding:12px 14px}
+.card-empty{color:var(--muted)}
+.card-top{display:flex;align-items:center;gap:8px}
+.tag{font:600 10.5px/1 var(--font-body);letter-spacing:.07em;text-transform:uppercase;padding:4px 7px;border-radius:999px;background:var(--gold);color:var(--gold-ink)}
+.kind{font-size:12px;color:var(--muted)}
+.x{margin-left:auto;width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:17px;line-height:1;cursor:pointer}
+.x:hover{background:var(--panel-solid)}
+.card h2{margin:7px 0 0;font:600 19px/1.15 var(--font-display);text-wrap:balance;overflow-wrap:anywhere}
+.tick{font-size:12px;color:var(--muted);letter-spacing:.04em;overflow-wrap:anywhere}
+.big{display:flex;gap:20px;margin:8px 0 4px}
+.big .k{display:block;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.big .v{font:500 24px/1.1 var(--font-display);font-variant-numeric:tabular-nums}
+.up{color:var(--gain)}.dn{color:var(--loss)}.na{color:var(--muted)}
+.card dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px;margin:8px 0 0;font-size:12.5px}
+.card dt{color:var(--muted)}.card dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:500;overflow-wrap:anywhere}
+.card .fx{margin:8px 0 0;font-size:12px;color:var(--muted)}
+.card .al{margin:8px 0 0;font-size:12.5px;color:var(--alert);font-weight:500}
+
+.leg{padding:0 12px 10px;font-size:12.5px;overflow:auto}
+.leg ul{list-style:none;margin:4px 0 8px;padding:0;display:grid;gap:4px}
+.leg li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;align-items:center}
+.leg p{margin:6px 0;color:var(--muted);font-size:12px}
+.gl{display:inline-block;background:var(--muted)}
+.gl.t{width:9px;height:16px;justify-self:center}.gl.w{width:20px;height:7px}
+.gl.g{width:16px;height:12px;background:transparent;border:1.5px dashed var(--muted)}
+.gl.f{width:12px;height:9px;background:var(--alert);justify-self:center;clip-path:polygon(0 0,100% 50%,0 100%)}
+.gl.b{width:7px;height:5px;justify-self:center}
+.gl.s{width:14px;height:11px;background:#D9C9A3;border:1.5px dashed var(--muted);justify-self:center}
+.gl.c{width:12px;height:14px;background:#1E4FC2;clip-path:polygon(50% 0,100% 100%,0 100%);justify-self:center}
+
+.foot{grid-area:foot;display:flex;flex-direction:column;gap:5px;pointer-events:auto}
+.legbar{display:flex;gap:5px 12px;flex-wrap:wrap;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:11.5px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.legbar .lk{font:600 10.5px/1 var(--font-body);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.chipc{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.chipc i{width:11px;height:11px;border-radius:2px;border:1px solid var(--line);display:inline-block}
+.chipc i.dash{border:1.5px dashed var(--muted)}
+.scale{display:inline-block;width:120px;height:9px;border-radius:5px;border:1px solid var(--line)}
+.notes{display:flex;gap:10px;align-items:baseline;font-size:11.5px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px 10px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.notes .fix{flex:none;color:var(--ink);font-weight:600}
+.notes details{min-width:0;flex:1}
+.notes summary{cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;list-style:none}
+.notes summary::-webkit-details-marker{display:none}
+.notes details[open] summary{white-space:normal}
+
+.tabs{display:none}
+.nogl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;pointer-events:none;font:500 16px/1.4 var(--font-display)}
+
+/* Stato vuoto: nessuna posizione da mostrare, nessuna scena */
+#vuoto{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px 16px;text-align:center;overflow:auto}
+#app.vuoto #vuoto{display:flex}
+#app.vuoto #stage,#app.vuoto .ui{display:none}
+.vbox{max-width:460px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 24px 22px;box-shadow:var(--shadow)}
+.vbox .logo{display:inline-block;margin:6px 0 0}
+.vbox h1{white-space:normal;font-size:20px;line-height:1.2;margin:14px 0 8px;text-wrap:balance}
+.vbox p{margin:0 0 12px;color:var(--muted);font-size:13.5px;line-height:1.45}
+.vbox .btn{display:inline-block;text-decoration:none;margin-top:4px;padding:10px 14px}
+
+@media (min-width:900px) and (max-width:1699px){
+  .ui{grid-template-columns:minmax(0,1fr) 318px;grid-template-areas:"top top" "zones zones" "center right" "foot foot"}
+  .lcol,.rcol{display:contents}
+  .lcol>.pane,.rcol>.pane{grid-area:right;display:none;margin-top:46px}
+  .lcol>.pane.on,.rcol>.pane.on{display:flex}
+  #paneCard{align-self:start}
+  #paneLeg>summary{display:none}
+  .tabs{display:flex;grid-area:right;align-self:start;height:38px;pointer-events:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  .tabs button{flex:1;font:600 12px/1 var(--font-body);color:var(--ink);background:transparent;border:0;border-radius:7px;cursor:pointer}
+  .tabs button:hover{background:var(--soft)}
+  .tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+}
+
+@media (max-width:899px){
+  #stage{bottom:var(--sh)}
+  .ui{display:block;padding-block:8px}
+  .top{gap:6px}
+  .brand{padding:6px 10px}
+  h1{font-size:15px}
+  .actions{margin:0;width:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
+  .actions::-webkit-scrollbar{display:none}
+  .actions>*{flex:none}
+  .search input{width:132px}
+  .btn,.search input{padding:8px 10px}
+  .zones{margin-top:6px}
+  .zones .btn{padding:6px 10px}
+  .lcol,.rcol,.ccol{display:contents}
+  #free{display:none}
+  .tabs{display:flex;position:absolute;left:0;right:0;top:calc(100% - var(--sh));height:42px;z-index:3;background:var(--panel-solid);border-top:1px solid var(--line);border-bottom:1px solid var(--line);pointer-events:auto;overflow-x:auto;scrollbar-width:none;
+    padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:1 0 auto;font:600 12px/1 var(--font-body);color:var(--muted);background:transparent;border:0;border-bottom:2px solid transparent;padding:0 10px;cursor:pointer}
+  .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--gold)}
+  .pane{display:none!important;position:absolute;left:0;right:0;bottom:0;top:calc(100% - var(--sh) + 42px);width:auto!important;border:0;border-radius:0;box-shadow:none;background:var(--panel-solid);backdrop-filter:none;-webkit-backdrop-filter:none;overflow:auto;
+    padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
+  .pane.on{display:flex!important}
+  #paneCard{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .leg{padding-left:8px;padding-right:8px}
+  details.pane>summary{display:none}
+  .foot{position:absolute;left:0;right:0;bottom:var(--sh);padding:0 8px 6px;gap:4px}
+  .legbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:5px 8px;font-size:11px}
+  .legbar::-webkit-scrollbar{display:none}
+  .legbar>*{flex:none}
+  .notes{display:none}
+  .lbl{font-size:10px;padding:2px 4px}
+}
+@media (prefers-reduced-motion:reduce){ *{scroll-behavior:auto!important} }
+</style>
+</head>
+<body>
+<div id="app" class="vuoto">
+  <div id="stage">
+    <canvas id="gl" tabindex="0" aria-label="Castello del portafoglio in 3D. Ogni pezzo è una posizione: torri per le azioni, muri con stendardo per ETF, ETC ed ETP. Frecce sinistra e destra scorrono le posizioni in ordine di peso, Esc deseleziona. L'elenco a fianco contiene gli stessi dati in forma di testo."></canvas>
+    <canvas id="lead" aria-hidden="true"></canvas>
+    <div id="labels" aria-hidden="true"></div>
+    <div id="tip" hidden></div>
+  </div>
+  <div class="sr" id="live" aria-live="polite"></div>
+
+  <div id="vuoto" role="status">
+    <div class="vbox">
+      <span class="logo" aria-hidden="true"></span>
+      <h1 id="vuotoT">Apri la piattaforma e aggiungi delle posizioni</h1>
+      <p id="vuotoD">Il castello si costruisce dalle posizioni che la piattaforma salva in questo browser. Qui non ce ne sono ancora.</p>
+      <p id="vuotoN">Se nella piattaforma le posizioni ci sono già, apri il castello dal link «Castle» delle sue Impostazioni: così le due pagine stanno nella stessa finestra del browser e leggono gli stessi dati. In una finestra privata ogni scheda ha dati suoi e il castello resta vuoto.</p>
+      <a class="btn primary" href="index.html">Apri la piattaforma</a>
+    </div>
+  </div>
+
+  <div class="ui">
+    <header class="top">
+      <div class="brand"><span class="logo" aria-hidden="true"></span><div><h1>Castello del portafoglio</h1><div class="stato" id="stato" title="Ultimo aggiornamento dei prezzi nella piattaforma. Il castello si ricostruisce a ogni salvataggio della piattaforma."></div></div></div>
+      <div class="actions">
+        <div class="search">
+          <label class="sr" for="search">Cerca una posizione</label>
+          <input id="search" list="tickers" placeholder="Cerca ticker o nome" autocomplete="off" spellcheck="false">
+          <datalist id="tickers"></datalist>
+        </div>
+        <div class="seg" id="segColor" role="group" aria-label="Colora per">
+          <span class="cap">Colora per</span>
+          <button type="button" data-c="pil" aria-pressed="true">Pilastro</button>
+          <button type="button" data-c="rend" aria-pressed="false">Rendimento</button>
+        </div>
+        <button class="btn" id="btnGhost" type="button" aria-pressed="true" title="Contorni tratteggiati grandi quanto il peso target del titolo">Target</button>
+        <button class="btn" id="btnSpin" type="button" aria-pressed="true">Giro</button>
+      </div>
+    </header>
+
+    <nav class="zones" id="zones" aria-label="Zone del castello"></nav>
+
+    <div class="lcol">
+      <section class="panel pane on" id="paneList" data-pane="elenco" aria-label="Elenco delle posizioni">
+        <div class="ph"><span>Elenco</span></div>
+        <div class="pb" id="listBody"></div>
+      </section>
+      <details class="panel pane" id="paneLeg" data-pane="legenda">
+        <summary>Come si legge</summary>
+        <div class="leg" id="legBody"></div>
+      </details>
+    </div>
+
+    <div class="ccol">
+      <div id="free"></div>
+    </div>
+
+    <div class="rcol">
+      <section class="panel pane" id="paneDiag" data-pane="diagnosi" aria-label="Diagnosi del castello">
+        <div class="ph"><span>Diagnosi</span></div>
+        <div class="pb" id="diagBody"></div>
+      </section>
+      <section class="panel pane card" id="paneCard" data-pane="scheda" aria-label="Scheda di dettaglio">
+        <div id="cardBody"></div>
+      </section>
+    </div>
+
+    <footer class="foot">
+      <div class="legbar" id="legbar" aria-label="Legenda dei colori"></div>
+      <div class="notes">
+        <span class="fix">Visualizzazione descrittiva, non consulenza finanziaria.</span>
+        <details><summary id="notesLine"></summary></details>
+      </div>
+    </footer>
+
+    <div class="tabs" id="tabs" role="tablist" aria-label="Pannelli">
+      <button type="button" role="tab" data-t="elenco" aria-selected="true">Elenco</button>
+      <button type="button" role="tab" data-t="diagnosi" aria-selected="false">Diagnosi</button>
+      <button type="button" role="tab" data-t="scheda" aria-selected="false">Scheda</button>
+      <button type="button" role="tab" data-t="legenda" aria-selected="false">Legenda</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* CASTELLO:PURO:INIZIO
+   Dati, modello, geometria e testi dei pannelli: niente DOM, niente THREE,
+   niente rete.
+   test/test-castello.js estrae questo blocco, fino al marcatore di fine, e lo
+   esegue in Node. La pagina legge lo stato della piattaforma e non lo scrive mai. */
+const KEY='pf_v2';            /* la chiave di index.html: qui si legge soltanto */
+/* R2: peso massimo (%) di una singola azione. È una costante: nell'artefatto
+   veniva dal Wallet, nella piattaforma non c'è un dato da cui derivarla. */
+const CASTELLO_THR=3;
+const EPS_QTY=1e-9;           /* come in index.html: sotto questa quantità il titolo non è in portafoglio */
+
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const sum=(a,f)=>a.reduce((s,x)=>s+(f?f(x):x),0);
+const r1=v=>Math.round(v*10)/10;
+const fin=v=>typeof v==='number'&&isFinite(v);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf1=new Intl.NumberFormat('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1});
+const nf2=new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fE=v=>String(Math.round(Math.abs(v))).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+' €';
+/* un importo in euro nell'HTML: sempre dentro .mask, così la privacy lo sfoca */
+const eur=v=>'<span class="mask">'+fE(v)+'</span>';
+const fP=v=>nf1.format(v)+'%';
+const fP2=v=>nf2.format(v)+'%';
+const fPw=v=>v<0.1?fP2(v):fP(v);
+const fPs=v=>(v>0?'+':v<0?'−':'')+nf1.format(Math.abs(v))+'%';
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ───────── Tier, zone, pilastri ───────── */
+/* I tier sono quelli canonici della piattaforma (PTIERS), nell'ordine del piano
+   per tier (TPLAN_ORDER). */
+const TIERS=['Core','Satellite','Thematic','Hedge','Speculative','Recovery','Cash'];
+const ZONA_OF={Core:'mastio',Satellite:'cinta',Thematic:'tematici',Hedge:'antemurale',Speculative:'torrette',Recovery:'cortile',Cash:'fossato'};
+const ZONE=[
+  {id:'mastio',nome:'Mastio',tier:'Core',desc:'Core'},
+  {id:'cinta',nome:'Cinta',tier:'Satellite',desc:'Satellite'},
+  {id:'tematici',nome:'Tematici',tier:'Thematic',desc:'Thematic'},
+  {id:'antemurale',nome:'Antemurale',tier:'Hedge',desc:'Hedge'},
+  {id:'torrette',nome:'Torrette',tier:'Speculative',desc:'Speculative'},
+  {id:'cortile',nome:'Cortile',tier:'Recovery',desc:'Recovery'},
+  {id:'fossato',nome:'Fossato',tier:'Cash',desc:'Cash'},
+  {id:'fuori',nome:'Fuori piano',desc:'oltre il fossato'}];
+const ZONE_BY=Object.fromEntries(ZONE.map(z=>[z.id,z]));
+/* Gli stessi sinonimi di PTIER_ALIAS in index.html (un test controlla che
+   coincidano): lo stato salvato è già normalizzato, questa è la rete di sicurezza. */
+const TIER_ALIAS={
+  core:'Core', nucleo:'Core',
+  cash:'Cash', 'liquidità':'Cash', liquidita:'Cash', monetario:'Cash',
+  hedge:'Hedge', copertura:'Hedge', coperture:'Hedge',
+  speculative:'Speculative', speculativo:'Speculative', speculativa:'Speculative',
+  thematic:'Thematic', tematico:'Thematic', tematica:'Thematic',
+  recovery:'Recovery', recupero:'Recovery', turnaround:'Recovery',
+  satellite:'Satellite', satelliti:'Satellite'
+};
+function normTier(v){
+  const s=String(v==null?'':v).normalize('NFC').replace(/\s+/g,'').toLowerCase();
+  return TIER_ALIAS[s]||'';
+}
+/* La zona del castello per un tier; senza tier il titolo sta fuori piano. */
+function zonaDa(tier){ return ZONA_OF[normTier(tier)]||'fuori'; }
+
+/* Palette distinguibile anche con daltonismo (Okabe–Ito), più grigio per "non classificato". */
+const PIL=[
+  {id:'ai',nome:'AI & Tecnologia',c:'#0072B2'},
+  {id:'salute',nome:'Salute & Biotech',c:'#CC79A7'},
+  {id:'energia',nome:'Energia & Infrastrutture',c:'#E69F00'},
+  {id:'globale',nome:'Mercato globale',c:'#F0E442'},
+  {id:'difesa',nome:'Difesa del capitale',c:'#009E73'},
+  {id:'spec',nome:'Speculativo',c:'#D55E00'},
+  {id:'nc',nome:'Non classificato',c:'#B4BAC6'}];
+const PIL_BY=Object.fromEntries(PIL.map(p=>[p.id,p]));
+const SAND='#D9C9A3',ND='#9AA1AE';
+/* Il pilastro si deduce da classe e settore della piattaforma: non c'è un campo
+   "tema". Prima la classe, poi il settore; tutto il resto è "non classificato". */
+const CLS_PIL={'bonds':'difesa','commodities':'difesa','crypto':'spec'};
+const SETT_PIL={'technology':'ai','communication services':'ai','healthcare':'salute',
+  'energy':'energia','utilities':'energia','industrials':'energia','multi-sector':'globale'};
+function pilastroDa(pos){
+  const o=pos||{},low=v=>String(v==null?'':v).trim().toLowerCase();
+  return CLS_PIL[low(o.cls)]||SETT_PIL[low(o.settore!=null?o.settore:o.sector)]||'nc';
+}
+/* Esercito "Capex AI": elenco fisso di ticker, scelto dall'utente nell'artefatto. */
+const AI_SET=new Set(['NVDA','ASML','AVGO','GOOG','GOOGL','META','MSFT','AMZN','VRT','APH','6146','GEV','ARKI']);
+const baseTk=t=>String(t||'').split('.')[0].toUpperCase();
+
+/* ───────── Dallo stato della piattaforma ai dati del castello ───────── */
+/* Un numero scritto all'italiana, come num() di index.html; NaN (non zero)
+   se non c'è nulla da leggere. */
+function numIt(v){
+  if(typeof v==='number')return v;
+  if(typeof v!=='string')return NaN;
+  let s=v.trim().replace('−','-').replace(/[^\d,.\-]/g,'');if(!/\d/.test(s))return NaN;
+  const lc=s.lastIndexOf(','),ld=s.lastIndexOf('.');
+  if(lc>-1&&ld>-1)s=lc>ld?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');
+  else if(lc>-1)s=(s.match(/,/g)||[]).length>1?s.replace(/,/g,''):s.replace(',','.');
+  else if(ld>-1){const d=(s.match(/\./g)||[]).length,a=s.length-ld-1;
+    if(d>1||(a===3&&/^-?\d{1,3}(\.\d{3})+$/.test(s)))s=s.replace(/\./g,'');}
+  return parseFloat(s);
+}
+/* Peso target: un numero fra 0 e 100, oppure null se manca. '' e null non
+   valgono zero: zero vuol dire "in panchina". */
+function pesoTarget(v){
+  if(v==null)return null;
+  const n=numIt(v);
+  return isFinite(n)&&n>=0?Math.min(100,n):null;
+}
+/* Bande per tier: S.settings.tierPlan unito ai default, come tplanCfg() di
+   index.html. BANDE_DEFAULT è la stessa tabella di TPLAN_DEFAULT (un test
+   controlla che le due funzioni diano lo stesso risultato). */
+const BANDE_DEFAULT={Core:{target:44,min:40,max:48},Satellite:{target:10,min:7,max:13},
+  Thematic:{target:22,min:18,max:26},Hedge:{target:10,min:8,max:13},
+  Speculative:{target:6,min:4,max:8},Recovery:{target:3,min:0,max:5},Cash:{target:5,min:3,max:8}};
+function bandeDa(S){
+  const raw=S&&typeof S==='object'&&S.settings&&S.settings.tierPlan,
+    o=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
+  return TIERS.map(t=>{
+    const d=BANDE_DEFAULT[t],u=o[t]&&typeof o[t]==='object'?o[t]:{};
+    const v=k=>{const n=numIt(u[k]);return isFinite(n)?clamp(n,0,100):d[k];};
+    const tg=v('target');
+    return{tier:t,target:tg,min:Math.min(v('min'),tg),max:Math.max(v('max'),tg)};
+  });
+}
+/* castelloDati(S): pura. Prende lo stato salvato da index.html (già passato da
+   enrich(): _value, _cost, _pnlPct sono in EUR) e restituisce i dati del
+   castello reale. Non ricalcola nulla: una posizione senza _value numerico si
+   scarta e si conta (scarti), così la pagina può dire di aprire la piattaforma.
+   Qualsiasi S (null, senza positions, rovinato) dà un modello vuoto. */
+function castelloDati(S){
+  const D={reale:[],bands:bandeDa(S),liq:0,scarti:0,privacy:false,lastUpdate:0};
+  if(!S||typeof S!=='object')return D;
+  D.privacy=!!(S.settings&&typeof S.settings==='object'&&S.settings.privacy);
+  D.lastUpdate=fin(S.lastUpdate)&&S.lastUpdate>0?S.lastUpdate:0;
+  if(!Array.isArray(S.positions))return D;
+  const str=v=>String(v==null?'':v).replace(/\s+/g,' ').trim();
+  S.positions.forEach(p=>{
+    if(!p||typeof p!=='object'||Array.isArray(p)||p.closed)return;            /* le chiuse non sono nel castello */
+    if(fin(p._q)&&!(p._q>EPS_QTY))return;                    /* quantità zero: non in portafoglio, come isHeld() */
+    if(!fin(p._value)){D.scarti++;return;}                   /* mai passata da enrich(): non si ricalcola qui */
+    if(!(p._value>0))return;
+    const ticker=str(p.ticker),alias=str(p.alias),nome=str(p.name)||ticker||alias||'—',cls=str(p.cls);
+    D.reale.push({id:str(p.id),ticker,alias,lab:alias||ticker||nome,nome,stock:cls==='Stocks',cls,v:p._value,
+      gp:fin(p._pnlPct)&&fin(p._cost)&&p._cost>0?p._pnlPct:null,
+      rischio:str(p.risk),ruolo:'',piattaforma:str(p.platform),wid:'',valuta:str(p.currency).toUpperCase(),
+      tier:normTier(p.tier),settore:str(p.sector),targetPct:pesoTarget(p.targetWeight)});
+  });
+  return D;
+}
+
+/* Dal testo salvato in localStorage['pf_v2'] ai dati. stato: 'vuoto' (niente
+   salvato o nessuna posizione col suo valore), 'rotto' (JSON che non si legge:
+   D è comunque un modello vuoto), 'ok'. Non lancia mai. */
+function leggiStato(raw){
+  if(raw==null||raw==='')return{stato:'vuoto',D:castelloDati(null)};
+  let S=null,rotto=false;
+  try{S=JSON.parse(raw);}catch(e){rotto=true;}
+  if(!rotto&&(!S||typeof S!=='object'||Array.isArray(S)))rotto=true;
+  if(rotto)return{stato:'rotto',D:castelloDati(null)};
+  const D=castelloDati(S);
+  return{stato:D.reale.length?'ok':'vuoto',D};
+}
+
+/* ───────── Modello del castello reale ───────── */
+function buildModel(D){
+  const bands={};(D.bands||[]).forEach(b=>bands[b.tier]=b);
+  const thr=CASTELLO_THR,dryMin=bands.Cash?bands.Cash.min:3;
+  /* la piattaforma non ha un campo liquidità: D.liq resta 0 e il fossato conta solo il tier Cash */
+  const liq=Math.max(0,D.liq||0),total=sum(D.reale,r=>r.v)+liq;
+  const pc=x=>total>0?x/total*100:0;                       /* mai una divisione per zero */
+  const re={key:'re',nome:'Reale',total,pieces:[],liqEur:liq,liqNome:'Liquidità',liqKnown:liq>0,hasRuolo:false};
+  D.reale.forEach(r=>{
+    /* senza tier: fuori piano. Con tier e peso target zero: in panchina. */
+    const grp=!r.tier?'fuori':(r.targetPct===0?'panchina':'piano');
+    const o={ticker:r.ticker,lab:r.lab,alias:r.alias,nome:r.nome,sid:r.id||(r.ticker+'|'+r.piattaforma+'|'+r.nome),
+      stock:r.stock,cls:r.cls,grp,tier:grp==='piano'?r.tier:'',tierW:r.tier,v:r.v,gp:r.gp,
+      targetPct:r.targetPct,target:r.targetPct!=null?r.targetPct/100*total:null,
+      settore:r.settore,rischio:r.rischio,valuta:r.valuta,ruolo:'',piattaforma:r.piattaforma,wid:''};
+    o.key='re|'+re.pieces.length;o.P=re;o.pct=pc(o.v);
+    o.isETF=!o.stock;o.zona=grp==='piano'?(ZONA_OF[o.tier]||'cortile'):'fuori';
+    o.over=o.stock&&r1(o.pct)>thr;o.frag=o.pct<0.5;
+    o.pil=pilastroDa(o);re.pieces.push(o);
+  });
+
+  const P=re;
+  P.inPlan=P.pieces.filter(p=>p.grp==='piano');P.out=P.pieces.filter(p=>p.grp!=='piano');
+  P.bench=P.pieces.filter(p=>p.grp==='panchina');P.offW=P.pieces.filter(p=>p.grp==='fuori');
+  P.tierEur={};P.tierPct={};P.sev={};TIERS.forEach(t=>P.tierEur[t]=0);
+  P.inPlan.forEach(p=>{if(P.tierEur[p.tier]!=null)P.tierEur[p.tier]+=p.v;});
+  TIERS.forEach(t=>{const pct=pc(P.tierEur[t]),b=bands[t];P.tierPct[t]=pct;let st='ok',dist=0;
+    if(b){const r=r1(pct);if(r<b.min){st='sotto';dist=b.min-pct;}else if(r>b.max){st='sopra';dist=pct-b.max;}}
+    P.sev[t]={st,dist,sev:Math.min(dist,15)/15,band:b};});
+  P.pieces.forEach(p=>{const s=P.sev[p.tier];
+    p.tilt=(s&&s.st==='sopra'?2+10*s.sev:0)+(p.over?Math.min(20,8+3*(p.pct-thr)):0);});
+  P.liqPct=pc(P.liqEur);P.cashPct=P.tierPct.Cash;P.moatPct=P.cashPct+P.liqPct;P.dry=r1(P.moatPct)<dryMin;
+  P.benchPct=sum(P.bench,p=>p.pct);P.offPct=sum(P.offW,p=>p.pct);
+  /* Diagnosi: ogni riga porta il numero che l'ha causata. Gli importi hanno la classe mask. */
+  const d=[];
+  TIERS.forEach(t=>{const s=P.sev[t];if(!s.band)return;const z=ZONA_OF[t];
+    if(s.st==='ok')d.push({rule:'R1',ok:true,html:'<b>'+t+' '+fP(P.tierPct[t])+'</b> <small>banda '+fmtB(s.band.min)+'–'+fmtB(s.band.max)+'%</small>'});
+    else d.push({rule:'R1',html:'<b>'+t+' '+fP(P.tierPct[t])+'</b>: banda '+fmtB(s.band.min)+'–'+fmtB(s.band.max)+'% <small>'+(s.st==='sotto'?'sotto di ':'sopra di ')+nf1.format(s.dist)+' punti · '+(s.st==='sotto'?'zona incompleta':'zona sovraccarica')+'</small>',focus:{zona:z}});});
+  const ov=P.pieces.filter(p=>p.over).sort((a,b)=>b.pct-a.pct);
+  if(!ov.length){const m=P.pieces.filter(p=>p.stock).sort((a,b)=>b.pct-a.pct)[0];
+    d.push({rule:'R2',ok:true,html:'<b>Nessuna azione sopra il '+fP(thr)+'</b>'+(m?' <small>la più pesante è '+esc(m.lab)+' al '+fP(m.pct)+'</small>':'')});}
+  ov.forEach(p=>d.push({rule:'R2',html:'<b>'+esc(p.lab)+' '+fP(p.pct)+'</b>: massimo '+fP(thr)+' per una singola azione <small>'+eur(p.v)+'</small>',focus:{piece:p}}));
+  const fr=P.pieces.filter(p=>p.frag).sort((a,b)=>a.pct-b.pct);
+  if(!fr.length){const m=P.pieces.slice().sort((a,b)=>a.pct-b.pct)[0];
+    d.push({rule:'R3',ok:true,html:'<b>Nessun frammento sotto lo 0,5%</b>'+(m?' <small>la più piccola è '+esc(m.lab)+' al '+fP(m.pct)+'</small>':'')});}
+  fr.forEach(p=>d.push({rule:'R3',html:'<b>'+esc(p.lab)+' '+fP2(p.pct)+'</b>: sotto lo 0,5% <small>'+eur(p.v)+'</small>',focus:{piece:p}}));
+  if(!P.out.length)d.push({rule:'R4',ok:true,html:'<b>Fuori piano 0,0%</b> <small>nessuna posizione oltre il fossato</small>'});
+  else{
+    const n=(k,a,b)=>k+' '+(k===1?a:b);
+    if(P.bench.length)d.push({rule:'R4',html:'<b>In panchina '+fP(P.benchPct)+'</b>: '+n(P.bench.length,'posizione','posizioni')+' con peso target zero <small>'+eur(sum(P.bench,p=>p.v))+'</small>',focus:{zona:'fuori'}});
+    if(P.offW.length)d.push({rule:'R4',html:'<b>Senza tier '+fP(P.offPct)+'</b>: '+n(P.offW.length,'posizione','posizioni')+' senza tier nella piattaforma <small>'+eur(sum(P.offW,p=>p.v))+'</small>',focus:{zona:'fuori'}});
+  }
+  const mt='Cash '+fP(P.cashPct)+' + liquidità '+(P.liqKnown?fP(P.liqPct):'non nota');
+  if(P.dry)d.push({rule:'R5',html:'<b>Fossato '+fP(P.moatPct)+'</b>: in secca sotto il '+fmtB(dryMin)+'% <small>'+mt+'</small>',focus:{zona:'fossato'}});
+  else d.push({rule:'R5',ok:true,html:'<b>Fossato '+fP(P.moatPct)+'</b> <small>'+mt+' · minimo '+fmtB(dryMin)+'%</small>'});
+  P.defects=d;P.nDef=d.filter(x=>!x.ok).length;
+  P.neg=P.pieces.filter(p=>p.gp!=null&&p.gp<0).length;
+
+  /* Eserciti: esposizione, non probabilità di perdita */
+  const T=P.total,mk=(id,nome,set,formula,extra)=>({id,nome,set:new Set(set),eur:sum(set,p=>p.v),pct:pc(sum(set,p=>p.v)),formula,extra:extra||'',P});
+  const ai=P.pieces.filter(p=>AI_SET.has(baseTk(p.ticker)));
+  /* senza ruoli nel file, la difesa sono i tier Hedge e Cash (più la liquidità, se nota) */
+  const def=P.inPlan.filter(p=>p.tier==='Hedge'||p.tier==='Cash');
+  const defSet=new Set(def),defEur=sum(def,p=>p.v)+P.liqEur;
+  const crollo={id:'crollo',nome:'Crollo azionario',set:new Set(P.pieces.filter(p=>!defSet.has(p))),eur:T-defEur,pct:T>0?100-defEur/T*100:0,P,
+    formula:'100% − tier Hedge + Cash',formulaEur:defEur,extra:''};
+  const fx=P.pieces.filter(p=>p.stock&&(p.valuta==='USD'||p.valuta==='JPY')),st=P.pieces.filter(p=>p.stock);
+  P.armies=[
+    mk('ai','Capex AI',ai,ai.length?'somma di '+ai.map(p=>p.lab).join(', ')+' / totale':'nessun titolo dell’elenco Capex AI in portafoglio','Elenco fisso di ticker; ARKI è contato per intero.'),
+    crollo,
+    mk('fx','Dollaro e yen',fx,'azioni dirette quotate in USD o JPY / totale ('+fx.length+(fx.length===1?' azione)':' azioni)'),'Gli ETF sono esclusi.'),
+    mk('single','Titoli singoli',st,'azioni dirette / totale ('+st.length+(st.length===1?' azione)':' azioni)'))];
+  P.armies.forEach(a=>{a.n=Math.max(3,Math.ceil(r1(a.pct)/2));});
+
+  /* Posti nel castello: ogni posizione in piano occupa il suo, con il contorno
+     del peso target se la scheda del titolo ne ha uno. Il tier Cash è il fossato. */
+  P.slots=[];P.cashBands=[];
+  P.inPlan.forEach(p=>{const g=p.targetPct>0?p.targetPct:null,ge=g!=null?p.target:null;
+    if(p.zona==='fossato'){P.cashBands.push({piece:p,pct:p.pct,ghostPct:g,ghostEur:ge,ticker:p.lab});return;}
+    const s={piece:p,ghostPct:g,ghostEur:ge,zona:p.zona,isETF:p.isETF,ticker:p.lab,tier:p.tier,nome:p.nome};p.slot=s;P.slots.push(s);});
+  return{re:P,bands,thr,dryMin,D};
+}
+/* un estremo di banda: intero se lo è, se no una cifra decimale all'italiana */
+function fmtB(v){ return Number.isInteger(v)?String(v):nf1.format(v); }
+
+/* ───────── Geometria: il lato di un pezzo è K·√peso%, minimo 1 bottoncino ───────── */
+const K=2.1,GATE=2.6,PAD=3.6,IM=3.4,PM=9,MOAT_K=1;
+const side=p=>Math.max(1,K*Math.sqrt(Math.max(0,p)));
+function kindOf(zona,isETF){
+  if(zona==='fuori')return isETF?'tent':'hut';
+  if(zona==='torrette')return isETF?'turretE':'turretS';
+  if(isETF)return'wall';
+  if(zona==='cinta')return'round';
+  if(zona==='cortile')return'low';
+  return'tower';
+}
+/* Azione = alta e stretta. ETF/ETC/ETP = largo e basso. Stessa area di base a parità di peso. */
+function dimsFor(pct,kind){
+  const s=side(pct),dia=s*1.128;
+  switch(kind){
+    case'wall':return{w:s*1.3,d:s/1.3,h:0.9+0.35*s};
+    case'tower':return{w:s,d:s,h:1.6+1.5*s};
+    case'round':return{w:dia,d:dia,h:1.6+1.5*s};
+    case'turretS':return{w:dia,d:dia,h:2+1.6*s};
+    case'turretE':return{w:dia,d:dia,h:0.9+0.35*s};
+    case'low':return{w:s,d:s,h:0.8+0.5*s};
+    case'hut':return{w:s,d:s,h:0.8+0.8*s};
+    case'tent':return{w:s*1.3,d:s/1.3,h:0.5+0.3*s};
+    default:return{w:1,d:1,h:0.6};
+  }
+}
+const grow=(r,m)=>({x0:r.x0-m,x1:r.x1+m,z0:r.z0-m,z1:r.z1+m});
+const ringRects=(r,w)=>[[r.x0-w,r.x1+w,r.z0-w,r.z0],[r.x0-w,r.x1+w,r.z1,r.z1+w],[r.x0-w,r.x0,r.z0,r.z1],[r.x1,r.x1+w,r.z0,r.z1]];
+function freeIv(a,b,blocks){
+  blocks.sort((p,q)=>p[0]-q[0]);const out=[];let t=a;
+  for(const[c,d]of blocks){if(c>t+0.3)out.push([t,Math.min(c,b)]);t=Math.max(t,d);}
+  if(b>t+0.3)out.push([t,b]);return out;
+}
+
+function layoutCastle(P){
+  const S=P.slots,over=t=>P.sev[t]&&P.sev[t].st==='sopra'?P.sev[t].sev:0,under=t=>P.sev[t]&&P.sev[t].st==='sotto'?P.sev[t].sev:0;
+  const gap=t=>0.9*(1-0.8*over(t));
+  S.forEach(s=>{
+    s.kind=kindOf(s.zona,s.isETF);
+    s.g=s.ghostPct!=null?dimsFor(s.ghostPct,s.kind):null;
+    s.p=s.piece&&!s.piece.frag?dimsFor(s.piece.pct,s.kind):null;
+    s.ew=Math.max(s.g?s.g.w:0,s.p?s.p.w:0,1);s.ed=Math.max(s.g?s.g.d:0,s.p?s.p.d:0,1);s.eh=Math.max(s.g?s.g.h:0,s.p?s.p.h:0,1);
+    s.size=Math.max(s.ghostPct||0,s.piece?s.piece.pct:0);s.rot=0;s.x=0;s.z=0;s.nx=0;s.nz=0;s.seg='';s.y=0;
+  });
+  const by=z=>S.filter(s=>s.zona===z).sort((a,b)=>b.size-a.size||String(a.ticker).localeCompare(String(b.ticker)));
+  const run=(a,g)=>sum(a,s=>s.ew)+g*Math.max(0,a.length-1),maxd=a=>a.reduce((m,s)=>Math.max(m,s.ed),0);
+  function line(a,g,fix,axis,sign){
+    let t=-run(a,g)/2;
+    a.forEach(s=>{const c=t+s.ew/2;t+=s.ew+g;
+      if(axis==='x'){s.x=c;s.z=fix+sign*s.ed/2;s.rot=0;s.nx=0;s.nz=sign;}
+      else{s.z=c;s.x=fix+sign*s.ed/2;s.rot=Math.PI/2;s.nx=sign;s.nz=0;}});
+  }
+  /* Mastio: le azioni Core al centro, gli ETF Core attorno come corpo interno */
+  const core=by('mastio'),cS=core.filter(s=>!s.isETF),cE=core.filter(s=>s.isETF),gc=gap('Core');
+  const n=cS.length,cols=n?Math.ceil(Math.sqrt(n)):0,rows=n?Math.ceil(n/cols):0,cell=n?Math.max(...cS.map(s=>s.ew))+gc:0,cells=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)cells.push({x:(c-(cols-1)/2)*cell,z:(r-(rows-1)/2)*cell});
+  cells.sort((a,b)=>(a.x*a.x+a.z*a.z)-(b.x*b.x+b.z*b.z)||a.z-b.z||a.x-b.x);
+  cS.forEach((s,i)=>{s.x=cells[i].x;s.z=cells[i].z;});
+  const sd=[[],[],[],[]];cE.forEach((s,i)=>sd[i%4].push(s));
+  const hx=Math.max(cols*cell/2,run(sd[0],gc)/2,run(sd[1],gc)/2,1),hz=Math.max(rows*cell/2,run(sd[2],gc)/2,run(sd[3],gc)/2,1);
+  line(sd[0],gc,-(hz+gc),'x',-1);line(sd[1],gc,hz+gc,'x',1);line(sd[2],gc,-(hx+gc),'z',-1);line(sd[3],gc,hx+gc,'z',1);
+  const CX=hx+gc+Math.max(maxd(sd[2]),maxd(sd[3])),CZ=hz+gc+Math.max(maxd(sd[0]),maxd(sd[1]));
+  const PLH=0.7;core.forEach(s=>s.y=PLH);
+  /* Cortile: edifici bassi del Recovery davanti al mastio */
+  const rec=by('cortile');let recD=0;
+  if(rec.length){recD=maxd(rec)+1.6;line(rec,0.9,CZ+1.6,'x',1);}
+  /* Cinta: Satellite e Thematic lungo il perimetro, Speculative sugli angoli */
+  const sat=by('cinta'),them=by('tematici'),spec=by('torrette');
+  const gs=gap('Satellite')+0.3,gt=gap('Thematic'),A=[],B=[],xa=[],xb=[];
+  sat.forEach((s,i)=>(i%2?B:A).push(s));spec.slice(4).forEach((s,i)=>(i%2?xb:xa).push(s));
+  const seq=[...xa.map(s=>[s,gs]),...A.map(s=>[s,gs]),...them.map(s=>[s,gt]),...B.reverse().map(s=>[s,gs]),...xb.map(s=>[s,gs])];
+  let HX=CX+3,HZ=CZ+3+recD,segs;
+  const Ltot=sum(seq,q=>q[0].ew+q[1]);
+  for(let it=0;it<80;it++){
+    segs=[{k:'FR',cap:HX-GATE-PAD},{k:'R',cap:2*HZ-2*PAD},{k:'B',cap:2*HX-2*PAD},{k:'L',cap:2*HZ-2*PAD},{k:'FL',cap:HX-GATE-PAD}];
+    segs.forEach(q=>q.items=[]);
+    const Ctot=sum(segs,q=>q.cap);let ok=Ltot<=Ctot*0.94,acc=0;
+    if(ok){
+      for(const it2 of seq){const mid=(acc+(it2[0].ew+it2[1])/2)*Ctot/Ltot;acc+=it2[0].ew+it2[1];
+        let c=0,sg=segs[4];for(const q of segs){if(mid<c+q.cap){sg=q;break;}c+=q.cap;}sg.items.push(it2);}
+      ok=segs.every(q=>sum(q.items,(x,i)=>x[0].ew)+sum(q.items.slice(1),x=>x[1])<=q.cap);
+    }
+    if(ok)break;HX+=0.75;HZ+=0.75;
+  }
+  function placeSeg(q,axis,c0,fix,dir,nx,nz){
+    const len=sum(q.items,x=>x[0].ew)+sum(q.items.slice(1),x=>x[1]);let t=-len/2;
+    q.items.forEach(([s,g],i)=>{if(i)t+=g;const c=c0+dir*(t+s.ew/2);t+=s.ew;
+      if(axis==='x'){s.x=c;s.z=fix;s.rot=0;}else{s.z=c;s.x=fix;s.rot=Math.PI/2;}s.nx=nx;s.nz=nz;s.seg=q.k;});
+  }
+  placeSeg(segs[0],'x',(GATE+HX-PAD)/2,HZ,1,0,-1);placeSeg(segs[1],'z',0,HX,-1,-1,0);placeSeg(segs[2],'x',0,-HZ,-1,0,1);
+  placeSeg(segs[3],'z',0,-HX,1,1,0);placeSeg(segs[4],'x',-(GATE+HX-PAD)/2,HZ,1,0,-1);
+  const corners=[[-HX,HZ],[HX,HZ],[-HX,-HZ],[HX,-HZ]],posts=[];
+  corners.forEach((c,i)=>{const s=spec[i];if(s&&i<4){s.x=c[0];s.z=c[1];s.nx=-Math.sign(c[0])*0.7;s.nz=-Math.sign(c[1])*0.7;s.seg='C';}else posts.push(c);});
+  /* Antemurale: Hedge, basso, davanti alla porta */
+  const ant=by('antemurale'),ga=gap('Hedge'),za=HZ+2.4;let tr=GATE+0.4,tl=-(GATE+0.4);
+  ant.forEach((s,i)=>{if(i%2){s.x=tl-s.ew/2;tl-=s.ew+ga;}else{s.x=tr+s.ew/2;tr+=s.ew+ga;}s.z=za+s.ed/2;s.rot=0;s.nx=0;s.nz=1;});
+  /* Muro neutro della cinta: riempie i tratti liberi, più basso dove il tier vicino è sotto banda */
+  const fp=s=>({fx:(s.rot?s.ed:s.ew)/2,fz:(s.rot?s.ew:s.ed)/2});
+  const walls=[],sideH=k=>{const ts=S.filter(s=>s.seg&&k.includes(s.seg));const u=ts.length?Math.max(...ts.map(s=>under(s.tier))):under('Speculative');return 1.5*(1-0.7*u);};
+  const blk=(ks,ax)=>S.filter(s=>ks.includes(s.seg)).map(s=>{const f=fp(s),c=ax==='x'?s.x:s.z,h=ax==='x'?f.fx:f.fz;return[c-h-0.12,c+h+0.12];});
+  freeIv(-HX+1.3,HX-1.3,[[-GATE,GATE],...blk(['FR','FL'],'x')]).forEach(v=>walls.push({ax:'x',a:v[0],b:v[1],fix:HZ,h:sideH(['FR','FL'])}));
+  freeIv(-HX+1.3,HX-1.3,blk(['B'],'x')).forEach(v=>walls.push({ax:'x',a:v[0],b:v[1],fix:-HZ,h:sideH(['B'])}));
+  freeIv(-HZ+1.3,HZ-1.3,blk(['L'],'z')).forEach(v=>walls.push({ax:'z',a:v[0],b:v[1],fix:-HX,h:sideH(['L'])}));
+  freeIv(-HZ+1.3,HZ-1.3,blk(['R'],'z')).forEach(v=>walls.push({ax:'z',a:v[0],b:v[1],fix:HX,h:sideH(['R'])}));
+  /* Impalcature: una ogni 1/8 di gravità per i tier sotto banda */
+  const scaf=[];
+  TIERS.forEach(t=>{const u=under(t);if(!u||t==='Cash')return;const zs=S.filter(s=>s.tier===t).sort((a,b)=>b.size-a.size);if(!zs.length)return;
+    const k=Math.max(1,Math.ceil(u*8));
+    for(let i=0;i<k;i++){const s=zs[i%zs.length],lap=Math.floor(i/zs.length),f=fp(s);let nx=s.nx,nz=s.nz;if(!nx&&!nz)nx=s.x>=0?1:-1;
+      const ax=Math.abs(nx)>=Math.abs(nz),off=(ax?f.fx:f.fz)+0.8+lap*1.1,along=lap?((lap%2?1:-1)*0.9):0;
+      scaf.push({x:s.x+nx*off+(nx?0:along),z:s.z+nz*off+(nz?0:along),y:s.y,rot:ax?Math.PI/2:0,h:Math.max(2,s.eh*0.8)});}
+  });
+  /* Isola, fossato, riva */
+  let b={x0:-HX-1.4,x1:HX+1.4,z0:-HZ-1.4,z1:HZ+1.4};
+  S.forEach(s=>{const f=fp(s);b.x0=Math.min(b.x0,s.x-f.fx);b.x1=Math.max(b.x1,s.x+f.fx);b.z0=Math.min(b.z0,s.z-f.fz);b.z1=Math.max(b.z1,s.z+f.fz);});
+  const I=grow(b,IM);
+  const cashW=P.cashBands.map(c=>MOAT_K*c.pct),liqW=MOAT_K*P.liqPct,mw=Math.max(1.2,sum(cashW)+liqW);
+  const ghostMoat=sum(P.cashBands,c=>c.ghostPct||0)*MOAT_K;
+  const M=grow(I,mw),depth=0.3+0.18*P.moatPct;
+  /* Frammenti in piano: mattoncino sciolto sulla riva dell'isola, dal lato più vicino al suo posto */
+  const fr=[];
+  P.inPlan.filter(p=>p.frag&&p.slot).forEach(p=>{const s=p.slot;
+    const d=[[s.x-I.x0,'L'],[I.x1-s.x,'R'],[s.z-I.z0,'B'],[I.z1-s.z,'F']].sort((a,c)=>a[0]-c[0])[0][1];
+    let x=s.x,z=s.z;if(d==='L')x=I.x0+1.2;else if(d==='R')x=I.x1-1.2;else if(d==='B')z=I.z0+1.2;else z=I.z1-1.2;
+    let tries=0;while(tries++<40&&(fr.some(q=>Math.hypot(q.x-x,q.z-z)<2)||(d==='F'&&Math.abs(x)<GATE+1.2))){if(d==='L'||d==='R')z+=2;else x+=x>=0?2:-2;}
+    p.ox=x;p.oz=z;p.orot=(hash(p.sid)%60-30)/60;p.kind='frag';p.dim=dimsFor(0,'frag');fr.push({x,z});});
+  /* Fuori piano: sulla riva esterna. Panchina in file ordinate accanto al ponte, senza tier sparse. */
+  const out=P.out.slice().sort((a,c)=>c.v-a.v);
+  out.forEach(p=>{p.kind=p.frag?'frag':kindOf('fuori',p.isETF);p.dim=dimsFor(p.pct,p.kind);p.rad=Math.max(p.dim.w,p.dim.d)/2;});
+  const perim=2*((M.x1-M.x0)+(M.z1-M.z0));
+  const sw=out.length?clamp(sum(out,p=>Math.pow(2*p.rad+1.4,2))*1.9/perim,10,16):3;
+  const Sh=grow(M,sw),Pl=grow(Sh,PM);
+  const bench=out.filter(p=>p.grp==='panchina'),offw=out.filter(p=>p.grp==='fuori'),placed=[];
+  let benchX=GATE+1;
+  if(bench.length){
+    const cellB=Math.max(...bench.map(p=>2*p.rad))+0.9,rowsB=Math.max(1,Math.floor((sw-1.2)/cellB));
+    bench.forEach((p,i)=>{const sgn=i%2?-1:1,j=Math.floor(i/2),col=Math.floor(j/rowsB),row=j%rowsB;
+      p.ox=sgn*(GATE+1.5+cellB/2+col*cellB);p.oz=M.z1+1+cellB/2+row*cellB;p.orot=0;placed.push({x:p.ox,z:p.oz,r:p.rad});benchX=Math.max(benchX,Math.abs(p.ox)+cellB/2);});
+  }
+  const shc=[[Sh.x0,Sh.z0],[Sh.x1,Sh.z0],[Sh.x0,Sh.z1],[Sh.x1,Sh.z1]];
+  offw.forEach(p=>{const rnd=rng(hash(P.key+p.sid)),r=p.rad+0.5;let x=0,z=0,best=null;
+    for(let t=0;t<500;t++){
+      x=Sh.x0+r+rnd()*(Sh.x1-Sh.x0-2*r);z=Sh.z0+r+rnd()*(Sh.z1-Sh.z0-2*r);
+      if(x>M.x0-r&&x<M.x1+r&&z>M.z0-r&&z<M.z1+r)continue;
+      if(z>M.z1-1&&Math.abs(x)<benchX+r)continue;
+      if(shc.some(c=>Math.hypot(c[0]-x,c[1]-z)<5.5+r))continue;
+      if(!best)best=[x,z];
+      if(placed.some(q=>Math.hypot(q.x-x,q.z-z)<q.r+p.rad+0.7))continue;
+      best=[x,z];break;
+    }
+    if(!best)best=[Sh.x0+r,Sh.z0+r+placed.length];
+    p.ox=best[0];p.oz=best[1];p.orot=(rnd()-0.5)*1.6;placed.push({x:p.ox,z:p.oz,r:p.rad});});
+  /* Eserciti agli angoli, oltre la riva */
+  const armies=P.armies.map((a,i)=>{const c=[[Sh.x0,Sh.z1],[Sh.x1,Sh.z1],[Sh.x0,Sh.z0],[Sh.x1,Sh.z0]][i],cl=Math.ceil(Math.sqrt(a.n)),f=cl*0.95;
+    const sx=Math.sign(c[0])||1,sz=Math.sign(c[1])||1,off=Math.min(PM-f/2-0.8,f/2+1.6);
+    return{a,cols:cl,x:c[0]+sx*off,z:c[1]+sz*off,sx,sz,f};});
+  return{S,HX,HZ,CX,CZ,PLH,I,M,Sh,Pl,mw,depth,cashW,liqW,ghostMoat,sw,walls,posts,scaf,armies,za};
+}
+
+/* ───────── Colori dei pezzi ───────── */
+function mixHex(a,b,t){
+  const h=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)),A=h(a),B=h(b);
+  return'#'+A.map((x,i)=>Math.round(x+(B[i]-x)*t).toString(16).padStart(2,'0')).join('');
+}
+function perfCss(v){const t=clamp(Math.abs(v)/40,0,1);return Math.abs(v)>=0.05?mixHex('#D5DAE3',v>0?'#0A6A8E':'#B93A0A',0.25+0.75*t):'#d5dae3';}
+/* modo: 'pil' (pilastro) o 'rend' (rendimento sul costo di carico) */
+function cssColor(p,modo){
+  if(p.zona==='fossato')return p.P.dry?'#6E5238':'#1F6FB8';
+  if(modo==='rend')return p.gp==null?ND:perfCss(p.gp);
+  if(p.grp!=='piano')return SAND;
+  return PIL_BY[p.pil].c;
+}
+
+/* ───────── Testi e HTML dei pannelli ─────────
+   Tutto ciò che arriva dallo stato (nomi, ticker, alias, piattaforma, valuta…)
+   passa da esc(); gli importi in euro stanno sempre in uno span .mask. */
+const short=s=>s.length>24?s.slice(0,23)+'…':s;
+const TIPO_BREVE={Stocks:'Azione',ETF:'ETF',Bonds:'Bond',Crypto:'Crypto',Cash:'Cash',Commodities:'Comm.',Other:'Altro'};
+const TIPO_LUNGO={Stocks:'Azione',ETF:'ETF, ETC o ETP',Bonds:'Obbligazione',Crypto:'Cripto',Cash:'Liquidità',Commodities:'Materia prima',Other:'Altro'};
+const tipoBreve=p=>TIPO_BREVE[p.cls]||p.cls||'ETF';
+const tipoLungo=p=>TIPO_LUNGO[p.cls]||p.cls||'ETF, ETC o ETP';
+const posizioni=n=>n+(n===1?' posizione':' posizioni');
+function scartiTesto(n){ return posizioni(n)+' senza valore: aprire la piattaforma'; }
+
+function labelHTML(d){
+  if(d.kind==='piece'){const p=d.p;
+    const more=p.grp==='piano'&&p.target!=null?fPw(p.pct)+' · reale '+eur(p.v)+' · target '+eur(p.target):esc(short(p.nome))+' · '+fPw(p.pct)+' · '+eur(p.v);
+    return'<b>'+esc(p.lab)+'</b>'+(p.over?'<i class="fl"></i>':'')+'<span class="more"> '+more+'</span>';}
+  if(d.kind==='army')return esc(d.army.nome)+' '+fP(d.army.pct);
+  if(d.kind==='title')return esc(d.text)+' · '+eur(d.eur);
+  return esc(d.text);
+}
+function rowHTML(p,modo){
+  return'<button class="row" type="button" data-k="'+esc(p.key)+'"'+(p.ticker&&p.ticker!==p.lab?' title="'+esc(p.ticker)+'"':'')+'><span class="sw'+(p.isETF?' etf':'')+(p.grp!=='piano'?' out':'')+'" style="background:'+cssColor(p,modo)+'"></span>'+
+    '<span class="tk">'+esc(p.lab)+(p.over?'<i class="fl"></i>':'')+'</span><span class="nm">'+esc(p.nome)+(p.frag?' · frammento':'')+'</span>'+
+    '<span class="ty">'+esc(tipoBreve(p))+'</span><span class="pc">'+fPw(p.pct)+'</span></button>';
+}
+function listHTML(P,modo){
+  const desc=(a,b)=>b.pct-a.pct;let h='';
+  const grp=(t,sub,ps,always)=>{if(!ps.length&&!always)return;
+    h+='<div class="grp"><span>'+t+(sub?' · '+sub:'')+'</span><em>'+ps.length+' · '+fP(sum(ps,p=>p.pct))+'</em></div>'+(ps.length?ps.sort(desc).map(p=>rowHTML(p,modo)).join(''):'<div class="empty">Nessuna posizione.</div>');};
+  ZONE.forEach(z=>{
+    if(z.id==='fuori'){grp('In panchina','peso target zero',P.bench.slice(),true);grp('Senza tier','tier non assegnato',P.offW.slice(),true);}
+    else grp(z.nome,z.desc,P.inPlan.filter(p=>p.zona===z.id),z.id!=='cortile');
+  });
+  return h;
+}
+const RULES=[['R1','Bande di tier'],['R2','Titolo singolo sovraccarico'],['R3','Frammenti'],['R4','Fuori piano'],['R5','Fossato']];
+function diagHTML(model){
+  const P=model.re,D=model.D;
+  let h='<div class="dsec"><h2>'+P.nome+'<span>'+eur(P.total)+' · '+posizioni(P.pieces.length)+' · '+P.nDef+(P.nDef===1?' difetto':' difetti')+'</span></h2>';
+  h+='<div class="liq">Liquidità non nota: la piattaforma non la registra, quindi il fossato conta solo il tier Cash.</div>';
+  if(D.scarti)h+='<div class="dx ok avv"><i>!</i><span><b>'+scartiTesto(D.scarti)+'</b> <small>il loro valore non è ancora stato calcolato e salvato</small></span></div>';
+  RULES.forEach(r=>{const ds=P.defects.map((d,i)=>[d,i]).filter(x=>x[0].rule===r[0]);if(!ds.length)return;
+    h+='<div class="rl">'+r[0]+' · '+r[1]+'</div>'+ds.map(x=>x[0].ok?'<div class="dx ok"><i>✓</i><span>'+x[0].html+'</span></div>':'<button class="dx" type="button" data-d="'+x[1]+'"><i>!</i><span>'+x[0].html+'</span></button>').join('');});
+  h+='<div class="dx ok"><i>·</i><span><b>'+posizioni(P.neg)+' con rendimento negativo</b> <small>su '+P.pieces.length+', sul costo di carico della piattaforma</small></span></div>';
+  return h+'</div>';
+}
+function cardHTML(s,model){
+  if(!s)return'<div class="card-empty">Tocca un pezzo, una riga dell’elenco o un esercito per vedere i suoi numeri.</div>';
+  const X='<button class="x" id="cClose" type="button" aria-label="Chiudi il dettaglio">×</button>';
+  if(s.army){const a=s.army;
+    return'<div class="card-top"><span class="tag">Esercito</span>'+X+'</div>'+
+      '<h2>'+esc(a.nome)+'</h2><div class="big"><div><span class="k">Esposizione</span><span class="v">'+fP(a.pct)+'</span></div><div><span class="k">Importo</span><span class="v">'+eur(a.eur)+'</span></div></div>'+
+      '<p class="fx">'+esc(a.formula)+(a.formulaEur!=null?' ('+eur(a.formulaEur)+')':'')+' = '+eur(a.eur)+' / '+eur(a.P.total)+'. '+esc(a.extra)+'</p><p class="fx">'+a.n+' soldati (1 ogni 2%, minimo 3). Misura esposizione, non probabilità di perdita.</p>';}
+  const p=s.piece,z=p.zona==='fuori'?(p.grp==='panchina'?'In panchina':'Senza tier'):ZONE_BY[p.zona].nome,gpc=p.gp==null?'na':(p.gp>0?'up':p.gp<0?'dn':'');
+  let dl='<dt>Valore</dt><dd>'+eur(p.v)+'</dd>';
+  if(p.targetPct!=null)dl+='<dt>Peso target</dt><dd>'+fP(p.targetPct)+' · '+eur(p.target)+'</dd><dt>Differenza</dt><dd>'+(p.v-p.target>=0?'+':'−')+eur(Math.abs(p.v-p.target))+'</dd>';
+  else dl+='<dt>Peso target</dt><dd>non impostato</dd>';
+  dl+='<dt>Gruppo</dt><dd>'+(p.grp==='piano'?'in piano':p.grp==='panchina'?'in panchina (peso target zero)':'fuori piano (senza tier)')+'</dd>';
+  dl+='<dt>Tier</dt><dd>'+(p.tierW?esc(p.tierW):'non assegnato')+'</dd>';
+  dl+='<dt>Pilastro</dt><dd>'+PIL_BY[p.pil].nome+'</dd>';
+  if(p.settore)dl+='<dt>Settore</dt><dd>'+esc(p.settore)+'</dd>';
+  if(p.rischio)dl+='<dt>Rischio</dt><dd>'+esc(p.rischio)+' / 10</dd>';
+  if(p.valuta)dl+='<dt>Valuta del titolo</dt><dd>'+esc(p.valuta)+'</dd>';
+  if(p.piattaforma)dl+='<dt>Piattaforma</dt><dd>'+esc(p.piattaforma)+'</dd>';
+  const arm=p.P.armies.filter(a=>a.set.has(p)).map(a=>a.nome);
+  dl+='<dt>Eserciti che lo puntano</dt><dd>'+(arm.length?arm.join(', '):'nessuno')+'</dd>';
+  const al=[];if(p.over)al.push('Sopra il massimo del '+fP(model.thr)+' per una singola azione.');if(p.frag)al.push('Frammento: sotto lo 0,5% del totale.');
+  if(p.grp!=='piano')al.push('Fuori piano: sta oltre il fossato.');
+  return'<div class="card-top"><span class="tag">'+z+'</span><span class="kind">'+esc(tipoLungo(p))+'</span>'+X+'</div>'+
+    '<h2>'+esc(p.nome)+'</h2><div class="tick">'+esc(p.lab)+(p.ticker&&p.ticker!==p.lab?' · '+esc(p.ticker):'')+'</div>'+
+    '<div class="big"><div><span class="k">Peso</span><span class="v">'+fPw(p.pct)+'</span></div><div><span class="k">Rendimento</span><span class="v '+gpc+'">'+(p.gp==null?'n.d.':fPs(p.gp))+'</span></div></div>'+
+    '<dl>'+dl+'</dl>'+(al.length?'<p class="al">'+al.join(' ')+'</p>':'');
+}
+function tipHTML(h){
+  const p=h&&h.piece,a=h&&h.army;
+  if(p)return'<b>'+esc(p.lab)+'</b> '+esc(p.nome)+'<small>'+fPw(p.pct)+' · '+eur(p.v)+' · '+esc(tipoBreve(p))+(p.grp==='piano'&&p.target!=null?' · target '+eur(p.target):'')+'</small>';
+  if(a)return'<b>'+esc(a.nome)+' '+fP(a.pct)+'</b><small>'+esc(a.formula)+(a.formulaEur!=null?' ('+eur(a.formulaEur)+')':'')+'</small><small>'+eur(a.eur)+' / '+eur(a.P.total)+' · '+a.n+' soldati. '+esc(a.extra)+'</small><small>Esposizione, non probabilità di perdita.</small>';
+  return'';
+}
+function noteList(model){
+  const n=['liquidità non nota: la piattaforma non la registra, il fossato conta solo il tier Cash',
+    'pilastro dedotto da classe e settore del titolo',
+    'soglia per una singola azione fissa al '+fP(model.thr),
+    'bande dal piano per tier della piattaforma (Ribilanciamento)',
+    'contorno = peso target nella scheda del titolo',
+    'Capex AI: elenco fisso di ticker, ARKI contato per intero',
+    'ETF esclusi da Dollaro e yen',
+    'rendimento = guadagno o perdita sul costo di carico, calcolato dalla piattaforma'];
+  if(model.D.scarti)n.push(scartiTesto(model.D.scarti));
+  return n;
+}
+/* {bar, nota, corpo}: barra dei colori, riga delle note, pannello "Come si legge" */
+function legendaHTML(model,modo){
+  let bar;
+  if(modo==='pil')bar='<span class="lk">Pilastro</span>'+PIL.map(p=>'<span class="chipc"><i style="background:'+p.c+'"></i>'+p.nome+'</span>').join('')+'<span class="chipc"><i class="dash" style="background:'+SAND+'"></i>Fuori piano</span>';
+  else bar='<span class="lk">Rendimento sul costo di carico</span><span class="chipc">−40%<span class="scale" style="background:linear-gradient(90deg,#B93A0A,#D5DAE3,#0A6A8E)"></span>+40%</span><span class="chipc"><i style="background:'+ND+'"></i>n.d. (senza costo di carico)</span>';
+  bar+='<span class="chipc" style="color:var(--muted)">Il fossato resta color acqua o fango.</span>';
+  const notes=noteList(model);
+  const corpo='<ul>'+
+    '<li><span class="gl t"></span><span>Torre o edificio = azione</span></li>'+
+    '<li><span class="gl w"></span><span>Muro largo e basso con stendardo = ETF, ETC, ETP e ogni altra classe</span></li>'+
+    '<li><span class="gl g"></span><span>Contorno tratteggiato = peso target del titolo, in % del totale</span></li>'+
+    '<li><span class="gl f"></span><span>Torre inclinata con bandiera rossa = azione sopra il '+fP(model.thr)+'</span></li>'+
+    '<li><span class="gl b"></span><span>Mattoncino sciolto sulla riva = posizione sotto lo 0,5%</span></li>'+
+    '<li><span class="gl s"></span><span>Capanna (azione) o tenda (ETF) color sabbia oltre il fossato = fuori piano. In fila accanto al ponte: in panchina (peso target zero). Sparse: senza tier</span></li>'+
+    '<li><span class="gl c"></span><span>Tetto blu a cono = Speculative. Azione: torretta alta con bandiera. ETF: tamburo basso con stendardo</span></li></ul>'+
+    '<p>Zone: Core nel mastio, Satellite e Thematic lungo la cinta, Hedge nell’antemurale davanti alla porta, Speculative sulle torrette d’angolo, Recovery nel cortile, Cash nel fossato.</p>'+
+    '<p>Scala: lato = '+String(K).replace('.',',')+' bottoncini × √(peso %), minimo 1. Non è lineare: il peso esatto è in etichetta, elenco e scheda.</p>'+
+    '<p>Impalcature = tier sotto banda. Torri inclinate e ravvicinate = tier sopra banda. La gravità cresce con i punti di distanza dalla banda, fino a 15. Le quote si confrontano con le bande a una cifra decimale.</p>'+
+    '<p>Fossato: larghezza e profondità proporzionali al tier Cash. Sotto il '+fmtB(model.dryMin)+'% è fango crepato.</p>'+
+    '<p>Eserciti: 1 soldato ogni 2% (minimo 3), freccia larga in proporzione. Misurano esposizione, non probabilità di perdita.</p>'+
+    '<p><b>Dati assunti.</b> '+notes.map(esc).join(' · ')+'</p><p>Visualizzazione descrittiva, non consulenza finanziaria.</p>';
+  return{bar,nota:'Dati assunti: '+notes.join(' · '),corpo};
+}
+
+/* ───────── Stato vuoto e avvio ───────── */
+/* Titolo e descrizione dello stato vuoto, come testo semplice. */
+function vuotoTesto(r){
+  const n=r&&r.D?r.D.scarti:0;
+  if(r&&r.stato==='rotto')return{t:'I dati della piattaforma non si leggono',d:'Lo stato salvato in questo browser non è leggibile. Apri la piattaforma: lo riscrive al primo salvataggio.'};
+  if(n)return{t:scartiTesto(n),d:'Le posizioni ci sono, ma il loro valore non è ancora stato calcolato e salvato: basta aprire la piattaforma una volta.'};
+  return{t:'Apri la piattaforma e aggiungi delle posizioni',d:'Il castello si costruisce dalle posizioni che la piattaforma salva in questo browser. Qui non ce ne sono ancora.'};
+}
+/* "Dati del 12/11 alle 15:32": l'ultimo aggiornamento dei prezzi nella piattaforma (S.lastUpdate). */
+const DATA_FMT=new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit'}),ORA_FMT=new Intl.DateTimeFormat('it-IT',{hour:'2-digit',minute:'2-digit'});
+function rigaStato(D){
+  const t=D&&fin(D.lastUpdate)&&D.lastUpdate>0?new Date(D.lastUpdate):null;
+  return t&&!isNaN(t.getTime())?'Dati del '+DATA_FMT.format(t)+' alle '+ORA_FMT.format(t):'Prezzi mai aggiornati nella piattaforma';
+}
+/* Chi decide cosa si vede. o.leggi() restituisce il testo salvato (o lancia, se
+   lo storage è bloccato); o.castello(D,vivo) costruisce la scena, o.vuoto(testo,r)
+   mostra lo stato vuoto. Senza posizioni la scena non si costruisce mai.
+   evento(e) riceve l'evento storage dell'altra scheda: save() di index.html
+   scrive a raffica, quindi si aspetta ATTESA_MS dall'ultimo evento e si
+   ricostruisce una volta sola. ritorno() serve dove l'evento non arriva (Safari
+   fra due file aperti con doppio click, verificato il 12/11/2026): quando si
+   torna sulla scheda rilegge, e ricostruisce solo se il testo salvato è cambiato.
+   o.attesa, o.setTimeout e o.clearTimeout servono ai test. */
+const ATTESA_MS=300;
+function creaAggiornatore(o){
+  const attesa=o.attesa==null?ATTESA_MS:o.attesa,st=o.setTimeout||setTimeout,ct=o.clearTimeout||clearTimeout;
+  let mostrato=false,timer=null,ultimo=null;
+  function leggi(){try{const raw=o.leggi();return raw==null?null:String(raw);}catch(e){return null;}}
+  function applica(vivo,letto){
+    const raw=letto===undefined?leggi():letto;
+    ultimo=raw;
+    const r=leggiStato(raw);
+    if(r.stato==='ok'){o.castello(r.D,!!vivo&&mostrato);mostrato=true;return r;}
+    /* dal vivo, uno stato che non si legge non butta via il castello che c'è */
+    if(vivo&&r.stato==='rotto')return r;
+    o.vuoto(vuotoTesto(r),r);mostrato=false;return r;
+  }
+  /* solo la chiave della piattaforma; key null è localStorage.clear() */
+  function evento(e){
+    if(!e||(e.key!==KEY&&e.key!==null))return false;
+    if(timer!=null)ct(timer);
+    timer=st(()=>{timer=null;applica(true);},attesa);
+    return true;
+  }
+  /* ritorno sulla scheda: niente attesa, e niente da fare se non è cambiato nulla */
+  function ritorno(){
+    const raw=leggi();
+    if(raw===ultimo)return false;
+    if(timer!=null){ct(timer);timer=null;}
+    applica(true,raw);
+    return true;
+  }
+  return{avvia:()=>applica(false),evento,ritorno};
+}
+/* La selezione dopo una ricostruzione: lo stesso titolo (o esercito) se c'è ancora, se no niente. */
+function ritrovaSelezione(sel,P){
+  if(!sel)return null;
+  if(sel.piece){const p=P.pieces.find(x=>x.sid===sel.piece.sid);return p?{piece:p}:null;}
+  if(sel.army){const a=P.armies.find(x=>x.id===sel.army.id);return a?{army:a}:null;}
+  return null;
+}
+/* CASTELLO:PURO:FINE */
+</script>
+<script src="castello/vendor/three.min.js"></script>
+<script src="castello/vendor/OrbitControls.js"></script>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));
+const reduced=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+const app=$('#app'),canvas=$('#gl'),stage=$('#stage'),labelsEl=$('#labels'),lead=$('#lead'),tip=$('#tip'),listBody=$('#listBody');
+const isSmall=Math.min(innerWidth,innerHeight)<600;
+const mqMobile=matchMedia('(max-width:899px)'),mqWide=matchMedia('(min-width:1700px)');
+const mode=()=>mqMobile.matches?'mobile':(mqWide.matches?'wide':'mid');
+
+/* ───────── Stato della pagina ───────── */
+const state={zone:'all',color:'pil',ghosts:true,spin:!reduced,sel:null,hover:null,armyHover:null,tab:'elenco',pulse:null};
+let D=null,model=null,C=null,byKey=new Map();
+const activeArmy=()=>state.sel&&state.sel.army?state.sel.army:state.armyHover;
+const selPiece=()=>state.sel&&state.sel.piece||null;
+const say=t=>{$('#live').textContent=t;};
+
+/* ───────── Scena: si apre solo quando ci sono posizioni da mostrare ───────── */
+let gl=false,glProvato=false,isDark=false;
+let renderer,scene,camera,controls,hemi,sun,mat,edgeMat,dashMat,ghostMat,studGeo,solBody,solHead,SHARED,SHMAT,dummy,V3,rad,lctx,ray,ndc,clock,GRAY,_v,homeTarget,focusTarget;
+function noGL(){
+  const m=document.createElement('div');m.className='nogl';
+  m.textContent='Questo browser non riesce ad aprire la scena 3D (WebGL non disponibile). L’elenco e la diagnosi restano consultabili.';
+  stage.appendChild(m);
+}
+const M3=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:0.6,metalness:0},o||{}));
+function applyTheme(){
+  if(!gl)return;
+  const t=document.documentElement.getAttribute('data-theme');
+  isDark=t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
+  scene.background=new THREE.Color(isDark?0x0A1226:0xCFE6F5);hemi.intensity=isDark?0.5:0.68;sun.intensity=isDark?0.62:0.8;
+}
+function initScena(){
+  if(glProvato)return gl;
+  glProvato=true;
+  if(typeof THREE==='undefined'||!THREE.OrbitControls){noGL();return false;}
+  try{renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,powerPreference:'high-performance'});}
+  catch(e){noGL();return false;}
+  V3=THREE.Vector3;rad=THREE.MathUtils.degToRad;
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  scene=new THREE.Scene();
+  camera=new THREE.PerspectiveCamera(40,1,1,1400);
+  controls=new THREE.OrbitControls(camera,canvas);
+  controls.enableDamping=true;controls.dampingFactor=0.08;controls.minDistance=12;controls.maxDistance=460;
+  controls.minPolarAngle=0.12;controls.maxPolarAngle=1.42;controls.autoRotate=false;controls.autoRotateSpeed=0.45;controls.screenSpacePanning=false;
+  hemi=new THREE.HemisphereLight(0xe6f3ff,0x6b7a66,0.9);scene.add(hemi);
+  sun=new THREE.DirectionalLight(0xfff1d6,1.05);sun.castShadow=true;
+  sun.shadow.mapSize.set(isSmall?1024:2048,isSmall?1024:2048);sun.shadow.bias=-0.0006;sun.shadow.normalBias=0.04;
+  scene.add(sun);scene.add(sun.target);
+  mat={grass:M3(0xA6D474),sand:M3(0x9DB57A),plate:M3(0x6FA75A),base:M3(0x4E6B46),stone:M3(0xC2C6CF),stoneD:M3(0x9AA0AD),wood:M3(0x8B5A2B),roof:M3(0x1E4FC2),banner:M3(0xF6F0DC),
+    flag:M3(0xD21F3C),pole:M3(0x3A3F4D),bed:M3(0x2C5574),mud:M3(0x7A5836),enemy:M3(0x7A1E2B),head:M3(0xE9D9B0),leaf:M3(0x2E7D46),
+    arrow:M3(0x7A1E2B,{transparent:true,opacity:0.85}),hit:new THREE.MeshBasicMaterial({visible:false}),
+    crest:new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.55}),crack:new THREE.LineBasicMaterial({color:0x3B2A18})};
+  edgeMat=new THREE.LineBasicMaterial({color:0x0E1B3D,transparent:true,opacity:0.32});
+  dashMat=new THREE.LineDashedMaterial({color:0x4A3B1E,dashSize:0.26,gapSize:0.2});
+  ghostMat=new THREE.LineDashedMaterial({color:0x0E1B3D,dashSize:0.4,gapSize:0.26});
+  studGeo=new THREE.CylinderGeometry(0.3,0.3,0.18,10);solBody=new THREE.CylinderGeometry(0.2,0.27,0.62,8);solHead=new THREE.SphereGeometry(0.19,8,6);
+  SHARED=new Set([studGeo,solBody,solHead]);SHMAT=new Set(Object.values(mat).concat([edgeMat,dashMat,ghostMat]));
+  dummy=new THREE.Object3D();GRAY=new THREE.Color(0x9AA0AA);_v=new V3();homeTarget=new V3();focusTarget=new V3();
+  ray=new THREE.Raycaster();ndc=new THREE.Vector2();clock=new THREE.Clock();lctx=lead.getContext('2d');
+  gl=true;
+  applyTheme();
+  try{new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});}catch(e){}
+  try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);}catch(e){}
+  controls.addEventListener('start',()=>{focusActive=false;userMoved=true;stopSpin();});
+  puntamento();
+  new ResizeObserver(resize).observe(stage);new ResizeObserver(resize).observe($('#free'));
+  frame();
+  return true;
+}
+
+function box(w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x||0,(y||0)+h/2,z||0);o.castShadow=true;o.receiveShadow=true;return o;}
+function cyl(r,h,m,x,y,z,seg){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg||18),m);o.position.set(x||0,(y||0)+h/2,z||0);o.castShadow=true;o.receiveShadow=true;return o;}
+function edges(mesh,dashed){const l=new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry,35),dashed?dashMat:edgeMat);if(dashed)l.computeLineDistances();l.raycast=function(){};mesh.add(l);}
+function slab(r,y0,y1,m){const o=new THREE.Mesh(new THREE.BoxGeometry(r[1]-r[0],y1-y0,r[3]-r[2]),m);o.position.set((r[0]+r[1])/2,(y0+y1)/2,(r[2]+r[3])/2);o.receiveShadow=true;return o;}
+const R4=r=>[r.x0,r.x1,r.z0,r.z1];
+function inst(geo,m,pts,y){
+  const im=new THREE.InstancedMesh(geo,m,Math.max(1,pts.length));im.count=pts.length;
+  pts.forEach((p,i)=>{dummy.position.set(p[0],y,p[1]);dummy.rotation.set(0,p[2]||0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();im.setMatrixAt(i,dummy.matrix);});
+  im.raycast=function(){};im.frustumCulled=false;im.receiveShadow=true;return im;
+}
+const studField=(pts,y,m)=>inst(studGeo,m,pts,y+0.09);
+function gridPts(r,ex){const o=[];
+  for(let x=Math.ceil(r.x0+0.45);x<=r.x1-0.45;x++)for(let z=Math.ceil(r.z0+0.45);z<=r.z1-0.45;z++){
+    if(ex&&x>ex.x0-0.45&&x<ex.x1+0.45&&z>ex.z0-0.45&&z<ex.z1+0.45)continue;o.push([x,z]);}
+  return o;}
+function topStuds(w,d,y,m){const nx=Math.max(1,Math.round(w)),nz=Math.max(1,Math.round(d)),p=[];
+  for(let i=0;i<nx;i++)for(let j=0;j<nz;j++)p.push([(i+0.5)*w/nx-w/2,(j+0.5)*d/nz-d/2]);return studField(p,y,m);}
+function mkFlag(x,y,z,m,h,C){const g=new THREE.Group();g.position.set(x,y,z);g.add(box(0.1,h,0.1,mat.pole));
+  const pv=new THREE.Group();pv.position.y=h-0.28;const c=box(0.85,0.48,0.05,m,0.47,-0.24,0);c.castShadow=false;pv.add(c);g.add(pv);C.flags.push(pv);return g;}
+function mkBanner(x,y,z){const g=new THREE.Group();g.position.set(x,y,z);g.add(box(0.1,1.8,0.1,mat.pole));g.add(box(0.75,0.08,0.08,mat.pole,0.33,1.66,0));g.add(box(0.6,0.95,0.05,mat.banner,0.38,0.7,0));return g;}
+
+/* Un pezzo = una posizione. La forma dipende dal tipo, mai dal colore. */
+function buildPiece(p,kind,d,C){
+  const g=new THREE.Group(),m=p.mat,dash=p.grp!=='piano';let body,top=d.h;
+  if(kind==='tower'){
+    body=box(d.w,d.h,d.d,m);const q=Math.min(d.w,d.d)*0.3,mh=0.45,pts=[[-1,-1],[1,-1],[-1,1],[1,1]];
+    if(d.w>2)pts.push([0,-1],[0,1],[-1,0],[1,0]);
+    pts.forEach(v=>g.add(box(q,mh,q,m,v[0]*(d.w-q)/2,d.h,v[1]*(d.d-q)/2)));
+    g.add(studField([[0,0]],d.h,m));top=d.h+mh;
+  }else if(kind==='round'){
+    const r=d.w/2;body=cyl(r,d.h,m);g.add(cyl(r*1.14,0.4,m,0,d.h-0.15,0));
+    for(let i=0;i<6;i++){const a=i/6*Math.PI*2,b=box(r*0.45,0.42,r*0.3,m,Math.cos(a)*r*0.92,d.h+0.25,Math.sin(a)*r*0.92);b.rotation.y=-a+Math.PI/2;g.add(b);}
+    top=d.h+0.67;
+  }else if(kind==='wall'){
+    body=box(d.w,d.h,d.d,m);g.add(topStuds(d.w,d.d,d.h,m));g.add(mkBanner(-d.w/2+0.3,d.h,0));top=d.h+0.2;
+  }else if(kind==='turretS'||kind==='turretE'){
+    const r=d.w/2,ch=r*1.5+0.7;body=cyl(r,d.h,m);
+    const c=new THREE.Mesh(new THREE.ConeGeometry(r*1.28,ch,18),mat.roof);c.position.y=d.h+ch/2;c.castShadow=true;g.add(c);
+    if(kind==='turretS')g.add(mkFlag(0,d.h+ch-0.1,0,mat.roof,1.2,C));else g.add(mkBanner(r+0.15,0,0));
+    top=d.h+ch+(kind==='turretS'?1.1:0);
+  }else if(kind==='low'||kind==='hut'){
+    body=box(d.w,d.h,d.d,m);const rh=0.5+0.35*d.w,c=new THREE.Mesh(new THREE.ConeGeometry(d.w*0.78,rh,4),m);
+    c.rotation.y=Math.PI/4;c.position.y=d.h+rh/2;c.castShadow=true;g.add(c);edges(c,dash);top=d.h+rh;
+  }else if(kind==='tent'){
+    const sh=new THREE.Shape();sh.moveTo(-d.d/2,0);sh.lineTo(d.d/2,0);sh.lineTo(0,d.h);sh.closePath();
+    const ge=new THREE.ExtrudeGeometry(sh,{depth:d.w,bevelEnabled:false});ge.translate(0,0,-d.w/2);ge.rotateY(Math.PI/2);
+    body=new THREE.Mesh(ge,m);body.castShadow=true;body.receiveShadow=true;g.add(mkBanner(-d.w/2-0.25,0,0));top=d.h;
+  }else{
+    body=box(1,0.6,1,m);g.add(studField([[0,0]],0.6,m));top=0.8;
+  }
+  edges(body,dash);body.userData.piece=p;g.add(body);C.pick.push(body);
+  if(p.over){g.add(mkFlag(0,top-0.1,0,mat.flag,1.5,C));top+=1.4;}
+  return{g,top};
+}
+function ghostOf(kind,g){
+  const geo=(kind==='round'||kind==='turretS'||kind==='turretE')?new THREE.CylinderGeometry(g.w/2,g.w/2,g.h,14):new THREE.BoxGeometry(g.w,g.h,g.d);
+  const l=new THREE.LineSegments(new THREE.EdgesGeometry(geo,20),ghostMat);l.position.y=g.h/2;l.computeLineDistances();l.raycast=function(){};return l;
+}
+function tree(x,y,z,s){const t=new THREE.Group();t.position.set(x,y,z);t.scale.setScalar(s);t.add(cyl(0.26,0.9,mat.wood,0,0,0,8));
+  [[1.05,1.5,0.9],[0.78,1.2,1.85]].forEach(v=>{const c=new THREE.Mesh(new THREE.ConeGeometry(v[0],v[1],8),mat.leaf);c.position.y=v[2]+v[1]/2;c.castShadow=true;t.add(c);});return t;}
+
+function buildCastle(P){
+  const L=layoutCastle(P),g=new THREE.Group(),C={P,L,g,pick:[],defs:[],flags:[],hits:[],ghosts:new THREE.Group(),crests:null,crestPts:[]};
+  P.C=C;g.add(C.ghosts);
+  const I=L.I,M=L.M,Sh=L.Sh,Pl=L.Pl,dry=P.dry,GB=-2.6,bedTop=-Math.min(2.2,L.depth);
+  /* terreno */
+  g.add(slab(R4(Pl),GB-0.6,GB,mat.base));
+  g.add(slab(R4(I),GB,0,mat.grass));
+  ringRects(M,L.sw).forEach(r=>g.add(slab(r,GB,0,mat.sand)));
+  ringRects(Sh,PM).forEach(r=>g.add(slab(r,GB,-0.15,mat.plate)));
+  g.add(studField(gridPts(I),0,mat.grass));g.add(studField(gridPts(Sh,M),0,mat.sand));
+  if(!isSmall)g.add(studField(gridPts(Pl,Sh),-0.15,mat.plate));
+  /* fossato: larghezza e profondità proporzionali al tier Cash (più la liquidità, se un giorno sarà nota) */
+  ringRects(I,L.mw).forEach(r=>g.add(slab(r,GB,bedTop,dry?mat.mud:mat.bed)));
+  let off=0;const surf=-0.16;
+  function band(w,m,piece){if(w<=0.001)return;const rr=grow(I,off);
+    ringRects(rr,w).forEach(r=>{const s=slab(r,bedTop,dry?bedTop+0.1:surf,m);if(piece){s.userData.piece=piece;C.pick.push(s);}g.add(s);
+      if(!dry){const hz=(r[1]-r[0])>(r[3]-r[2]),len=hz?r[1]-r[0]:r[3]-r[2],k=Math.round(len*Math.min(w,3)/9),rnd=rng(hash(P.key+r.join()));
+        for(let i=0;i<k;i++)C.crestPts.push([r[0]+0.5+rnd()*(r[1]-r[0]-1),r[2]+0.2+rnd()*(r[3]-r[2]-0.4),hz?0:Math.PI/2,rnd()*6.28]);}});
+    off+=w;}
+  P.cashBands.forEach((c,i)=>{const p=c.piece;if(!p)return;p.kind='moat';p.mat=M3(0xffffff,{transparent:!dry,opacity:dry?1:0.88,roughness:dry?0.9:0.25});
+    const a0=off,w=L.cashW[i];band(w,p.mat,p);p.anchor=new V3(-(GATE+4),0.2,I.z1+a0+w/2);C.defs.push({kind:'piece',p,a:p.anchor});});
+  const a1=off;C.liqMat=M3(dry?0xA5855F:0x63BDE0,{transparent:!dry,opacity:dry?1:0.82,roughness:dry?0.9:0.25});band(L.liqW,C.liqMat,null);
+  C.defs.push({kind:'water',zona:'fossato',a:new V3(GATE+4,0.2,I.z1+(L.liqW>0?a1+L.liqW/2:L.mw/2)),
+    text:(P.liqKnown?'Liquidità '+fP(P.liqPct):'Liquidità non nota')+(dry?' · fossato in secca':'')});
+  if(dry){const pts=[],rnd=rng(hash(P.key+'crk'));
+    ringRects(I,L.mw).forEach(r=>{const k=Math.round(Math.max(r[1]-r[0],r[3]-r[2])/1.1);
+      for(let i=0;i<k;i++){const x=r[0]+0.2+rnd()*(r[1]-r[0]-0.4),z=r[2]+0.2+rnd()*(r[3]-r[2]-0.4),a=rnd()*6.28,l=0.2+rnd()*0.3,y=bedTop+0.12;
+        pts.push(x-Math.cos(a)*l,y,z-Math.sin(a)*l,x,y,z,x,y,z,x+Math.cos(a+1.1)*l,y,z+Math.sin(a+1.1)*l);}});
+    const cg=new THREE.BufferGeometry();cg.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));const cl=new THREE.LineSegments(cg,mat.crack);cl.raycast=function(){};g.add(cl);
+  }else if(C.crestPts.length){C.crests=inst(new THREE.BoxGeometry(0.8,0.04,0.14),mat.crest,C.crestPts,surf+0.03);C.crests.receiveShadow=false;g.add(C.crests);}
+  if(L.ghostMoat>0){const r=grow(I,L.ghostMoat),y=0.1,lg=new THREE.BufferGeometry().setFromPoints([new V3(r.x0,y,r.z0),new V3(r.x1,y,r.z0),new V3(r.x1,y,r.z1),new V3(r.x0,y,r.z1),new V3(r.x0,y,r.z0)]);
+    const ln=new THREE.Line(lg,ghostMat);ln.computeLineDistances();ln.raycast=function(){};C.ghosts.add(ln);}
+  /* ponte levatoio, porta, vialetto */
+  const bl=(M.z1-I.z1)+1.4,bz=(M.z1+I.z1)/2;
+  g.add(box(3.4,0.2,bl,mat.wood,0,0,bz));[-1.6,1.6].forEach(x=>g.add(box(0.16,0.5,bl,mat.wood,x,0.2,bz)));
+  g.add(box(2.8,0.07,I.z1-L.HZ,mat.stoneD,0,0,(I.z1+L.HZ)/2));
+  [-1,1].forEach(s=>{const t=box(1.3,3.6,1.7,mat.stone,s*(GATE-0.65),0,L.HZ);edges(t);g.add(t);g.add(box(0.55,0.45,0.55,mat.stone,s*(GATE-0.65),3.6,L.HZ));});
+  const lin=box(2*GATE,0.7,1.3,mat.stone,0,2.9,L.HZ);edges(lin);g.add(lin);
+  /* cinta neutra, pilastrini d'angolo, basamento del mastio, impalcature */
+  L.walls.forEach(w=>{const len=w.b-w.a,c=(w.a+w.b)/2,m=w.ax==='x'?box(len,w.h,0.9,mat.stone,c,0,w.fix):box(0.9,w.h,len,mat.stone,w.fix,0,c);edges(m);g.add(m);});
+  L.posts.forEach(c=>{const p=cyl(1.1,2.1,mat.stone,c[0],0,c[1]);edges(p);g.add(p);g.add(cyl(1.25,0.3,mat.stone,c[0],2.1,c[1]));});
+  if(L.S.some(s=>s.zona==='mastio')){const pl=box(2*(L.CX+0.7),L.PLH,2*(L.CZ+0.7),mat.stoneD,0,0,0);edges(pl);g.add(pl);}
+  L.scaf.forEach(s=>{const sg=new THREE.Group();sg.position.set(s.x,0,s.z);sg.rotation.y=s.rot;const H=s.h+s.y;
+    [-0.6,0.6].forEach(x=>sg.add(box(0.14,H,0.14,mat.wood,x,0,0)));sg.add(box(1.5,0.1,0.5,mat.wood,0,H*0.55,0));sg.add(box(1.5,0.1,0.14,mat.wood,0,H-0.15,0));
+    const br=box(0.1,Math.hypot(1.2,H*0.55),0.1,mat.wood,0,0,0);br.position.y=H*0.275;br.rotation.z=Math.atan2(1.2,H*0.55);sg.add(br);g.add(sg);});
+  /* posti del castello: il pezzo e, se c'è un peso target, il suo contorno */
+  const sgn=p=>hash(p.sid)%2?1:-1;
+  L.S.forEach(s=>{const p=s.piece;
+    if(s.g){const gg=new THREE.Group();gg.position.set(s.x,s.y,s.z);gg.rotation.y=s.rot;gg.add(ghostOf(s.kind,s.g));C.ghosts.add(gg);}
+    if(p&&!p.frag){const sg=new THREE.Group();sg.position.set(s.x,s.y,s.z);sg.rotation.y=s.rot;g.add(sg);
+      p.kind=s.kind;p.dim=s.p;p.mat=M3(0xffffff);const b=buildPiece(p,s.kind,s.p,C);b.g.rotation.z=rad(p.tilt)*sgn(p);sg.add(b.g);
+      p.anchor=new V3(s.x,s.y+b.top+0.25,s.z);C.defs.push({kind:'piece',p,a:p.anchor});}
+  });
+  /* pezzi sciolti: frammenti in piano sulla riva dell'isola, fuori piano oltre il fossato */
+  P.pieces.forEach(p=>{if(p.ox==null||p.kind==='moat')return;
+    p.mat=M3(0xffffff);const sg=new THREE.Group();sg.position.set(p.ox,0,p.oz);sg.rotation.y=p.orot;g.add(sg);
+    const b=buildPiece(p,p.kind,p.dim,C);b.g.rotation.z=rad(p.tilt)*sgn(p);if(p.kind==='frag'){b.g.rotation.x=0.14;b.g.position.y=0.06;}sg.add(b.g);
+    p.anchor=new V3(p.ox,b.top+0.25,p.oz);C.defs.push({kind:'piece',p,a:p.anchor});});
+  /* vegetazione */
+  const rnd=rng(hash(P.key+'veg'));
+  [[I.x0+1.5,I.z0+1.5],[I.x1-1.5,I.z0+1.5],[I.x0+1.5,I.z1-1.5],[I.x1-1.5,I.z1-1.5],[I.x0+1.4,(I.z0+I.z1)/2+3],[I.x1-1.4,(I.z0+I.z1)/2-3]]
+    .forEach(c=>{if(!P.pieces.some(p=>p.ox!=null&&Math.hypot(p.ox-c[0],p.oz-c[1])<2.2))g.add(tree(c[0],0,c[1],0.8+rnd()*0.3));});
+  const pc=[[Pl.x0,Pl.z0],[Pl.x1,Pl.z0],[Pl.x0,Pl.z1],[Pl.x1,Pl.z1]];
+  for(let i=0,k=0;i<60&&k<7;i++){const x=Pl.x0+1.5+rnd()*(Pl.x1-Pl.x0-3),z=Pl.z0+1.5+rnd()*(Pl.z1-Pl.z0-3);
+    if(x>Sh.x0-1.5&&x<Sh.x1+1.5&&z>Sh.z0-1.5&&z<Sh.z1+1.5)continue;if(pc.some(c=>Math.hypot(c[0]-x,c[1]-z)<PM*1.6))continue;
+    g.add(tree(x,-0.15,z,0.9+rnd()*0.5));k++;}
+  /* eserciti: soldati = 1 ogni 2% (minimo 3), freccia larga in proporzione alla quota */
+  L.armies.forEach(A=>{const a=A.a,ag=new THREE.Group();ag.position.set(A.x,-0.15,A.z);g.add(ag);
+    const pts=[],rows=Math.ceil(a.n/A.cols);
+    for(let i=0;i<a.n;i++)pts.push([((i%A.cols)-(A.cols-1)/2)*0.95,(Math.floor(i/A.cols)-(rows-1)/2)*0.95]);
+    const bo=inst(solBody,mat.enemy,pts,0.31),he=inst(solHead,mat.head,pts,0.8);bo.castShadow=true;ag.add(bo,he);
+    ag.add(box(0.12,3.3,0.12,mat.pole,0,0,0));ag.add(box(1.5,0.95,0.06,mat.flag,0.8,2.3,0));
+    const dl=Math.hypot(A.x,A.z),dx=-A.x/dl,dz=-A.z/dl,w=0.5+a.pct*0.04,len=6.5,hl=Math.min(2.4,1+w*0.5),hw=w/2+0.7,st=A.f/2+1;
+    const sh=new THREE.Shape();sh.moveTo(0,-w/2);sh.lineTo(len-hl,-w/2);sh.lineTo(len-hl,-hw);sh.lineTo(len,0);sh.lineTo(len-hl,hw);sh.lineTo(len-hl,w/2);sh.lineTo(0,w/2);sh.closePath();
+    const ge=new THREE.ExtrudeGeometry(sh,{depth:0.12,bevelEnabled:false});ge.rotateX(-Math.PI/2);
+    const ar=new THREE.Mesh(ge,mat.arrow);ar.position.set(dx*st,0.22,dz*st);ar.rotation.y=Math.atan2(-dz,dx);ar.userData.army=a;ag.add(ar);C.hits.push(ar);
+    const hit=new THREE.Mesh(new THREE.BoxGeometry(A.f+1.2,3.4,A.f+1.2),mat.hit);hit.position.y=1.7;hit.userData.army=a;ag.add(hit);C.hits.push(hit);
+    a.anchor=new V3(A.x,3.7,A.z);C.defs.push({kind:'army',army:a,a:a.anchor});});
+  C.defs.push({kind:'title',a:new V3(0,0.4,Pl.z1-1.2),text:P.nome,eur:P.total});
+  return C;
+}
+function disposeCastle(C){
+  scene.remove(C.g);
+  C.g.traverse(o=>{if(o.geometry&&!SHARED.has(o.geometry))o.geometry.dispose();if(o.material&&!SHMAT.has(o.material)&&o.material.dispose)o.material.dispose();});
+}
+
+/* ───────── Colori nella scena ───────── */
+function applyColors(){
+  if(!gl||!C)return;
+  const army=activeArmy();
+  for(const p of C.P.pieces){if(!p.mat)continue;
+    const c=new THREE.Color(cssColor(p,state.color));if(army&&!army.set.has(p))c.lerp(GRAY,0.72);p.mat.color.copy(c);}
+}
+
+/* ───────── Posizione del castello e camera ───────── */
+let cw=0,ch=0,userMoved=false,homeDist=140,focusActive=false,focusDist=null;
+function placeCastle(){
+  const L=C.L;C.g.position.set(-(L.Pl.x0+L.Pl.x1)/2,0,-(L.Pl.z0+L.Pl.z1)/2);
+  C.ghosts.visible=state.ghosts;C.g.updateMatrixWorld(true);
+}
+function worldBox(r){const p=C.g.position;return{x0:r.x0+p.x,x1:r.x1+p.x,z0:r.z0+p.z,z1:r.z1+p.z};}
+function freeRect(){
+  const s=stage.getBoundingClientRect();
+  if(mode()==='mobile'){const z=$('#zones').getBoundingClientRect(),lb=$('#legbar').getBoundingClientRect(),top=z.bottom-s.top+4,bot=Math.max(0,s.bottom-lb.top)+4;
+    return{x:0,y:top,w:s.width,h:Math.max(80,s.height-top-bot)};}
+  const f=$('#free').getBoundingClientRect();return{x:f.left-s.left,y:f.top-s.top,w:Math.max(120,f.width),h:Math.max(100,f.height)};
+}
+let freeR={x:0,y:0,w:1,h:1};
+function viewOffset(){if(!cw)return;freeR=freeRect();camera.setViewOffset(cw,ch,Math.round(cw/2-(freeR.x+freeR.w/2)),Math.round(ch/2-(freeR.y+freeR.h/2)),cw,ch);}
+function camAngles(){const s=new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));return{az:s.theta,pol:s.phi};}
+function fitDist(bx,az,pol,pad,hgt){
+  const t=Math.tan(rad(camera.fov/2)),asp=cw/ch,ex=(bx.x1-bx.x0)/2,ez=(bx.z1-bx.z0)/2;
+  const hw=ex*Math.abs(Math.cos(az))+ez*Math.abs(Math.sin(az)),hd=ex*Math.abs(Math.sin(az))+ez*Math.abs(Math.cos(az));
+  const hv=hd*Math.cos(pol)+(hgt||6)*Math.sin(pol)*0.5,near=hd*Math.sin(pol);
+  return Math.max(hw/(t*asp*(freeR.w/cw)),hv/(t*(freeR.h/ch)))*(pad||1.04)+near*0.35;
+}
+/* come: true = riporta la camera a casa; false = solo se l'utente non l'ha mossa;
+   'tieni' = mai (ricostruzione dal vivo: la camera resta dov'è). */
+function fit(come){
+  if(!gl||!cw||!C)return;
+  viewOffset();const b=worldBox(C.L.Pl),az=0.5,pol=0.9;
+  homeTarget.set((b.x0+b.x1)/2,1,(b.z0+b.z1)/2);homeDist=clamp(fitDist(b,az,pol,1.03,10),30,440);
+  if(come===true||(come!=='tieni'&&!userMoved)){userMoved=false;focusActive=false;controls.target.copy(homeTarget);
+    camera.position.set(Math.sin(pol)*Math.sin(az),Math.cos(pol),Math.sin(pol)*Math.cos(az)).multiplyScalar(homeDist).add(homeTarget);controls.update();}
+  /* luce e ombre seguono il castello anche quando la camera resta ferma */
+  const cc=homeTarget;sun.target.position.copy(cc);sun.position.set(cc.x+70,110,cc.z+60);
+  const sc=sun.shadow.camera,e=Math.max(b.x1-b.x0,b.z1-b.z0)/2+12;sc.left=-e;sc.right=e;sc.top=e;sc.bottom=-e;sc.near=10;sc.far=320;sc.updateProjectionMatrix();
+}
+function focusOn(target,dist){focusTarget.copy(target);focusDist=dist;focusActive=true;}
+function goHome(){if(gl)focusOn(homeTarget,homeDist);}
+function tickFocus(){
+  if(!focusActive)return;
+  const d=focusTarget.clone().sub(controls.target),moving=d.length()>0.03;
+  d.multiplyScalar(reduced?1:0.12);controls.target.add(d);camera.position.add(d);let zooming=false;
+  if(focusDist!=null){const dir=camera.position.clone().sub(controls.target),len=dir.length();
+    if(Math.abs(len-focusDist)>0.2){camera.position.copy(controls.target).add(dir.setLength(len+(focusDist-len)*(reduced?1:0.1)));zooming=true;}}
+  if(!moving&&!zooming)focusActive=false;
+}
+function stopSpin(){if(state.spin){state.spin=false;$('#btnSpin').setAttribute('aria-pressed','false');}if(gl)controls.autoRotate=false;}
+const wpos=a=>C.g.localToWorld(a.clone());
+
+/* ───────── Etichette: una per ogni pezzo, sempre visibile, senza sovrapposizioni ───────── */
+let labels=[];
+function buildLabels(){
+  labelsEl.innerHTML='';labels=[];
+  for(const d of C.defs){
+    const el=document.createElement('div');
+    el.className='lbl'+(d.kind==='piece'?(d.p.grp!=='piano'?' out':'')+(d.p.kind==='moat'?' water':''):' '+d.kind);
+    el.innerHTML=labelHTML(d);el.style.visibility='hidden';labelsEl.appendChild(el);
+    labels.push({el,d,x:null,y:null,det:false,dim:false,shown:false,sel:false,
+      zona:d.kind==='piece'?d.p.zona:(d.zona||null),prio:d.kind==='piece'?d.p.pct:(d.kind==='title'?60:d.kind==='army'?50:1),
+      small:d.kind==='piece'&&(d.p.frag||side(d.p.pct)<1.6)});
+  }
+  labels.forEach(l=>{l.wb=l.el.offsetWidth;l.h=l.el.offsetHeight;});
+  labels.forEach(l=>l.el.classList.add('det'));labels.forEach(l=>{l.wd=l.el.offsetWidth;});labels.forEach(l=>l.el.classList.remove('det'));
+}
+const CAND=[[0,0]];for(let k=1;k<=9;k++)for(const g of[90,55,125,20,160,-15,195,-55,235,-90]){const r=g*Math.PI/180;CAND.push([Math.cos(r)*k*0.8,Math.sin(r)*k*1.25]);}
+function updateLabels(){
+  const dpr=Math.min(devicePixelRatio||1,2);lctx.setTransform(dpr,0,0,dpr,0,0);lctx.clearRect(0,0,cw,ch);
+  const items=[],detD=mode()==='mobile'?44:52,sp=selPiece();
+  for(const l of labels){
+    const d=l.d;
+    _v.copy(d.a);C.g.localToWorld(_v);l.dist=_v.distanceTo(camera.position);_v.project(camera);
+    if(_v.z>1||_v.z<-1||Math.abs(_v.x)>1.04||Math.abs(_v.y)>1.04){if(l.shown){l.el.style.visibility='hidden';l.shown=false;l.x=null;}continue;}
+    l.sx=(_v.x*0.5+0.5)*cw;l.sy=(-_v.y*0.5+0.5)*ch;
+    const isSel=d.kind==='piece'&&d.p===sp,isHov=d.kind==='piece'&&d.p===state.hover;
+    const dim=state.zone!=='all'&&l.zona!==state.zone&&!isSel;
+    const det=!dim&&d.kind==='piece'&&(isSel||isHov||l.dist<detD);
+    if(dim!==l.dim){l.dim=dim;l.el.classList.toggle('dim',dim);}
+    if(det!==l.det){l.det=det;l.el.classList.toggle('det',det);}
+    if(isSel!==l.sel){l.sel=isSel;l.el.classList.toggle('sel',isSel);}
+    l.pr=(isSel?1e4:0)+(isHov?5e3:0)+(dim?-1e3:0)+(det?100:0)+l.prio;items.push(l);
+  }
+  items.sort((a,b)=>b.pr-a.pr);
+  const placed=[],fx0=Math.max(2,freeR.x-30),fx1=Math.min(cw-2,freeR.x+freeR.w+30),fy0=freeR.y-6,fy1=freeR.y+freeR.h+10;lctx.lineWidth=1;lctx.strokeStyle=isDark?'rgba(234,240,255,.55)':'rgba(14,27,61,.5)';lctx.beginPath();
+  for(const l of items){
+    const w=l.det?l.wd:l.wb,h=l.h,s=h+2;let bx=l.sx-w/2,by=l.sy-h-4;
+    for(const c of CAND){const x=l.sx-w/2+c[0]*w,y=l.sy-h-4-c[1]*s;let hit=false;
+      if(c[0]||c[1]){if(y<fy0||y+h>fy1||x<fx0||x+w>fx1)continue;}
+      for(const q of placed){if(x<q[0]+q[2]+2&&x+w+2>q[0]&&y<q[1]+q[3]+1&&y+h+1>q[1]){hit=true;break;}}
+      if(!hit){bx=x;by=y;break;}}
+    bx=clamp(bx,2,Math.max(2,cw-w-2));
+    placed.push([bx,by,w,h]);
+    if(l.x==null||reduced){l.x=bx;l.y=by;}else{l.x+=(bx-l.x)*0.4;l.y+=(by-l.y)*0.4;}
+    l.el.style.transform='translate('+l.x.toFixed(1)+'px,'+l.y.toFixed(1)+'px)';
+    if(!l.shown){l.el.style.visibility='visible';l.shown=true;}
+    const ax=l.x+w/2,ay=l.y+h;
+    if(!l.dim&&(l.small||Math.hypot(ax-l.sx,ay-l.sy)>9)){lctx.moveTo(l.sx,l.sy);lctx.lineTo(clamp(l.sx,l.x+3,l.x+w-3),ay);}
+  }
+  lctx.stroke();
+}
+
+/* ───────── Pannelli ───────── */
+function renderZones(){
+  $('#zones').innerHTML=[{id:'all',nome:'Tutto'}].concat(ZONE.filter(z=>z.id!=='cortile')).map(z=>'<button class="btn" type="button" data-z="'+z.id+'" aria-pressed="'+(state.zone===z.id)+'"'+(z.desc?' title="'+esc(z.desc)+'"':'')+'>'+z.nome+'</button>').join('');
+}
+function renderList(){listBody.innerHTML=listHTML(model.re,state.color);markRows();}
+function markRows(){const sp=selPiece();$$('#listBody .row').forEach(r=>{const p=byKey.get(r.dataset.k);r.classList.toggle('sel',p===sp);r.classList.toggle('hov',p===state.hover&&p!==sp);});}
+function renderDiag(){$('#diagBody').innerHTML=diagHTML(model);}
+function renderLegend(){const l=legendaHTML(model,state.color);$('#legbar').innerHTML=l.bar;$('#notesLine').textContent=l.nota;$('#legBody').innerHTML=l.corpo;}
+function renderCard(){$('#cardBody').innerHTML=cardHTML(state.sel,model);}
+function renderSeg(){
+  $$('#segColor button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===state.color)));
+  $('#btnGhost').setAttribute('aria-pressed',String(state.ghosts));$('#btnSpin').setAttribute('aria-pressed',String(state.spin));
+}
+function renderSearch(){const seen=new Set(),o=[];model.re.pieces.forEach(p=>{if(!seen.has(p.lab)){seen.add(p.lab);o.push('<option value="'+esc(p.lab)+'">'+esc(p.nome)+'</option>');}});$('#tickers').innerHTML=o.join('');}
+function renderStato(){$('#stato').innerHTML=esc(rigaStato(D))+(D.scarti?' · <span class="avv">'+esc(scartiTesto(D.scarti))+'</span>':'');}
+function setTab(t){state.tab=t;$$('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.t===t)));$$('.pane').forEach(p=>p.classList.toggle('on',p.dataset.pane===t));}
+function applyMode(){$('#paneLeg').open=mode()!=='wide';}
+function renderAll(){renderZones();renderSeg();renderList();renderDiag();renderLegend();renderCard();renderSearch();renderStato();}
+
+/* ───────── Azioni ───────── */
+function select(sel,opt){
+  opt=opt||{};state.sel=sel;
+  if(sel){
+    stopSpin();
+    const a=sel.piece?sel.piece.anchor:sel.army.anchor;
+    if(gl&&a&&opt.focus!==false){const w=wpos(a);w.y=Math.max(1,w.y*0.5);
+      focusOn(w,Math.min(camera.position.distanceTo(controls.target),sel.army?70:mode()==='mobile'?42:36));}
+    if(mode()!=='wide'&&opt.from!=='list')setTab('scheda');
+    say(sel.piece?sel.piece.lab+', '+sel.piece.nome+', peso '+fPw(sel.piece.pct):sel.army.nome+', '+fP(sel.army.pct));
+  }else if(mode()!=='wide'&&state.tab==='scheda')setTab('elenco');
+  renderCard();applyColors();markRows();
+  if(sel&&sel.piece){const r=$$('#listBody .row').find(x=>x.dataset.k===sel.piece.key);if(r&&opt.from!=='list')r.scrollIntoView({block:'nearest'});}
+}
+function focusZone(z){
+  if(!gl||!C)return;
+  if(z==='all'){goHome();return;}
+  if(z==='fuori'&&!C.P.out.length){say('Nessuna posizione fuori piano.');goHome();return;}
+  let b=null;const add=(x,zz)=>{b=b?{x0:Math.min(b.x0,x),x1:Math.max(b.x1,x),z0:Math.min(b.z0,zz),z1:Math.max(b.z1,zz)}:{x0:x,x1:x,z0:zz,z1:zz};};
+  if(z==='fossato'){const r=C.L.M;add(r.x0,r.z0);add(r.x1,r.z1);}
+  else{C.P.pieces.forEach(p=>{if(p.zona===z&&p.anchor)add(p.anchor.x,p.anchor.z);});C.L.S.forEach(s=>{if(s.zona===z)add(s.x,s.z);});}
+  if(!b){say('Questa zona è vuota.');goHome();return;}
+  b=worldBox(grow(b,3));const a=camAngles();
+  focusOn(new V3((b.x0+b.x1)/2,2,(b.z0+b.z1)/2),clamp(fitDist(b,a.az,a.pol,1.15,8),24,homeDist));
+}
+function setZone(z){state.zone=z;stopSpin();$$('#zones .btn').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.z===z)));focusZone(z);}
+
+$('#zones').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)setZone(b.dataset.z);});
+$('#segColor').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b||!model)return;state.color=b.dataset.c;applyColors();renderSeg();renderList();renderLegend();});
+$('#btnGhost').addEventListener('click',()=>{state.ghosts=!state.ghosts;if(C)C.ghosts.visible=state.ghosts;renderSeg();});
+$('#btnSpin').addEventListener('click',()=>{state.spin=!state.spin;if(gl)controls.autoRotate=state.spin;renderSeg();});
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b)setTab(b.dataset.t);});
+listBody.addEventListener('click',e=>{const r=e.target.closest('.row'),p=r&&byKey.get(r.dataset.k);if(p)select({piece:p},{from:'list'});});
+const rowHover=e=>{const r=e.target.closest&&e.target.closest('.row'),p=r?byKey.get(r.dataset.k):null;if(p!==state.hover){state.hover=p||null;markRows();}};
+listBody.addEventListener('mouseover',rowHover);listBody.addEventListener('focusin',rowHover);
+listBody.addEventListener('mouseleave',()=>{if(state.hover){state.hover=null;markRows();}});
+$('#diagBody').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(!b||!model)return;const d=model.re.defects[+b.dataset.d];if(!d||!d.focus)return;
+  if(d.focus.piece)select({piece:d.focus.piece});else{state.zone=d.focus.zona;$$('#zones .btn').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.z===state.zone)));stopSpin();focusZone(d.focus.zona);}});
+$('#cardBody').addEventListener('click',e=>{if(e.target.closest('#cClose'))select(null);});
+function doSearch(q){
+  q=String(q||'').trim().toLowerCase();if(!q||!model)return;
+  const ps=model.re.pieces;let hit=null;
+  for(const f of[p=>p.lab.toLowerCase()===q||p.ticker.toLowerCase()===q,p=>p.lab.toLowerCase().startsWith(q)||p.ticker.toLowerCase().startsWith(q),p=>p.nome.toLowerCase().includes(q)||p.lab.toLowerCase().includes(q)]){hit=ps.find(f);if(hit)break;}
+  if(hit){select({piece:hit});state.pulse={p:hit,t0:performance.now()};}else say('Nessuna posizione trovata per '+q+'.');
+}
+$('#search').addEventListener('change',e=>doSearch(e.target.value));
+$('#search').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch(e.target.value);});
+
+/* puntamento nella scena (agganciato quando la scena si apre) */
+function pickAt(cx,cy){
+  if(!C)return null;
+  const r=canvas.getBoundingClientRect();ndc.set(((cx-r.left)/r.width)*2-1,-((cy-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera);
+  const hit=ray.intersectObjects(C.pick.concat(C.hits),false)[0];if(!hit)return null;
+  return hit.object.userData.piece?{piece:hit.object.userData.piece}:{army:hit.object.userData.army};
+}
+function puntamento(){
+  let down=null;
+  canvas.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY,t:performance.now()};});
+  canvas.addEventListener('pointerup',e=>{if(!down)return;const moved=Math.hypot(e.clientX-down.x,e.clientY-down.y),dt=performance.now()-down.t;down=null;
+    if(moved<6&&dt<700){const h=pickAt(e.clientX,e.clientY);if(h)select(h);else if(state.sel)select(null);}});
+  canvas.addEventListener('pointermove',e=>{
+    if(e.pointerType!=='mouse'||down){tip.hidden=true;return;}
+    const h=pickAt(e.clientX,e.clientY),p=h&&h.piece||null,a=h&&h.army||null;
+    canvas.classList.toggle('pick',!!h);
+    if(p!==state.hover){state.hover=p;markRows();}
+    if(a!==state.armyHover){state.armyHover=a;applyColors();}
+    if(!h){tip.hidden=true;return;}
+    tip.innerHTML=tipHTML(h);
+    tip.hidden=false;const s=stage.getBoundingClientRect(),tw=tip.offsetWidth,th=tip.offsetHeight;
+    tip.style.left=clamp(e.clientX-s.left+14,4,s.width-tw-4)+'px';tip.style.top=clamp(e.clientY-s.top+14,4,s.height-th-4)+'px';
+  });
+  canvas.addEventListener('pointerleave',()=>{tip.hidden=true;if(state.hover){state.hover=null;markRows();}if(state.armyHover){state.armyHover=null;applyColors();}});
+  canvas.addEventListener('keydown',e=>{
+    if(!model)return;
+    if(e.key==='Escape'){select(null);return;}
+    if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;e.preventDefault();
+    const ps=model.re.pieces.slice().sort((a,b)=>b.pct-a.pct),i=ps.indexOf(selPiece());if(!ps.length)return;
+    select({piece:ps[(i+(e.key==='ArrowRight'?1:-1)+ps.length)%ps.length]});
+  });
+}
+
+/* ───────── Costruzione e ciclo ───────── */
+/* vivo = ricostruzione mentre il castello è già a schermo: la selezione resta
+   (se il titolo c'è ancora) e la camera non si muove. */
+function rebuild(nuovi,vivo){
+  const prima=state.sel;
+  D=nuovi;model=buildModel(D);
+  byKey=new Map(model.re.pieces.map(p=>[p.key,p]));
+  state.hover=null;state.armyHover=null;state.pulse=null;
+  state.sel=vivo?ritrovaSelezione(prima,model.re):null;
+  if(!vivo)state.zone='all';
+  document.body.classList.toggle('privacy',!!D.privacy);
+  if(initScena()){
+    misura();
+    if(C)disposeCastle(C);
+    C=buildCastle(model.re);scene.add(C.g);
+    placeCastle();buildLabels();applyColors();
+  }
+  renderAll();
+  if(!state.sel&&state.tab==='scheda'&&mode()!=='wide')setTab('elenco');
+  fit(vivo?'tieni':true);
+  if(vivo)say('Castello aggiornato: '+rigaStato(D)+'.');
+}
+function svuota(){
+  if(C){disposeCastle(C);C=null;}
+  labelsEl.innerHTML='';labels=[];tip.hidden=true;
+  D=null;model=null;byKey=new Map();state.sel=null;state.hover=null;state.armyHover=null;state.pulse=null;
+  document.body.classList.remove('privacy');
+}
+function misura(){
+  if(!gl)return;
+  const r=stage.getBoundingClientRect(),w=Math.max(1,Math.round(r.width)),h=Math.max(1,Math.round(r.height));
+  if(w!==cw||h!==ch){cw=w;ch=h;renderer.setSize(w,h,false);camera.aspect=w/h;const dpr=Math.min(devicePixelRatio||1,2);lead.width=Math.round(w*dpr);lead.height=Math.round(h*dpr);}
+  camera.updateProjectionMatrix();
+}
+function resize(){misura();fit(false);}
+[mqMobile,mqWide].forEach(m=>{try{m.addEventListener('change',()=>{applyMode();resize();});}catch(e){}});
+
+let tAbs=0;
+function frame(){
+  requestAnimationFrame(frame);
+  if(!C||!cw)return;
+  const dt=Math.min(clock.getDelta(),0.05);tAbs+=dt;
+  const sp=selPiece(),army=activeArmy(),now=performance.now();
+  if(state.pulse&&now-state.pulse.t0>2600)state.pulse=null;
+  if(!reduced){for(let i=0;i<C.flags.length;i++)C.flags[i].rotation.y=Math.sin(tAbs*4+i*1.7)*0.3;
+    if(C.crests){const pts=C.crestPts;for(let i=0;i<pts.length;i++){const p=pts[i];dummy.position.set(p[0],-0.13+Math.sin(tAbs*1.6+p[3])*0.035,p[1]);dummy.rotation.set(0,p[2],0);dummy.scale.set(0.7+0.3*Math.sin(tAbs*1.1+p[3]),1,1);dummy.updateMatrix();C.crests.setMatrixAt(i,dummy.matrix);}C.crests.instanceMatrix.needsUpdate=true;}}
+  for(const p of C.P.pieces){if(!p.mat)continue;let e=p===sp?0.32:(p===state.hover?0.17:0);
+    if(army&&army.set.has(p))e=Math.max(e,0.14+(reduced?0:0.05*Math.sin(tAbs*4)));
+    if(state.pulse&&state.pulse.p===p)e=Math.max(e,reduced?0.4:0.25+0.25*Math.sin(tAbs*9));
+    p.mat.emissive.setRGB(e,e*0.92,e*0.7);}
+  controls.autoRotate=state.spin&&!focusActive;
+  tickFocus();controls.update();renderer.render(scene,camera);updateLabels();
+}
+
+/* ───────── Avvio: i dati vengono solo da localStorage['pf_v2'], scritto da index.html ───────── */
+const pagina=creaAggiornatore({
+  leggi:()=>localStorage.getItem(KEY),
+  castello:(dati,vivo)=>{app.classList.remove('vuoto');rebuild(dati,vivo);},
+  vuoto:t=>{svuota();$('#vuotoT').textContent=t.t;$('#vuotoD').textContent=t.d;app.classList.add('vuoto');}
+});
+applyMode();
+pagina.avvia();
+/* Dal vivo: l'evento storage scatta in questa scheda quando index.html, in
+   un'altra, salva. Nessun timer e nessuna richiesta di rete da qui. */
+window.addEventListener('storage',e=>pagina.evento(e));
+/* Dove l'evento non arriva: si rilegge quando la scheda torna visibile o prende il fuoco. */
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)pagina.ritorno();});
+window.addEventListener('focus',()=>pagina.ritorno());
+window.addEventListener('pageshow',e=>{if(e.persisted)pagina.ritorno();});
+/* appiglio per le verifiche a mano dalla console */
+window.__castello={state,model:()=>model,castello:()=>C,select,setZone,labels:()=>labels,pagina,
+  vista:()=>gl?{camera:camera.position.toArray(),bersaglio:controls.target.toArray()}:null};
+})();
+</script>
+</body>
+</html>
