@@ -5,9 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Castello del portafoglio</title>
 <style>
-/* Castello del portafoglio: pagina separata da index.html, offline, senza
-   dipendenze di rete (Three.js r128 e OrbitControls sono in castello/vendor/).
-   Legge le posizioni salvate dalla piattaforma in localStorage e non scrive nulla.
+/* Castello del portafoglio: offline, senza dipendenze di rete (Three.js r128 e
+   OrbitControls sono in castello/vendor/). Legge le posizioni salvate dalla
+   piattaforma in localStorage e non scrive nulla. È il sorgente della scheda
+   «Castle» di index.html: tools/build-castello.js lo incorpora lì, librerie
+   comprese, e la piattaforma lo apre in una cornice. Da solo si apre solo dal
+   server locale (node .claude/serve.js).
    Layout: scena 3D a tutta pagina. Sopra comandi e zone, a sinistra l'elenco,
    a destra diagnosi e scheda, in basso la legenda. Su telefono i pannelli
    diventano un foglio a schede sotto la scena. */
@@ -264,7 +267,7 @@ details.panel[open]>summary::after{content:"–"}
       <span class="logo" aria-hidden="true"></span>
       <h1 id="vuotoT">Apri la piattaforma e aggiungi delle posizioni</h1>
       <p id="vuotoD">Il castello si costruisce dalle posizioni che la piattaforma salva in questo browser. Qui non ce ne sono ancora.</p>
-      <p id="vuotoN">Se nella piattaforma le posizioni ci sono già, apri il castello dal link «Castle» delle sue Impostazioni: così le due pagine stanno nella stessa finestra del browser e leggono gli stessi dati. In una finestra privata ogni scheda ha dati suoi e il castello resta vuoto.</p>
+      <p id="vuotoN">Questa pagina da sola legge i dati solo nello stesso browser della piattaforma, e non in una finestra privata. Il castello si apre dalla scheda «Castle» della piattaforma.</p>
       <a class="btn primary" href="index.html">Apri la piattaforma</a>
     </div>
   </div>
@@ -868,8 +871,9 @@ function legendaHTML(model,modo){
 
 /* ───────── Stato vuoto e avvio ───────── */
 /* Titolo e descrizione dello stato vuoto, come testo semplice. */
-function vuotoTesto(r){
+function vuotoTesto(r,dentro){
   const n=r&&r.D?r.D.scarti:0;
+  if(dentro&&r&&r.stato!=='rotto'&&!n)return{t:'Aggiungi delle posizioni',d:'Il castello si costruisce dalle posizioni del portafoglio. Qui non ce ne sono ancora.'};
   if(r&&r.stato==='rotto')return{t:'I dati della piattaforma non si leggono',d:'Lo stato salvato in questo browser non è leggibile. Apri la piattaforma: lo riscrive al primo salvataggio.'};
   if(n)return{t:scartiTesto(n),d:'Le posizioni ci sono, ma il loro valore non è ancora stato calcolato e salvato: basta aprire la piattaforma una volta.'};
   return{t:'Apri la piattaforma e aggiungi delle posizioni',d:'Il castello si costruisce dalle posizioni che la piattaforma salva in questo browser. Qui non ce ne sono ancora.'};
@@ -888,7 +892,8 @@ function rigaStato(D){
    ricostruisce una volta sola. ritorno() serve dove l'evento non arriva (Safari
    fra due file aperti con doppio click, verificato il 12/11/2026): quando si
    torna sulla scheda rilegge, e ricostruisce solo se il testo salvato è cambiato.
-   o.attesa, o.setTimeout e o.clearTimeout servono ai test. */
+   o.dentro dice che la pagina è nella cornice della piattaforma (cambia il
+   testo dello stato vuoto). o.attesa, o.setTimeout e o.clearTimeout servono ai test. */
 const ATTESA_MS=300;
 function creaAggiornatore(o){
   const attesa=o.attesa==null?ATTESA_MS:o.attesa,st=o.setTimeout||setTimeout,ct=o.clearTimeout||clearTimeout;
@@ -901,7 +906,7 @@ function creaAggiornatore(o){
     if(r.stato==='ok'){o.castello(r.D,!!vivo&&mostrato);mostrato=true;return r;}
     /* dal vivo, uno stato che non si legge non butta via il castello che c'è */
     if(vivo&&r.stato==='rotto')return r;
-    o.vuoto(vuotoTesto(r),r);mostrato=false;return r;
+    o.vuoto(vuotoTesto(r,!!o.dentro),r);mostrato=false;return r;
   }
   /* solo la chiave della piattaforma; key null è localStorage.clear() */
   function evento(e){
@@ -940,6 +945,12 @@ const app=$('#app'),canvas=$('#gl'),stage=$('#stage'),labelsEl=$('#labels'),lead
 const isSmall=Math.min(innerWidth,innerHeight)<600;
 const mqMobile=matchMedia('(max-width:899px)'),mqWide=matchMedia('(min-width:1700px)');
 const mode=()=>mqMobile.matches?'mobile':(mqWide.matches?'wide':'mid');
+/* Dentro la cornice della scheda «Castle» di index.html: il link "Apri la
+   piattaforma" porterebbe la piattaforma dentro la cornice, quindi si toglie. */
+const incorporato=(()=>{try{return window.self!==window.top;}catch(e){return true;}})();
+if(incorporato){document.body.classList.add('incorp');$$('#vuoto a, #vuotoN').forEach(el=>{el.hidden=true;el.removeAttribute('href');});}
+/* La cornice è nascosta quando nella piattaforma si guarda un'altra scheda: misura zero. */
+const nascosta=()=>!(innerWidth>0&&innerHeight>0);
 
 /* ───────── Stato della pagina ───────── */
 const state={zone:'all',color:'pil',ghosts:true,spin:!reduced,sel:null,hover:null,armyHover:null,tab:'elenco',pulse:null};
@@ -1390,8 +1401,8 @@ function misura(){
   if(w!==cw||h!==ch){cw=w;ch=h;renderer.setSize(w,h,false);camera.aspect=w/h;const dpr=Math.min(devicePixelRatio||1,2);lead.width=Math.round(w*dpr);lead.height=Math.round(h*dpr);}
   camera.updateProjectionMatrix();
 }
-function resize(){misura();fit(false);}
-[mqMobile,mqWide].forEach(m=>{try{m.addEventListener('change',()=>{applyMode();resize();});}catch(e){}});
+function resize(){if(nascosta())return;misura();fit(false);}
+[mqMobile,mqWide].forEach(m=>{try{m.addEventListener('change',()=>{if(nascosta())return;applyMode();resize();});}catch(e){}});
 
 let tAbs=0;
 function frame(){
@@ -1412,6 +1423,7 @@ function frame(){
 
 /* ───────── Avvio: i dati vengono solo da localStorage['pf_v2'], scritto da index.html ───────── */
 const pagina=creaAggiornatore({
+  dentro:incorporato,
   leggi:()=>localStorage.getItem(KEY),
   castello:(dati,vivo)=>{app.classList.remove('vuoto');rebuild(dati,vivo);},
   vuoto:t=>{svuota();$('#vuotoT').textContent=t.t;$('#vuotoD').textContent=t.d;app.classList.add('vuoto');}
