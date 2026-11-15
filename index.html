@@ -899,9 +899,18 @@ html[data-theme="terra"] .field textarea,html[data-theme="terra"] .inp{backgroun
 /* pagine */
 .page{display:none;padding-top:24px;padding-bottom:28px;animation:slide .22s ease}
 .page.on{display:block}
-/* Castle: la cornice del castello prende l'altezza della finestra sotto la barra */
-#pg-castello{max-width:none;padding-bottom:0}
-.castle-frame{display:block;width:100%;height:calc(100vh - 212px);height:calc(100dvh - 212px);min-height:480px;
+/* Castle: la cornice arriva fino a 8 px sopra il menu in basso (la maniglia
+   del dock, o la tabbar fino a 980 px). L'altezza vera la scrive
+   fitCastleFrame() dalle posizioni misurate; questi valori valgono prima che
+   giri e se non gira. 191 px = cima della cornice (93) + dock aperto con la
+   maniglia (89) + 8, misurati a 1440×900. Sulla scheda il corpo perde il
+   margine per il dock (body.on-castle, messo da go()): lo spazio sotto la
+   cornice è il padding di #pg-castello, pari a quello del menu più 8 px, così
+   la pagina non scorre e, se vince il minimo, scorrendo fino in fondo la
+   cornice finisce comunque sopra il menu. */
+#pg-castello{max-width:none;padding-bottom:97px}
+body.on-castle{padding-bottom:0}
+.castle-frame{display:block;width:100%;height:calc(100vh - 191px);height:calc(100dvh - 191px);min-height:420px;
   border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
 @keyframes slide{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
 
@@ -1571,6 +1580,11 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   .card-hd{padding:14px 16px}
   thead th:first-child,tbody td:first-child{padding-left:16px}
   .page{padding-top:18px;padding-bottom:30px}
+  /* Castle sopra la tabbar (60 px più la safe-area), con 10 px sopra invece
+     di 18: 143 px = cima della cornice (74) + tabbar (60) + 8, misurati a 390×844 */
+  #pg-castello{padding-top:10px;padding-bottom:calc(68px + env(safe-area-inset-bottom))}
+  .castle-frame{height:calc(100vh - 143px - env(safe-area-inset-bottom));
+    height:calc(100dvh - 143px - env(safe-area-inset-bottom))}
   .modal{max-width:none;border-radius:18px;max-height:92vh}
   .frow{grid-template-columns:1fr}
   .field input,.field select,.field textarea,.inp{font-size:16px}
@@ -4489,6 +4503,7 @@ function applyPrivacy(){
 function applyDock(){
   const hid=!!S.settings.dockHidden, b=$('#dockToggle');
   document.body.classList.toggle('dock-hidden',hid);
+  fitCastleFrameAfterDock();
   if(!b)return;
   const t=hid?'Show menu':'Hide menu';
   b.setAttribute('aria-expanded',hid?'false':'true');
@@ -4554,6 +4569,8 @@ function buildNav(){
 function go(k){
   const it=navItem(k); UI.page=it.k;
   $$('.page').forEach(p=>p.classList.toggle('on',p.id==='pg-'+it.k));
+  /* sulla scheda Castle il corpo non ha il margine per il menu: vedi .castle-frame */
+  document.body.classList.toggle('on-castle',it.k==='castello');
   $$('[data-nav]').forEach(b=>b.classList.toggle('on',b.getAttribute('data-nav')===it.k));
   $$('#dockNav [data-nav]').forEach(b=>{
     if(b.getAttribute('data-nav')===it.k)b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
@@ -12130,9 +12147,61 @@ function castleDoc(){
   }catch(e){ return ''; }
 }
 const castleMode=()=>themeOf(S.settings.theme).dark?'dark':'light';
+/* Altezza della cornice: dalla sua cima (vh e top in px dalla cima della
+   pagina) a "riserva" px dal fondo della finestra, con un minimo. null se un
+   argomento non è un numero finito non negativo o se non resta spazio: allora
+   vale l'altezza del CSS. */
+const CASTLE_MIN_H=420, CASTLE_GAP=8;
+function castleFrameH(vh,top,riserva,min){
+  if(![vh,top,riserva,min].every(v=>typeof v==='number'&&isFinite(v)&&v>=0))return null;
+  const h=vh-top-riserva;
+  return h>0?Math.max(min,Math.floor(h)):null;
+}
+/* Il solo punto che scrive l'altezza della cornice (e lo spazio sotto, pari
+   alla riserva). Riserva: dal bordo alto della tabbar (fino a 980 px) o della
+   maniglia del dock al fondo della finestra, più 8 px. Con la scheda nascosta
+   non misura nulla. La cima esclude lo slittamento delle animazioni
+   d'ingresso, che getBoundingClientRect conterebbe: quello della pagina
+   (slide, 7 px) e, nei temi Glass, quello della cornice stessa (glassRise, 14 px). */
+function fitCastleFrame(){
+  const f=$('#castleFrame'); if(!f||UI.page!=='castello')return;
+  let pg=null,h=null,ris=null;
+  try{
+    pg=f.closest('.page');
+    const r=f.getBoundingClientRect(); if(!r||!r.width||!r.height)return;
+    let ty=0;
+    if(typeof DOMMatrixReadOnly==='function')for(let e=f;e;e=e.parentElement){
+      const tr=getComputedStyle(e).transform;
+      if(tr&&tr!=='none')ty+=new DOMMatrixReadOnly(tr).m42||0;
+    }
+    const top=r.top+window.scrollY-ty, vh=window.innerHeight;
+    const tb=$('.tabbar'), tbr=tb?tb.getBoundingClientRect():null, dt=$('#dockToggle');
+    const menu=tbr&&tbr.height>0?tbr:(dt?dt.getBoundingClientRect():null);
+    if(menu)ris=vh-menu.top+CASTLE_GAP;
+    h=castleFrameH(vh,top,ris,CASTLE_MIN_H);
+  }catch(e){ h=null; }
+  try{
+    if(h==null){ f.style.removeProperty('height'); if(pg)pg.style.removeProperty('padding-bottom'); return; }
+    f.style.height=h+'px';
+    if(pg)pg.style.paddingBottom=ris+'px';
+  }catch(e){}
+}
+/* al fotogramma dopo, a layout fatto; più richieste nello stesso fotogramma
+   sono una misura sola. Il dock si misura fermo: a transitionend di
+   .dock-wrap (in wire) o 240 ms dopo applyDock(), subito con "Riduci movimento". */
+let castleFitRaf=0,castleDockT=null;
+function fitCastleFrameSoon(){
+  if(castleFitRaf)return;
+  castleFitRaf=requestAnimationFrame(()=>{ castleFitRaf=0; fitCastleFrame(); });
+}
+function fitCastleFrameAfterDock(){
+  clearTimeout(castleDockT);
+  castleDockT=setTimeout(fitCastleFrameSoon,reducedMotion()?0:240);
+}
 let castleWait=false;
 function renderCastle(){
   const f=$('#castleFrame'); if(!f)return;
+  fitCastleFrameSoon();
   if(!f.dataset.on){
     const doc=castleDoc();
     if(!doc){
@@ -12198,6 +12267,14 @@ function wire(){
     if(UI.page==='analisi'){ renderRiskDist(); renderFactorDist(); renderPerfMap(); }
   });
   $('#btnRefresh').addEventListener('click',()=>refreshPrices(false));
+  /* --- Castle: la cornice segue la finestra, la rotazione, la barra del
+     browser che cambia l'altezza (iOS) e il dock a fine scorrimento --- */
+  window.addEventListener('resize',fitCastleFrameSoon);
+  window.addEventListener('orientationchange',fitCastleFrameSoon);
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',fitCastleFrameSoon);
+  $('.dock-wrap').addEventListener('transitionend',e=>{
+    if(e.target===e.currentTarget&&e.propertyName==='transform')fitCastleFrameSoon();
+  });
   $('#btnAdd').addEventListener('click',()=>openPos(null));
   $('#btnDemo').addEventListener('click',()=>{
     if(S.positions.length&&!confirm('Replace the current data with the sample data?'))return;
