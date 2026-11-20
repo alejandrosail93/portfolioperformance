@@ -1093,6 +1093,43 @@ tbody tr.clk{cursor:pointer}
 .dw-stats .s .l{font-size:10.5px;color:var(--muted);font-weight:650;text-transform:uppercase;letter-spacing:.3px}
 .dw-stats .s .v{font-size:15px;font-weight:700;margin-top:3px;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap}
+/* rotazione di settore e paese: pallini nella tabella, gambe nella scheda */
+.rot-dots{display:inline-flex;gap:3px;margin-right:6px;vertical-align:1px}
+.rot-dots i{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.rot-dots i.p{background:var(--up)}
+.rot-dots i.n{background:var(--down)}
+.rot-dots i.na{background:none;box-shadow:inset 0 0 0 1.5px var(--line)}
+.rot-legs{display:grid;gap:8px;margin-bottom:10px}
+.rot-leg{display:flex;align-items:baseline;gap:10px;font-size:13px}
+.rot-leg .k{width:64px;flex:none;font-size:10.5px;color:var(--muted);font-weight:650;text-transform:uppercase;letter-spacing:.3px}
+.rot-leg .d{flex:1;min-width:0}
+.rot-leg b{font-variant-numeric:tabular-nums}
+.rot-parts{margin:-4px 0 0 74px;font-size:12px;color:var(--muted);display:grid;gap:2px}
+.rot-q{font-weight:650}
+.rot-q.q-lead{color:var(--up)}
+.rot-q.q-imp{color:var(--sky)}
+.rot-q.q-weak{color:var(--warn)}
+.rot-q.q-lag{color:var(--down)}
+/* pagina Rotation: mappa a sinistra, elenco a destra; una colonna sotto i 1.200 px */
+.rot-hd{flex-wrap:wrap}
+.rot-status{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+.rot-status .old{color:var(--warn);font-weight:650}
+.rot-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:1200px){.rot-grid{grid-template-columns:minmax(0,1fr)}}
+.rot-map{width:100%;max-width:720px;margin:0 auto}
+.rot-svg{display:block;width:100%;height:auto;font-size:11px}
+.rot-svg text{font-family:inherit}
+/* sul telefono la mappa si rimpicciolisce: scritte più grandi in proporzione */
+@media (max-width:600px){.rot-svg{font-size:15px}}
+.rot-map.has-hl .rot-it{opacity:.18}
+.rot-map.has-hl .rot-it.hl{opacity:1}
+.rot-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.rot-tbl th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:650;text-transform:uppercase;
+  letter-spacing:.3px;padding:6px 6px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+.rot-tbl td{padding:7px 6px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+.rot-tbl .num{text-align:right;font-variant-numeric:tabular-nums}
+.rot-tbl tr.hl td{background:var(--surface-2)}
+.rot-miss{font-size:12px;color:var(--muted);margin-top:10px}
 
 /* ==========================================================================
    13c. ANALISI E SALUTE — treemap, gauge, correlazione, barbell, segnali
@@ -2038,6 +2075,7 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
                 <th class="sortable" data-k="_pnlPct">P&amp;L %</th>
                 <th class="sortable hide-sm" data-k="_day">Today</th>
                 <th class="sortable hide-sm" data-k="risk">Risk</th>
+                <th class="sortable hide-sm" data-k="_rot" title="Sector and country rotation, from −2 to +2: context, not a buy or sell signal">Rotation</th>
                 <th class="sortable" data-k="_action">Action</th>
                 <th class="sortable hide-xs" data-k="targetWeight">Target wt.</th>
                 <th class="sortable hide-xs" data-k="_tDiff">To trade</th>
@@ -2195,6 +2233,26 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
           <div class="card-hd"><h2><span class="chip g" id="chipScenA"></span> Assumptions</h2>
             <div class="right"><button class="btn btn-ghost btn-sm" id="scReset">Restore defaults</button></div></div>
           <div class="card-bd" id="scAssump"></div>
+        </div>
+      </section>
+
+      <section class="page wrap" id="pg-rotazione">
+        <div class="card">
+          <div class="card-hd rot-hd"><h2><span class="chip t" id="chipRot"></span> Sector &amp; country rotation</h2>
+            <div class="right"><span class="sub hide-sm" id="rotSub"></span>
+              <span class="seg" id="rotTabs">
+                <button type="button" data-g="sectors" class="on">Sectors</button><button type="button" data-g="countries">Countries</button>
+              </span>
+              <button type="button" class="btn btn-ghost btn-sm" id="rotRefresh"><span class="ic"></span>Update rotation</button></div>
+          </div>
+          <div class="card-bd">
+            <div class="rot-status" id="rotStatus"></div>
+            <div class="rot-grid">
+              <div class="rot-map" id="rotMap"></div>
+              <div class="tbl-scroll" id="rotList"></div>
+            </div>
+            <div class="note mt18" id="rotNote"></div>
+          </div>
         </div>
       </section>
 
@@ -3011,7 +3069,9 @@ const P={
   edit:'<path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/>',
   trash:'<path d="M4 7h16M10 7V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/><path d="M10 11v6M14 11v6"/>',
   inbox:'<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M4.6 5.7 3 13v5.5A2.5 2.5 0 0 0 5.5 21h13a2.5 2.5 0 0 0 2.5-2.5V13l-1.6-7.3A2 2 0 0 0 17.5 4h-11a2 2 0 0 0-1.9 1.7z"/>',
-  bolt:'<path d="M13 2.5 4.5 13.5H11l-.9 8L19.5 10H13z"/>'
+  bolt:'<path d="M13 2.5 4.5 13.5H11l-.9 8L19.5 10H13z"/>',
+  /* assi della mappa di rotazione e una scia che sale verso Leading */
+  rotate:'<path d="M12 3v18M3 12h18" opacity=".45"/><path d="M6.5 17c1.3-4.8 4.6-8.3 9.6-9.4"/><circle cx="17.6" cy="7.3" r="1.9"/>'
 };
 function ic(n,s){s=s||18;return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" '+
   'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+(P[n]||'')+'</svg>';}
@@ -4574,6 +4634,7 @@ const NAV=[
     {k:'salute',l:'Health',i:'heart',sub:'Score, signals and risk metrics'},
     {k:'castello',l:'Castle',i:'castle',sub:'The portfolio as a 3D castle'},
     {k:'scenari',l:'Scenarios',i:'bolt',sub:'Macro stress tests against a benchmark'},
+    {k:'rotazione',l:'Rotation',i:'rotate',sub:'Sector and country momentum against the market'},
     {k:'dividendi',l:'Dividends',i:'coins',tab:1,sub:'Income, calendar and projection'}
   ]},
   {g:'Planning',items:[
@@ -5590,6 +5651,525 @@ function refreshFx(force){
 }
 
 /* ==========================================================================
+   11b. ROTAZIONE DI SETTORI E PAESI (mappa in stile RRG, da RotationIQ)
+   Forza relativa e momentum settimanali di ogni ETF di settore contro SPY e
+   di ogni ETF paese contro ACWI. È un indicatore di tendenza, in ritardo per
+   costruzione: dice se settore e paese di un titolo hanno il vento a favore
+   o contro, non se il titolo è buono. Non entra in QUANT/QUAL né nelle
+   Regole. Nessun download automatico: le serie si scaricano solo su
+   richiesta (refreshRotation), e chi le legge usa la cache di qualsiasi età.
+   ========================================================================== */
+/* Universo. n è il nome canonico (SECTORS, BASE_COUNTRIES) che l'ETF
+   rappresenta nella mappa titolo → ETF. Gli aggregati (agg) stanno sulla
+   mappa e pesano nella normalizzazione del gruppo; EFA non rappresenta
+   nessun paese. Il benchmark si scarica ma non è una voce del suo gruppo
+   (SPY lo è fra i paesi, come USA). Tutti gli ETF sono quotati negli USA:
+   rotWeekKey allinea le settimane solo fra serie della stessa borsa. */
+const ROT_SECTORS={bench:'SPY',items:[
+  {t:'XLK',n:'Technology'},{t:'XLF',n:'Financials'},{t:'XLV',n:'Healthcare'},
+  {t:'XLE',n:'Energy'},{t:'XLY',n:'Consumer Discretionary'},{t:'XLP',n:'Consumer Staples'},
+  {t:'XLI',n:'Industrials'},{t:'XLB',n:'Materials'},{t:'XLU',n:'Utilities'},
+  {t:'XLRE',n:'Real Estate'},{t:'XLC',n:'Communication Services'}]};
+const ROT_COUNTRIES={bench:'ACWI',items:[
+  {t:'SPY',n:'USA'},{t:'EWJ',n:'Japan'},{t:'EWG',n:'Germany'},{t:'EWU',n:'UK'},
+  {t:'EWQ',n:'France'},{t:'EWC',n:'Canada'},{t:'EWA',n:'Australia'},{t:'EWL',n:'Switzerland'},
+  {t:'EWI',n:'Italy'},{t:'MCHI',n:'China'},{t:'INDA',n:'India'},{t:'EWZ',n:'Brazil'},
+  {t:'EWT',n:'Taiwan'},{t:'EWY',n:'South Korea'},
+  {t:'EEM',n:'Emerging Markets',agg:true},{t:'EFA',n:null,l:'Developed ex-US',agg:true}]};
+/* Paesi dei titoli in portafoglio che RotationIQ non copre. Stanno nello
+   stesso gruppo contro ACWI: aggiungerne o toglierne sposta anche gli altri
+   paesi sulla mappa, perché la normalizzazione è di gruppo. Un ETF che Yahoo
+   non serve, o con meno di 42 settimane, resta solo senza punto. */
+const ROT_COUNTRIES_EXTRA=[
+  {t:'EWN',n:'Netherlands'},{t:'EWD',n:'Sweden'},{t:'EDEN',n:'Denmark'},{t:'NORW',n:'Norway'},
+  {t:'EFNL',n:'Finland'},{t:'EWP',n:'Spain'},{t:'EIRL',n:'Ireland'},{t:'EWK',n:'Belgium'},
+  {t:'EWO',n:'Austria'}];
+/* In settimane: EMA veloce e lenta del rapporto, passo del momentum, finestra
+   della deviazione standard. Gli stessi di RotationIQ. */
+const RRG={fast:10,slow:30,mom:4,sigmaWeeks:52};
+
+/* Cache delle serie settimanali, {ticker:{pts,at}} come DHIST. È un dato di
+   mercato e non del portafoglio: non entra nel backup né fra gli storici
+   orfani di orphanHist(), che altrimenti "Remove" cancellerebbe. Le 24 ore
+   valgono solo per refreshRotation(): chi legge usa la cache di ogni età. */
+const ROTKEY='pf_v2_roth', ROT_TTL=24*3600e3;
+let ROTH={};
+function loadRoth(){ try{ ROTH=JSON.parse(localStorage.getItem(ROTKEY))||{}; }catch(e){ ROTH={}; } }
+function saveRoth(){ try{ localStorage.setItem(ROTKEY,JSON.stringify(ROTH)); }catch(e){} }
+
+/* Chiusure settimanali di due anni: v è la chiusura, a la chiusura
+   rettificata per dividendi e split, su cui si calcola (total return, come
+   RotationIQ). Se Yahoo non dà adjclose per una barra, a=v. Le barre con
+   close vuoto, a zero o non numerico si scartano, come in yBars(). */
+function yWeekly(sym){
+  const qs='?interval=1wk&range=2y&includeAdjustedClose=true';
+  return fetchJSON(yURL('query1',sym,qs),[yURL('query2',sym,qs)]).then(d=>{
+    const r=d&&d.chart&&d.chart.result&&d.chart.result[0];
+    if(!r||!r.timestamp)throw netErr('nodata');
+    const ind=r.indicators||{}, q=ind.quote&&ind.quote[0], cl=(q&&q.close)||[];
+    const ac=(ind.adjclose&&ind.adjclose[0]&&ind.adjclose[0].adjclose)||[];
+    const good=x=>typeof x==='number'&&isFinite(x)&&x>0, pts=[];
+    for(let i=0;i<r.timestamp.length;i++){
+      const v=cl[i], t=r.timestamp[i]*1000;
+      if(good(v)&&isFinite(t))pts.push({t:t,v:v,a:good(ac[i])?ac[i]:v});
+    }
+    if(pts.length<2)throw netErr('nodata');
+    return pts.sort((x,y)=>x.t-y.t);
+  });
+}
+/* Tutti i ticker da scaricare, benchmark compresi, una volta sola */
+function rotUniverse(){
+  const seen={}, out=[];
+  [ROT_SECTORS.bench,ROT_COUNTRIES.bench]
+    .concat(ROT_SECTORS.items.concat(ROT_COUNTRIES.items,ROT_COUNTRIES_EXTRA).map(i=>i.t))
+    .forEach(t=>{ if(t&&!seen[t]){ seen[t]=1; out.push(t); } });
+  return out;
+}
+/* Scarica le serie scadute (tutte con force) nella coda di rete comune. Un
+   ticker che non risponde non ferma gli altri e tiene la serie che aveva.
+   Una corsa alla volta. Restituisce {ok, fail, skip}: scaricati, falliti (in
+   ordine di universo), saltati perché ancora freschi. Nessuna chiamata
+   automatica: la avvia solo il bottone della pagina Rotazione. */
+let rotRun=null;
+function refreshRotation(force){
+  if(rotRun)return rotRun;
+  const now=Date.now(), all=rotUniverse();
+  const list=all.filter(t=>{ const c=ROTH[t]; return !!force||!c||!(now-c.at<ROT_TTL); });
+  const skip=all.length-list.length;
+  if(!list.length)return Promise.resolve({ok:0,fail:[],skip:skip});
+  const ko={};
+  const done=()=>{
+    /* via le serie di ETF tolti dall'universo */
+    Object.keys(ROTH).forEach(t=>{ if(all.indexOf(t)<0)delete ROTH[t]; });
+    saveRoth(); rotRun=null;
+    const fail=list.filter(t=>ko[t]);
+    return {ok:list.length-fail.length,fail:fail,skip:skip};
+  };
+  rotRun=netQueue(list,t=>yWeekly(t).then(pts=>{ ROTH[t]={pts:pts,at:Date.now()}; },()=>{ ko[t]=1; }))
+    .then(done,()=>{ list.forEach(t=>{ ko[t]=1; }); return done(); });
+  return rotRun;
+}
+
+/* Media mobile esponenziale che parte dal primo valore e deviazione standard
+   della popolazione (divide per n, non per n-1 come stdevArr): come in
+   RotationIQ, perché i punti tornino uguali ai suoi. */
+function rotEma(a,n){
+  const k=2/(n+1), o=new Array(a.length);
+  let e=a[0];
+  for(let i=0;i<a.length;i++){ e=i?a[i]*k+e*(1-k):a[0]; o[i]=e; }
+  return o;
+}
+function rotSd(a){
+  if(!a.length)return 0;
+  const m=a.reduce((s,v)=>s+v,0)/a.length;
+  return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/a.length);
+}
+/* Settimana da lunedì a domenica: il giorno UTC 0 (1/1/1970) è un giovedì,
+   e +3 fa cominciare la settimana dal lunedì */
+function rotWeekKey(t){ return Math.floor((Math.floor(t/864e5)+3)/7); }
+/* Quadrante: sul bordo vince quello a destra e in alto */
+function rotQuad(x,y){ return x>=100?(y>=100?'lead':'weak'):(y>=100?'imp':'lag'); }
+/* Ultima chiusura rettificata di ogni settimana: la barra della settimana in
+   corso, se Yahoo ne dà due, prende il posto della prima */
+function rotWeekly(pts){
+  const val=new Map(), at=new Map();
+  (pts||[]).forEach(b=>{
+    if(!b||!(typeof b.a==='number'&&isFinite(b.a)&&b.a>0)||!isFinite(b.t))return;
+    const k=rotWeekKey(b.t);
+    if(!at.has(k)||b.t>=at.get(k)){ at.set(k,b.t); val.set(k,b.a); }
+  });
+  return val;
+}
+/* Mappa di rotazione di un gruppo: computeRRG di RotationIQ, senza DOM.
+   serie = {ticker:[{t,v,a}]}, bench = ticker del benchmark, tickers = voci.
+   Rapporto ETF/benchmark sulle settimane in comune; L = EMA10/EMA30 − 1 (forza
+   relativa), M = variazione a 4 settimane di L lisciato (momentum). Ognuno si
+   divide per la media geometrica fra la sua deviazione standard e quella del
+   gruppo nelle ultime 52 settimane: solo quella del gruppo schiaccerebbe al
+   centro gli ETF tranquilli, solo la sua farebbe sembrare enorme un movimento
+   minimo. x = 100 + L/σL, y = 100 + M/σM. Senza 42 settimane in comune l'ETF
+   non c'è. pts è la scia (ultimi 21 punti), dx/dy la direzione sugli ultimi 3;
+   week è il lunedì (in ms, UTC) dell'ultima settimana sulla mappa. */
+function rotRRG(serie,bench,tickers){
+  const out={items:[],byT:{},week:null};
+  const wb=rotWeekly(serie&&serie[bench]);
+  if(!wb.size)return out;
+  const raw=[];
+  (tickers||[]).forEach(t=>{
+    if(t===bench)return;
+    const wp=rotWeekly(serie[t]);
+    const keys=[...wp.keys()].filter(k=>wb.has(k)).sort((a,b)=>a-b);
+    if(keys.length<RRG.slow+RRG.mom+8)return;
+    const rs=keys.map(k=>wp.get(k)/wb.get(k));
+    const f=rotEma(rs,RRG.fast), s=rotEma(rs,RRG.slow);
+    const L=rs.map((_,i)=>f[i]/s[i]-1);
+    const Ls=rotEma(L,2);
+    const M=L.map((_,i)=>i>=RRG.mom?Ls[i]-Ls[i-RRG.mom]:NaN);
+    const i0=Math.max(RRG.slow,L.length-RRG.sigmaWeeks);
+    raw.push({t:t,keys:keys,L:L,M:M,i0:i0,sl:rotSd(L.slice(i0)),sm:rotSd(M.slice(i0).filter(isFinite))});
+  });
+  if(!raw.length)return out;
+  const pl=[], pm=[];
+  raw.forEach(o=>{
+    for(let i=o.i0;i<o.L.length;i++){ pl.push(o.L[i]); if(isFinite(o.M[i]))pm.push(o.M[i]); }
+  });
+  const GL=rotSd(pl)||1, GM=rotSd(pm)||1;
+  let lastK=-Infinity;
+  raw.forEach(o=>{
+    const sL=Math.sqrt((o.sl||GL)*GL), sM=Math.sqrt((o.sm||GM)*GM);
+    const n=o.L.length, pts=[];
+    for(let i=Math.max(RRG.slow+RRG.mom,n-21);i<n;i++)
+      pts.push({x:100+o.L[i]/sL,y:100+o.M[i]/sM,k:o.keys[i]});
+    const h=pts[pts.length-1], p=pts[Math.max(0,pts.length-3)];
+    const it={t:o.t,x:h.x,y:h.y,q:rotQuad(h.x,h.y),dx:h.x-p.x,dy:h.y-p.y,pts:pts};
+    out.items.push(it); out.byT[o.t]=it;
+    if(h.k>lastK)lastK=h.k;
+  });
+  out.week=(lastK*7-3)*864e5;
+  return out;
+}
+/* Dal settore o dal paese all'ETF che lo rappresenta, o null. Passa sempre
+   dal nome canonico, mai dal testo libero della posizione. Multi-sector,
+   World, le aree (Europe, North America, Asia-Pacific) e i settori non
+   azionari non hanno ETF: un titolo lì non ha quella gamba. */
+const ROT_SEC_TK=Object.create(null), ROT_CTR_TK=Object.create(null);
+ROT_SECTORS.items.forEach(i=>{ if(i.n)ROT_SEC_TK[i.n]=i.t; });
+ROT_COUNTRIES.items.concat(ROT_COUNTRIES_EXTRA).forEach(i=>{ if(i.n)ROT_CTR_TK[i.n]=i.t; });
+function rotSectorOf(name){ return ROT_SEC_TK[normSector(name)]||null; }
+function rotCountryOf(name){ return ROT_CTR_TK[normCountry(name)]||null; }
+function rotSectorTicker(p){ return rotSectorOf(p&&p.sector); }
+function rotCountryTicker(p){ return rotCountryOf(p&&p.country); }
+/* Le due mappe dalle serie in cache, {sectors, countries, at}: at è l'ultimo
+   download. Si ricalcolano solo quando la cache cambia (ultimo download e
+   numero di serie), non a ogni render della tabella. */
+let rotMemo=null;
+function rotCompute(){
+  const serie={}; let at=0, n=0;
+  Object.keys(ROTH).forEach(t=>{
+    const c=ROTH[t]; if(!c||!Array.isArray(c.pts))return;
+    serie[t]=c.pts; n++; if(c.at>at)at=c.at;
+  });
+  const key=at+'|'+n;
+  if(rotMemo&&rotMemo.key===key)return rotMemo.val;
+  const tk=a=>a.map(i=>i.t);
+  const val={sectors:rotRRG(serie,ROT_SECTORS.bench,tk(ROT_SECTORS.items)),
+    countries:rotRRG(serie,ROT_COUNTRIES.bench,tk(ROT_COUNTRIES.items.concat(ROT_COUNTRIES_EXTRA))),
+    at:at||null};
+  rotMemo={key:key,val:val};
+  return val;
+}
+
+/* --------------------------------------------------------------------------
+   Punteggio per titolo: il quadrante del suo settore e del suo paese.
+   Leading +2, Improving +1, Weakening −1, Lagging −2; il punteggio è la
+   media delle gambe disponibili, da −2 a +2. Solo azioni ed ETF. Misura il
+   vento a favore o contro, non la qualità del titolo: non entra in
+   QUANT/QUAL né nelle Regole, e non cambia niente in S.
+   -------------------------------------------------------------------------- */
+const ROT_QUADS={lead:{l:'Leading',pts:2},imp:{l:'Improving',pts:1},
+  weak:{l:'Weakening',pts:-1},lag:{l:'Lagging',pts:-2}};
+/* la gamba di un ETF composto vale se le voci con un punto sulla mappa
+   coprono almeno metà della composizione dichiarata */
+const ROT_MIN_COV=.5;
+/* Una gamba, settore o paese. Le voci sono quelle di expoParts(), le stesse
+   della mappa di esposizione: una sola per un titolo, più d'una per un ETF
+   con la composizione dichiarata, e allora la gamba è la media dei loro
+   punti pesata sulle quote. Contano le quote, non gli euro: _value=1. Una
+   voce senza ETF (Multi-sector, World, Other…) o col suo ETF senza punto
+   sulla mappa non è coperta. Restituisce {pts|null, cov, comp, parts}. */
+function rotLeg(p,lvl,rrg){
+  const of=lvl==='sector'?rotSectorOf:rotCountryOf, byT=(rrg&&rrg.byT)||{};
+  const comp=p.cls==='ETF'&&parseComposition(lvl==='sector'?p.compSector:p.compCountry).length>0;
+  const parts=[]; let tot=0, cov=0, sum=0;
+  expoParts(Object.assign({},p,{_value:1}),lvl).forEach(c=>{
+    if(!(c.v>0))return;
+    const t=of(c.name), it=t?byT[t]:null, q=it?it.q:null;
+    tot+=c.v;
+    if(q){ cov+=c.v; sum+=c.v*ROT_QUADS[q].pts; }
+    parts.push({name:c.name,t:t,q:q,w:c.v});
+  });
+  const share=tot>0?cov/tot:0;
+  return {pts:cov>0&&share>=ROT_MIN_COV?sum/cov:null,cov:share,comp:comp,parts:parts.sort((a,b)=>b.w-a.w)};
+}
+/* Funzione pura: p, la mappa dei settori e quella dei paesi. score null =
+   n/d, con il motivo in why: 'cls' (non è un'azione né un ETF), 'nodata'
+   (nessuna serie scaricata), 'nomap' (nessuna gamba). partial: una gamba
+   sola. */
+function rotScore(p,rs,rc){
+  const out={score:null,partial:false,why:'',sector:null,country:null};
+  const cls=normCls(p&&p.cls);
+  if(cls!=='Stocks'&&cls!=='ETF'){ out.why='cls'; return out; }
+  const has=r=>!!(r&&r.items&&r.items.length);
+  if(!has(rs)&&!has(rc)){ out.why='nodata'; return out; }
+  out.sector=rotLeg(p,'sector',rs); out.country=rotLeg(p,'country',rc);
+  const legs=[out.sector.pts,out.country.pts].filter(v=>v!=null);
+  if(!legs.length){ out.why='nomap'; return out; }
+  out.score=legs.reduce((a,b)=>a+b,0)/legs.length;
+  out.partial=legs.length===1;
+  return out;
+}
+/* Il punteggio di una posizione dalla cache, di qualsiasi età */
+function rotFor(p){ const rc=rotCompute(); return rotScore(p,rc.sectors,rc.countries); }
+/* Una cifra decimale col segno: +1,5 · −0,5 · 0,0 · — */
+function rotFmt(x){
+  if(x==null||!isFinite(x))return '—';
+  const r=Math.round(x*10)/10;
+  return (r>0?'+':r<0?'−':'')+nf(Math.abs(r),1);
+}
+/* Giorno del download, nell'ora di chi guarda (non in UTC: dopo mezzanotte
+   sarebbe il giorno prima) */
+function rotDay(ts){ return new Date(ts).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+/* Data del dato: il lunedì dell'ultima settimana sulla mappa */
+function rotWeekTxt(rc){
+  const w=Math.max(rc.sectors.week||0,rc.countries.week||0);
+  return w?fmtDate(new Date(w).toISOString()):'';
+}
+const ROT_WHY={cls:'Only stocks and ETFs',nodata:'No rotation data yet: see the Rotation page',
+  nomap:'No sector or country ETF for this asset'};
+const rotSignCls=v=>v==null?'':v>0?'up':v<0?'down':'';
+function rotLegTxt(lab,leg){
+  if(!leg||leg.pts==null)return lab+': n/a';
+  const one=!leg.comp&&leg.parts.length===1?leg.parts[0]:null;
+  return lab+' '+(one?one.t+' '+ROT_QUADS[one.q].l:'composition, '+Math.round(leg.cov*100)+'% covered')+
+    ' '+rotFmt(leg.pts);
+}
+/* Cella della tabella posizioni: un pallino per gamba (verde a favore,
+   rosso contro, vuoto senza gamba) e il punteggio. Il dettaglio sta nel
+   title, con la settimana del dato. */
+function rotCell(p){
+  const r=rotFor(p);
+  if(r.score==null)return '<td class="num hide-sm" title="'+esc(ROT_WHY[r.why]||'')+'"><span class="cellsub">—</span></td>';
+  const wk=rotWeekTxt(rotCompute());
+  const dot=leg=>'<i class="'+(!leg||leg.pts==null?'na':leg.pts>0?'p':leg.pts<0?'n':'z')+'"></i>';
+  const tip=rotLegTxt('Sector',r.sector)+' · '+rotLegTxt('Country',r.country)+(wk?' · week of '+wk:'');
+  const c=rotSignCls(r.score);
+  return '<td class="num hide-sm'+(c?' '+c:'')+'" title="'+esc(tip)+'"><span class="rot-dots">'+
+    dot(r.sector)+dot(r.country)+'</span>'+rotFmt(r.score)+'</td>';
+}
+/* Una gamba nella scheda: la voce, l'ETF e il quadrante; per un ETF composto
+   la copertura e le voci, dalla più pesante. Tutto ciò che viene da p passa
+   da esc(). */
+function rotLegHTML(lab,leg){
+  const q=x=>'<span class="rot-q q-'+x+'">'+ROT_QUADS[x].l+'</span>';
+  const voce=c=>esc(c.name)+' · '+(c.t?c.t+' · '+(c.q?q(c.q):'no data'):'no ETF');
+  let d, sub='';
+  if(leg.comp){
+    d='Declared composition · '+Math.round(leg.cov*100)+'% covered'+(leg.pts==null?' (under 50%)':'');
+    sub='<div class="rot-parts">'+leg.parts.slice(0,8).map(c=>'<div>'+esc(c.name)+' '+nf(c.w*100,0)+'% · '+
+      (c.t?c.t+' · '+(c.q?q(c.q):'no data'):'no ETF')+'</div>').join('')+
+      (leg.parts.length>8?'<div>and '+(leg.parts.length-8)+' more</div>':'')+'</div>';
+  }else d=leg.parts.length?voce(leg.parts[0]):'—';
+  return '<div class="rot-leg"><span class="k">'+lab+'</span><span class="d">'+d+'</span>'+
+    '<b class="'+rotSignCls(leg.pts)+'">'+(leg.pts==null?'n/a':rotFmt(leg.pts))+'</b></div>'+sub;
+}
+/* Riga e sezione della scheda titolo, solo per azioni ed ETF: {stat, html} */
+function rotView(p){
+  const cls=normCls(p&&p.cls);
+  if(cls!=='Stocks'&&cls!=='ETF')return null;
+  const rc=rotCompute(), r=rotScore(p,rc.sectors,rc.countries), wk=rotWeekTxt(rc);
+  const val=r.score==null?'—':rotFmt(r.score)+(r.partial?' <span class="cellsub">'+
+    (r.sector.pts!=null?'sector only':'country only')+'</span>':'');
+  let body;
+  if(r.why==='nodata')body='<div class="note">No rotation data yet: download it from the Rotation page.</div>';
+  else body='<div class="rot-legs">'+rotLegHTML('Sector',r.sector)+rotLegHTML('Country',r.country)+'</div>'+
+    '<div class="note">'+(wk?'Settimana del '+wk+(rc.at?', dati scaricati il '+rotDay(rc.at):'')+'. ':'')+
+    'Il punteggio va da −2 a +2: è la media di settore e paese, con Leading +2, Improving +1, '+
+    'Weakening −1 e Lagging −2. Dice se settore e paese hanno il vento a favore o contro, non se il '+
+    'titolo è buono: è un indicatore di tendenza, in ritardo per costruzione, e non un segnale di '+
+    'acquisto o di vendita.'+
+    (r.sector.pts!=null&&normCountry(p.country)!=='USA'?' Il settore è misurato sugli ETF di settore '+
+      'USA (XLK, XLV…): per un titolo fuori dagli USA è un\'approssimazione.':'')+'</div>';
+  return {stat:['Rotation',val,0,rotSignCls(r.score)],
+    html:'<div class="sec-t">Sector &amp; country rotation</div>'+body};
+}
+
+/* --------------------------------------------------------------------------
+   Pagina Rotation: la mappa di un gruppo (settori contro SPY o paesi contro
+   ACWI) disegnata in SVG, l'elenco con il peso che ogni ETF ha nel
+   portafoglio attraverso i titoli, lo stato del dato e il bottone. Il
+   bottone è l'unico punto da cui parte refreshRotation().
+   -------------------------------------------------------------------------- */
+function rotGroupOf(g){
+  return g==='countries'
+    ?{k:'countries',l:'Countries',bench:ROT_COUNTRIES.bench,items:ROT_COUNTRIES.items.concat(ROT_COUNTRIES_EXTRA)}
+    :{k:'sectors',l:'Sectors',bench:ROT_SECTORS.bench,items:ROT_SECTORS.items};
+}
+/* colori dei quadranti: solo variabili dei temi, scritte in style perché
+   come attributo SVG var() non si risolve */
+const ROT_QCOL={lead:'var(--up)',imp:'var(--sky)',weak:'var(--warn)',lag:'var(--down)'};
+/* Direzione della scia sugli ultimi tre punti, come in RotationIQ */
+function rotHeading(it){
+  if(Math.hypot(it.dx,it.dy)<.05)return '→ steady';
+  if(it.dx>=0&&it.dy>=0)return '↗ strengthening';
+  if(it.dx>=0)return '↘ losing momentum';
+  if(it.dy<0)return '↙ weakening';
+  return '↖ recovering';
+}
+/* Quanto del portafoglio passa da ogni ETF: per ogni azione o ETF in
+   portafoglio, il suo peso per la quota della voce (settore o paese) che
+   l'ETF rappresenta. {ticker:{w (% del portafoglio), n:[titoli]}} */
+function rotExposure(rows,rc){
+  const out={};
+  (rows||[]).forEach(p=>{
+    const r=rotScore(p,rc.sectors,rc.countries);
+    [r.sector,r.country].forEach(leg=>{ if(!leg)return;
+      leg.parts.forEach(c=>{ if(!c.t)return;
+        const o=out[c.t]||(out[c.t]={w:0,n:[]});
+        o.w+=(p._w||0)*c.w;
+        const nm=tkLabel(p); if(o.n.indexOf(nm)<0)o.n.push(nm);
+      });
+    });
+  });
+  return out;
+}
+/* Il passo delle tacche: 1, 2 o 5 per una potenza di dieci, circa due per lato */
+function rotTick(span){
+  const raw=span/2, e=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/e;
+  return (m>=5?5:m>=2?2:1)*e;
+}
+/* La mappa: 100 al centro, scala simmetrica su ogni asse quanto basta a
+   contenere tutte le scie; i quattro quadranti velati del loro colore; per
+   ogni ETF la scia, il punto di oggi e il ticker. Il title di ogni gruppo è
+   il suggerimento al passaggio del mouse. */
+function rotMapSVG(r,grp){
+  if(!r||!r.items||!r.items.length)return '';
+  const W=560,H=440,L=46,R=W-14,T=14,B=H-36,pw=R-L,ph=B-T,f=v=>v.toFixed(1);
+  let mx=0,my=0;
+  r.items.forEach(it=>it.pts.forEach(q=>{ mx=Math.max(mx,Math.abs(q.x-100)); my=Math.max(my,Math.abs(q.y-100)); }));
+  const ex=Math.max(1,mx*1.12), ey=Math.max(1,my*1.12);
+  const X=x=>L+(x-100+ex)/(2*ex)*pw, Y=y=>T+(100+ey-y)/(2*ey)*ph, cx=X(100), cy=Y(100);
+  const name=t=>{ const i=grp.items.filter(x=>x.t===t)[0]; return i?(i.l||i.n||''):''; };
+  const box=(x0,y0,x1,y1,q)=>'<rect x="'+f(x0)+'" y="'+f(y0)+'" width="'+f(x1-x0)+'" height="'+f(y1-y0)+
+    '" style="fill:'+ROT_QCOL[q]+';fill-opacity:.07"/>';
+  const qlab=(x,y,a,q)=>'<text x="'+x+'" y="'+y+'" text-anchor="'+a+'" style="fill:'+ROT_QCOL[q]+
+    ';font-weight:700;opacity:.85">'+ROT_QUADS[q].l+'</text>';
+  let o='<svg class="rot-svg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Rotation map: '+esc(grp.l)+' against '+esc(grp.bench)+'">'+
+    box(cx,T,R,cy,'lead')+box(cx,cy,R,B,'weak')+box(L,cy,cx,B,'lag')+box(L,T,cx,cy,'imp');
+  /* tacche e griglia */
+  [[ex,true],[ey,false]].forEach(([e,isX])=>{
+    const st=rotTick(e), dec=st<.1?2:st<1?1:0;
+    for(let k=-Math.floor(e/st);k<=Math.floor(e/st);k++){
+      const v=100+k*st;
+      if(isX)o+='<line x1="'+f(X(v))+'" y1="'+T+'" x2="'+f(X(v))+'" y2="'+B+'" style="stroke:var(--line-soft)"/>'+
+        '<text x="'+f(X(v))+'" y="'+(B+14)+'" text-anchor="middle" style="fill:var(--muted)">'+nf(v,dec)+'</text>';
+      else o+='<line x1="'+L+'" y1="'+f(Y(v))+'" x2="'+R+'" y2="'+f(Y(v))+'" style="stroke:var(--line-soft)"/>'+
+        '<text x="'+(L-6)+'" y="'+f(Y(v)+3.5)+'" text-anchor="end" style="fill:var(--muted)">'+nf(v,dec)+'</text>';
+    }
+  });
+  o+='<line x1="'+f(cx)+'" y1="'+T+'" x2="'+f(cx)+'" y2="'+B+'" style="stroke:var(--line);stroke-width:1.2"/>'+
+    '<line x1="'+L+'" y1="'+f(cy)+'" x2="'+R+'" y2="'+f(cy)+'" style="stroke:var(--line);stroke-width:1.2"/>'+
+    '<rect x="'+L+'" y="'+T+'" width="'+pw+'" height="'+ph+'" style="fill:none;stroke:var(--line-soft)"/>'+
+    qlab(R-6,T+15,'end','lead')+qlab(R-6,B-7,'end','weak')+qlab(L+6,B-7,'start','lag')+qlab(L+6,T+15,'start','imp')+
+    '<text x="'+R+'" y="'+(H-4)+'" text-anchor="end" style="fill:var(--muted)">Relative strength →</text>'+
+    '<text transform="translate(12,'+T+') rotate(-90)" text-anchor="end" style="fill:var(--muted)">Momentum →</text>';
+  /* le scie: prima quelle vicine al centro, così i punti lontani restano sopra */
+  r.items.slice().sort((a,b)=>Math.hypot(a.x-100,a.y-100)-Math.hypot(b.x-100,b.y-100)).forEach(it=>{
+    const col=ROT_QCOL[it.q], hx=X(it.x), hy=Y(it.y), left=hx>R-44;
+    const tip=it.t+(name(it.t)?' · '+name(it.t):'')+' · '+ROT_QUADS[it.q].l+' · RS '+nf(it.x,2)+' · Mom. '+nf(it.y,2)+' · '+rotHeading(it);
+    o+='<g class="rot-it" data-t="'+esc(it.t)+'"><title>'+esc(tip)+'</title>'+
+      '<polyline points="'+it.pts.map(q=>f(X(q.x))+','+f(Y(q.y))).join(' ')+
+        '" style="fill:none;stroke:'+col+';stroke-width:1.6;stroke-opacity:.55;stroke-linejoin:round"/>'+
+      it.pts.slice(0,-1).map(q=>'<circle cx="'+f(X(q.x))+'" cy="'+f(Y(q.y))+'" r="1.7" style="fill:'+col+';fill-opacity:.5"/>').join('')+
+      '<circle cx="'+f(hx)+'" cy="'+f(hy)+'" r="5" style="fill:'+col+';stroke:var(--surface);stroke-width:1.5"/>'+
+      '<text x="'+f(left?hx-8:hx+8)+'" y="'+f(hy-7)+'" text-anchor="'+(left?'end':'start')+'" style="fill:var(--ink);font-weight:650">'+
+        esc(it.t)+'</text></g>';
+  });
+  return o+'</svg>';
+}
+/* L'elenco: dal quadrante col punteggio più alto, e dentro il quadrante dalla
+   forza relativa più alta. Sotto, gli ETF del gruppo che non hanno un punto. */
+function rotListHTML(r,grp,expo){
+  const ord={lead:0,imp:1,weak:2,lag:3}, E=expo||{};
+  const name=t=>{ const i=grp.items.filter(x=>x.t===t)[0]; return i?(i.l||i.n||''):''; };
+  const rows=(r&&r.items?r.items:[]).slice().sort((a,b)=>ord[a.q]-ord[b.q]||b.x-a.x).map(it=>{
+    const e=E[it.t];
+    return '<tr data-t="'+esc(it.t)+'"><td><b>'+esc(it.t)+'</b><div class="cellsub">'+esc(name(it.t))+'</div></td>'+
+      '<td><span class="rot-q q-'+it.q+'">'+ROT_QUADS[it.q].l+'</span></td>'+
+      '<td class="num">'+nf(it.x,2)+'</td><td class="num">'+nf(it.y,2)+'</td><td class="hide-xs">'+rotHeading(it)+'</td>'+
+      '<td class="num"'+(e&&e.w>0?' title="'+esc(e.n.join(', '))+'">'+nf(e.w,1)+'%':'><span class="cellsub">—</span>')+'</td></tr>';
+  }).join('');
+  const miss=grp.items.filter(i=>!(r&&r.byT&&r.byT[i.t])).map(i=>i.t);
+  return (rows?'<table class="rot-tbl"><thead><tr><th>ETF</th><th>Quadrant</th>'+
+    '<th class="num" title="Relative strength: above 100 beats the benchmark">RS</th>'+
+    '<th class="num" title="Momentum of relative strength: above 100 it is rising">Mom.</th><th class="hide-xs">Trend</th>'+
+    '<th class="num" title="Share of your portfolio exposed through your stocks and ETFs">Your wt.</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table>':'')+
+    (miss.length?'<div class="rot-miss">Not on the map (no data, or fewer than 42 weeks): '+miss.map(esc).join(', ')+'</div>':'');
+}
+function rotNoteHTML(g){
+  return 'Ogni ETF è confrontato con il suo benchmark su chiusure settimanali rettificate per i dividendi '+
+    '(due anni, da Yahoo). In orizzontale la forza relativa: sopra 100 fa meglio del benchmark. In verticale '+
+    'il suo momentum: sopra 100 la forza sta crescendo. La scia mostra le ultime venti settimane; di solito i '+
+    'punti girano in senso orario, da Improving a Leading, Weakening e Lagging. I valori sono normalizzati sul '+
+    'gruppo, quindi aggiungere o togliere un ETF sposta anche gli altri, e vicino a 100 il quadrante cambia per '+
+    'poco. È un indicatore di tendenza, in ritardo per costruzione: dice dove soffia il vento, non cosa comprare '+
+    'o vendere.<br><br>'+
+    (g==='countries'
+      ?'Ai paesi di RotationIQ si aggiungono Paesi Bassi, Svezia, Danimarca, Norvegia, Finlandia, Spagna, Irlanda, '+
+       'Belgio e Austria, nello stesso gruppo contro ACWI. USA è SPY; EEM ed EFA sono gli aggregati dei mercati '+
+       'emergenti e dei paesi sviluppati fuori dagli USA.'
+      :'Gli ETF di settore sono americani (XLK, XLF…): per un titolo europeo o asiatico il settore è misurato su di '+
+       'loro, ed è un\'approssimazione.')+
+    '<br><br>Da qui viene la colonna Rotation della tabella posizioni: Leading +2, Improving +1, Weakening −1, '+
+    'Lagging −2, media di settore e paese. I dati si scaricano solo con il bottone Update rotation, restano in '+
+    'questo browser e non entrano nel backup.';
+}
+function renderRotation(){
+  const g=UI.rotGroup==='countries'?'countries':'sectors', grp=rotGroupOf(g), rc=rotCompute(), r=rc[g];
+  $$('#rotTabs button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-g')===g));
+  const btn=$('#rotRefresh'); if(btn){ btn.disabled=!!rotRun; btn.classList.toggle('spin',!!rotRun); }
+  $('#rotSub').textContent='vs '+grp.bench;
+  const uni=rotUniverse(), have=uni.filter(t=>ROTH[t]&&Array.isArray(ROTH[t].pts)).length;
+  let st='';
+  if(rotRun)st='Downloading weekly series from Yahoo… it can take a minute.';
+  else if(rc.at)st='Week of '+rotWeekTxt(rc)+' · downloaded '+rotDay(rc.at)+' at '+fmtTime(rc.at)+' · '+have+' of '+uni.length+' series'+
+    (Date.now()-rc.at>ROT_TTL?' · <span class="old">older than 24 hours</span>':'');
+  $('#rotStatus').innerHTML=st;
+  const map=$('#rotMap');
+  map.classList.remove('has-hl');
+  if(!rc.at){
+    map.innerHTML='<div class="empty"><div class="ic">'+ic('rotate',22)+'</div><div class="big">No rotation data yet</div>'+
+      '<div class="sm">Update rotation downloads two years of weekly closes for '+uni.length+' ETFs from Yahoo. '+
+      'It takes about a minute, and once a day is enough.</div></div>';
+    $('#rotList').innerHTML='';
+  }else if(!r.items.length){
+    map.innerHTML='<div class="empty"><div class="big">No ETF of this group has enough data</div>'+
+      '<div class="sm">The benchmark '+esc(grp.bench)+' or the ETFs may be missing: try Update rotation again.</div></div>';
+    $('#rotList').innerHTML=rotListHTML(r,grp,{});
+  }else{
+    map.innerHTML=rotMapSVG(r,grp);
+    $('#rotList').innerHTML=rotListHTML(r,grp,rotExposure(activePositions(),rc));
+  }
+  $('#rotNote').innerHTML=rotNoteHTML(g);
+  /* passando su un ETF, nella mappa o nell'elenco, si accende in tutti e due */
+  const hl=t=>{
+    map.classList.toggle('has-hl',!!t);
+    $$('#rotMap .rot-it').forEach(e=>e.classList.toggle('hl',e.getAttribute('data-t')===t));
+    $$('#rotList tr[data-t]').forEach(e=>e.classList.toggle('hl',e.getAttribute('data-t')===t));
+  };
+  $$('#rotMap .rot-it, #rotList tr[data-t]').forEach(e=>{
+    e.addEventListener('mouseenter',()=>hl(e.getAttribute('data-t')));
+    e.addEventListener('mouseleave',()=>hl(null));
+  });
+}
+/* Il bottone: scarica le serie scadute (più vecchie di 24 ore) o mancanti,
+   dice com'è andata e ridisegna la pagina aperta, che sia questa o la
+   tabella posizioni. */
+function rotUpdate(){
+  if(rotRun)return rotRun;
+  const run=refreshRotation(false);
+  renderRotation();
+  return run.then(r=>{
+    if(!r.ok&&!r.fail.length)toast('Rotation data is less than 24 hours old: nothing to download');
+    else if(r.fail.length)toast('Rotation: '+r.ok+' series updated · '+r.fail.length+' unavailable ('+
+      r.fail.slice(0,4).join(', ')+(r.fail.length>4?'…':'')+')',r.ok?'':'err');
+    else toast('Rotation updated: '+r.ok+' series'+(r.skip?' ('+r.skip+' already fresh)':''),'ok');
+    renderPage(UI.page);
+    return r;
+  });
+}
+
+/* ==========================================================================
    12. DATI DI ESEMPIO
    ========================================================================== */
 function demoData(){
@@ -6031,9 +6611,27 @@ function renderContrib(){
 }
 
 /* ---------- tabella posizioni ---------- */
+/* Il valore con cui si ordina una colonna numerica è quello che la cella
+   mostra. Today mostra la variazione in % e si ordina per quella, non per
+   l'importo in euro (_day). null dove la cella ha un trattino o il dato
+   manca: carico e prezzo di un conto deposito, Today senza chiusura
+   precedente, Target wt. e To trade vuoti, prezzo non ancora arrivato,
+   rotazione n/d. Il rischio vuoto si vede come 6 e si ordina come 6. rot:
+   i punteggi della rotazione, calcolati una volta per ordinamento. */
+function sortVal(p,k,rot){
+  if(rot)return rot.get(p);
+  if((k==='_avg'||k==='price')&&isDeposit(p))return null;
+  if(k==='_day')return p.prevClose?num(p._dayPct):null;
+  if(k==='risk')return riskLevel(p);
+  const v=p[k];
+  if(v==null||v===''||(typeof v==='number'&&!isFinite(v)))return null;
+  return num(v);
+}
 function sortedPositions(){
-  const k=UI.sortK,dir=UI.sortDir;
-  return filteredPositions().slice().sort((a,b)=>{
+  const k=UI.sortK,dir=UI.sortDir, list=filteredPositions();
+  /* la rotazione non è un campo della posizione: si calcola una volta qui */
+  const rot=k==='_rot'?new Map(list.map(p=>[p,rotFor(p).score])):null;
+  return list.slice().sort((a,b)=>{
     let x=a[k],y=b[k];
     /* il titolo si ordina per come si vede: alias, ticker, nome */
     if(k==='ticker'){ x=tkLabel(a); y=tkLabel(b); }
@@ -6041,8 +6639,11 @@ function sortedPositions(){
       x=String(x||'').toLowerCase(); y=String(y||'').toLowerCase();
       return x<y?-dir:x>y?dir:0;
     }
-    if(x==null)x=-Infinity; if(y==null)y=-Infinity;
-    return (num(x)-num(y))*dir;
+    /* i vuoti in fondo in tutte e due le direzioni: num() li leggeva come 0
+       e li metteva in mezzo, fra i positivi e i negativi */
+    x=sortVal(a,k,rot); y=sortVal(b,k,rot);
+    if(x==null||y==null)return x==null?(y==null?0:1):-1;
+    return (x-y)*dir;
   });
 }
 function locCell(v,cur){
@@ -6067,7 +6668,7 @@ function renderTable(){
   }
   empty.innerHTML='';
   if(!rows.length){
-    tb.innerHTML='<tr><td colspan="15" style="text-align:center;color:var(--muted);padding:30px">'+
+    tb.innerHTML='<tr><td colspan="16" style="text-align:center;color:var(--muted);padding:30px">'+
       'No assets match the filters.</td></tr>';
   }else{
     tb.innerHTML=rows.map(p=>{
@@ -6094,6 +6695,7 @@ function renderTable(){
         '<td class="num px '+(up?'up':'down')+'">'+pctv(p._pnlPct)+'</td>'+
         '<td class="num hide-sm px '+(p._day>=0?'up':'down')+'">'+(p.prevClose?pctv(p._dayPct):'<span class="cellsub">—</span>')+'</td>'+
         '<td class="hide-sm"><span class="riskdot" style="background:'+riskColor(rk)+'">'+rk+'</span></td>'+
+        rotCell(p)+
         '<td><span class="badge '+a.c+'" title="'+esc(a.t)+'">'+a.s+'</span></td>'+
         '<td class="num hide-xs">'+(p.targetWeight!=null&&p.targetWeight!==''?nf(num(p.targetWeight),1)+'%':'<span class="cellsub">–</span>')+'</td>'+
         '<td class="num hide-xs mask'+(p._tDiff!=null?(p._tDiff>=0?' up':' down'):'')+'">'+
@@ -6813,6 +7415,7 @@ function openDrawer(id){
   UI.drawerId=id;
   const d=derive(p), cur=p.currency||BASE, up=p._pnl>=0, dep=isDeposit(p);
   const a=ACT[p._action]||ACT.Ok;
+  const rv=dep?null:rotView(p);
   const hasRate=p.rate!=null&&p.rate!=='', rate=num(p.rate), interest=d.interest*fxRate(p.currency);
   /* un conto: saldo, capitale versato e interessi netti (saldo = versato +
      interessi), il tasso e la rendita che ne viene; niente prezzi */
@@ -6846,6 +7449,7 @@ function openDrawer(id){
     dep?null:['Factor',esc(normFactor(p.factor)),0],
     ['Tier',esc(normPTier(p.tier)||'—'),0],
     dep?null:['Scores',scoresLine(p),0],
+    rv?rv.stat:null,
     ['Held since',p.dateAdded?fmtDate(p.dateAdded):'—',0],
     ['Target weight',p.targetWeight!=null&&p.targetWeight!==''?nf(num(p.targetWeight),1)+'%':'—',0],
     ['To trade',p._tDiff!=null?(p._tDiff>=0?'+':'−')+money0(Math.abs(p._tDiff)):'—',1,
@@ -6889,6 +7493,7 @@ function openDrawer(id){
       '<div class="dw-stats">'+stats.map(s=>
         '<div class="s"><div class="l">'+esc(s[0])+'</div>'+
         '<div class="v'+(s[1]==='—'?' ':' num')+(s[3]?' '+s[3]:'')+(s[2]?' mask':'')+'">'+s[1]+'</div></div>').join('')+'</div>'+
+      (rv?rv.html:'')+
       (txs.length?'<div class="sec-t">Transactions'+((p.tx||[]).length>8?' · last 8 of '+p.tx.length:'')+'</div>'+
         txs.map(t=>{ const k=TXT[t.type]||TXT.buy, amt=txShown(t);
           const det=t.type==='fee'?nf(num(t.amount),2):t.type==='int'?txIntNote(t):dep?'':qtyf(num(t.qty))+' × '+nf(num(t.price),4)+
@@ -12220,6 +12825,7 @@ function renderPage(k){
   else if(k==='analisi'){ [renderExposure,renderPerfMap,renderCorrelation,renderRiskDist,renderFactorDist,renderEtfList].forEach(cardSafe); }
   else if(k==='salute'){ renderHealth(); renderQuant(); }
   else if(k==='scenari'){ renderScenarios(); }
+  else if(k==='rotazione'){ renderRotation(); }
   else if(k==='ribilanciamento'){ renderRebalance(); }
   else if(k==='regole'){ renderRegole(); }
   else if(k==='watchlist'){ renderWatchlist(); }
@@ -12532,6 +13138,13 @@ function wire(){
     S.settings.distMode=b.getAttribute('data-m'); save(); renderRiskDist(); renderFactorDist();
   }));
 
+  /* --- rotazione: il gruppo mostrato resta in UI, non in S; il bottone è
+     l'unico punto da cui partono i download --- */
+  $('#rotTabs').addEventListener('click',e=>{
+    const b=e.target.closest('button[data-g]'); if(!b)return;
+    UI.rotGroup=b.getAttribute('data-g'); renderRotation();
+  });
+  $('#rotRefresh').addEventListener('click',rotUpdate);
   /* --- scenari --- */
   $('#scPick').addEventListener('change',()=>{
     S.settings.scenSel=$('#scPick').value; save(); renderScenarios();
@@ -12753,6 +13366,8 @@ $('#chipHealth').innerHTML=ic('heart',17);
 $('#chipAlerts').innerHTML=ic('inbox',17);
 $('#chipQuant').innerHTML=ic('trend',17);
 $('#chipScen').innerHTML=ic('bolt',17);
+$('#chipRot').innerHTML=ic('rotate',17);
+$('#rotRefresh .ic').innerHTML=ic('refresh',15);
 $('#scChv').innerHTML=ic('chev',16);
 $('#chipScenA').innerHTML=ic('settings',17);
 $('#chipRb').innerHTML=ic('balance',17);
@@ -12789,7 +13404,7 @@ $('#chipTheme').innerHTML=ic('sun',17);
 $('#btnAddWatch').querySelector('.ic').innerHTML=ic('plus',15);
 $('#btnHist').querySelector('.ic').innerHTML=ic('refresh',15);
 $$('.modal .x[data-close]').forEach(b=>b.innerHTML=ic('x',16));
-loadSync(); load(); loadPHist(); loadMHist(); loadDHist(); loadBHist(); buildNav(); initPosForm(); initWatchForm(); syncTxLabels(); wire();
+loadSync(); load(); loadPHist(); loadMHist(); loadDHist(); loadRoth(); loadBHist(); buildNav(); initPosForm(); initWatchForm(); syncTxLabels(); wire();
 applyTheme(); applyPrivacy(); applyDock();
 enrich();
 go(location.hash.slice(1)||'dashboard');
