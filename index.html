@@ -1070,6 +1070,12 @@ tbody tr.clk{cursor:pointer}
   padding:14px;border-radius:12px;background:var(--surface-2);margin-top:6px}
 .txadd .field{margin:0}
 .txadd.dep{grid-template-columns:1.1fr 1.2fr 1.4fr auto}
+/* titolo in valuta estera: in più il cambio della transazione. In una
+   riga sola la data non ci starebbe (il modale è largo 640 px): due righe,
+   Tipo Data Quantità Prezzo, poi Commissione, Cambio e il bottone */
+.txadd.fx{grid-template-columns:1.1fr 1.3fr 1fr 1fr}
+.txadd.fx #txFxF{grid-column:span 2}
+.txadd.fx button{justify-self:end;min-width:56px}
 .txhint{font-size:11.5px;color:var(--muted);margin-top:12px}
 .txadd .field label{font-size:11px;margin-bottom:4px}
 .txadd .field input,.txadd .field select{padding:8px 9px;font-size:13px;background:var(--surface)}
@@ -1592,8 +1598,10 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   .thm-item{padding:14px 12px;font-size:14px}
   .hide-xs{display:none!important}
   .alloc{gap:16px}
-  .txadd,.txadd.dep{grid-template-columns:1fr 1fr;gap:9px}
+  .txadd,.txadd.dep,.txadd.fx{grid-template-columns:1fr 1fr;gap:9px}
   .txadd button{grid-column:span 2}
+  .txadd.fx #txFxF{grid-column:auto}
+  .txadd.fx button{justify-self:stretch}
   .dw-ft{padding:12px 16px}
   .dw-hd,.dw-bd{padding-left:16px;padding-right:16px}
   .gauges{grid-template-columns:1fr}
@@ -2948,9 +2956,11 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
         <div class="field"><label>Date</label><input id="txDate" type="date"></div>
         <div class="field" id="txQtyF"><label id="txQtyLbl">Quantity</label><input id="txQty" type="text" inputmode="decimal"></div>
         <div class="field"><label id="txPriceLbl">Price</label><input id="txPrice" type="text" inputmode="decimal"></div>
-        <div class="field" id="txFeeF"><label>Fee</label><input id="txFee" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="field" id="txFeeF"><label id="txFeeLbl">Fee</label><input id="txFee" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="field" id="txFxF" style="display:none"><label id="txFxLbl">FX (€ per 1 USD)</label><input id="txFx" type="text" inputmode="decimal"></div>
         <button class="btn btn-soft" id="txAdd" style="height:36px">＋</button>
       </div>
+      <div class="txhint" id="txFxHint" style="display:none"></div>
     </div>
 
     <input type="hidden" id="fId">
@@ -3846,6 +3856,18 @@ function fxRate(cur){ if(!cur||cur===BASE)return 1;
 function usedCurrencies(){ const s={};
   S.positions.forEach(p=>{const c=p.currency||BASE; if(c!==BASE)s[c]=1;}); return Object.keys(s).sort(); }
 function ensureFx(){ usedCurrencies().forEach(c=>{ if(S.fx[c]==null)S.fx[c]=DEFAULT_FX[c]!=null?DEFAULT_FX[c]:1; }); S.fx[BASE]=1; }
+/* Cambio di una transazione, nello stesso verso di fxRate() e delle
+   Impostazioni: € per 1 unità della valuta del titolo. Vale il campo t.fx,
+   scritto a mano, se è un numero finito e positivo; altrimenti fb, di solito
+   il cambio di oggi, così una transazione senza fx resta com'era. Solo
+   acquisti, vendite e dividendi hanno un cambio: commissioni e interessi
+   ('fee', 'int') danno sempre fb. Per una posizione in euro il chiamante non
+   lo usa: lì il cambio è sempre 1. */
+function txFx(t,fb){
+  if(!t||t.type==='fee'||t.type==='int')return fb;
+  const v=t.fx;
+  return typeof v==='number'&&isFinite(v)&&v>0?v:fb;
+}
 
 /* ==========================================================================
    5. MOTORE — transazioni opzionali + arricchimento posizioni
@@ -3855,31 +3877,49 @@ function ensureFx(){ usedCurrencies().forEach(c=>{ if(S.fx[c]==null)S.fx[c]=DEFA
    'int' sono gli interessi di un conto deposito (vedi isDeposit). Se il registro esiste, quantità e prezzo di carico sono DERIVATI da lì
    (costo medio mobile) e si sbloccano plusvalenze realizzate e dividendi
    incassati. Se non esiste, valgono i campi manuali qty/avg.
+
+   Cambio per transazione: se almeno un acquisto, una vendita o un dividendo
+   ha il suo cambio (t.fx, vedi txFx) e la posizione non è in euro, lo stesso
+   replay tiene anche il costo in euro, con ogni operazione al cambio del suo
+   giorno come fa la banca. Escono investedEur, realizedEur e divCashEur, già
+   in euro, e usesFx vero; le transazioni senza fx usano il cambio di oggi.
+   Senza nessun fx (o in euro) usesFx è falso, i tre campi sono null e chi
+   converte usa il cambio di oggi come sempre. avg resta nella valuta nativa.
    ========================================================================== */
 function derive(p){
   const tx=(p.tx||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const out={qty:num(p.qty),avg:num(p.avg),invested:0,realized:0,divCash:0,fees:0,interest:0,usesTx:false,
-             txCount:tx.length,firstDate:null,lastDate:null,soldQty:0};
+             txCount:tx.length,firstDate:null,lastDate:null,soldQty:0,
+             investedEur:null,realizedEur:null,divCashEur:null,usesFx:false};
   if(!tx.length){ out.invested=out.qty*out.avg; return out; }
   out.usesTx=true; out.firstDate=tx[0].date; out.lastDate=tx[tx.length-1].date;
-  let q=0,cost=0;
+  let q=0,cost=0,costE=0,realE=0,divE=0;
   const dep=isDeposit(p);
+  /* prima le transazioni, poi la valuta: senza nessun fx non si tocca BASE */
+  const fxOn=tx.some(t=>txFx(t,0)>0)&&!!p.currency&&p.currency!==BASE;
+  const fb=fxOn?fxRate(p.currency):1;
   for(const t of tx){
-    const fee=num(t.fee);
+    const fee=num(t.fee), f=txFx(t,fb);
     if(t.type==='sell'&&dep){
       /* prelievo da un conto deposito: restituisce prima il capitale
          versato, così il G/P resta uguale agli interessi netti. Gli interessi
          (o un addebito che li ha superati) si realizzano quando il capitale
          finisce o il saldo si azzera */
       const useQ=Math.min(num(t.qty),q), back=q-useQ<1e-9?cost:Math.min(useQ,cost);
+      const backE=q-useQ<1e-9?costE:(cost>0?costE*back/cost:0);
       out.realized+=useQ*num(t.price)-back-fee; out.soldQty+=useQ;
-      cost-=back; q-=useQ; if(q<1e-9){q=0;cost=0;}
+      realE+=(useQ*num(t.price)-fee)*f-backE;
+      cost-=back; costE-=backE; q-=useQ; if(q<1e-9){q=0;cost=0;costE=0;}
     }else if(t.type==='sell'){
-      const unit=q>0?cost/q:0, useQ=Math.min(num(t.qty),q);
+      /* in euro: incasso al cambio della vendita, meno il costo medio in
+         euro delle quote vendute */
+      const unit=q>0?cost/q:0, unitE=q>0?costE/q:0, useQ=Math.min(num(t.qty),q);
       out.realized+=useQ*(num(t.price)-unit)-fee; out.soldQty+=useQ;
-      cost-=useQ*unit; q-=useQ; if(q<1e-9){q=0;cost=0;}
+      realE+=(useQ*num(t.price)-fee)*f-useQ*unitE;
+      cost-=useQ*unit; costE-=useQ*unitE; q-=useQ; if(q<1e-9){q=0;cost=0;costE=0;}
     }else if(t.type==='div'){
-      out.divCash+=(t.amount!=null?num(t.amount):num(t.qty)*num(t.price))-fee;
+      const net=(t.amount!=null?num(t.amount):num(t.qty)*num(t.price))-fee;
+      out.divCash+=net; divE+=net*f;
     }else if(t.type==='fee'){
       out.fees+=num(t.amount)+fee;
     }else if(t.type==='int'){
@@ -3890,9 +3930,11 @@ function derive(p){
       q=Math.max(0,q+a); out.interest+=a;
     }else{ // buy
       q+=num(t.qty); cost+=num(t.qty)*num(t.price)+fee;
+      costE+=(num(t.qty)*num(t.price)+fee)*f;
     }
   }
   out.qty=q; out.avg=q>0?cost/q:0; out.invested=cost; out.fees+= 0;
+  if(fxOn){ out.usesFx=true; out.investedEur=costE; out.realizedEur=realE; out.divCashEur=divE; }
   return out;
 }
 
@@ -3962,18 +4004,20 @@ function fixDeposit(p){
 /* Riepilogo economico di una posizione chiusa, in valuta di base. */
 function closedSummary(p){
   const tx=(p.tx||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  /* con il cambio per transazione (vedi derive) ogni importo va in euro al
+     suo cambio; senza, la somma nativa per il cambio di oggi, come sempre */
+  const rate=fxRate(p.currency), on=derive(p).usesFx, r=t=>on?txFx(t,rate):1;
   let bought=0,sold=0,div=0;
   tx.forEach(t=>{
     const fee=num(t.fee);
-    if(t.type==='buy')bought+=num(t.qty)*num(t.price)+fee;
-    else if(t.type==='sell')sold+=num(t.qty)*num(t.price)-fee;
-    else if(t.type==='div')div+=(t.amount!=null?num(t.amount):num(t.qty)*num(t.price))-fee;
+    if(t.type==='buy')bought+=(num(t.qty)*num(t.price)+fee)*r(t);
+    else if(t.type==='sell')sold+=(num(t.qty)*num(t.price)-fee)*r(t);
+    else if(t.type==='div')div+=((t.amount!=null?num(t.amount):num(t.qty)*num(t.price))-fee)*r(t);
     /* gli interessi di un conto ('int') non sono né acquisti né vendite */
   });
-  const rate=fxRate(p.currency);
   return {from:tx.length?String(tx[0].date).slice(0,10):null,
           to:p.closedDate||(tx.length?String(tx[tx.length-1].date).slice(0,10):null),
-          bought:bought*rate, sold:sold*rate, div:div*rate,
+          bought:on?bought:bought*rate, sold:on?sold:sold*rate, div:on?div:div*rate,
           realized:num(p._realized), n:tx.length};
 }
 
@@ -3986,12 +4030,15 @@ function enrich(){
     fixDeposit(p);
     const d=derive(p), rate=fxRate(p.currency);
     p._q=d.qty; p._avg=d.avg; p._usesTx=d.usesTx; p._txCount=d.txCount;
+    /* il valore è sempre al cambio di oggi; costo, realizzato e dividendi
+       al cambio di ogni transazione quando ce l'hanno (vedi derive), così
+       il G/P comprende l'effetto cambio come nel conto della banca */
     p._value=d.qty*num(p.price)*rate;
-    p._cost=d.invested*rate;
+    p._cost=d.usesFx?d.investedEur:d.invested*rate;
     p._pnl=p._value-p._cost;
     p._pnlPct=p._cost>0?p._pnl/p._cost*100:0;
-    p._realized=d.realized*rate;
-    p._div=d.divCash*rate;
+    p._realized=d.usesFx?d.realizedEur:d.realized*rate;
+    p._div=d.usesFx?d.divCashEur:d.divCash*rate;
     p._day=p.prevClose?d.qty*(num(p.price)-num(p.prevClose))*rate:0;
     p._dayPct=p.prevClose&&num(p.prevClose)>0?(num(p.price)/num(p.prevClose)-1)*100:0;
     /* le chiuse hanno qty 0, quindi valore e costo correnti sono già 0:
@@ -4988,8 +5035,9 @@ function xirr(flows,base){
    registro vale un solo acquisto qty × prezzo medio alla data "In portafoglio
    dal". Senza né l'uno né l'altra la posizione è esclusa — e con lei il suo
    valore attuale, altrimenti risulterebbe un guadagno pari a tutto il valore.
-   Lo stesso vale se una transazione non ha data. Il cambio è quello di oggi,
-   come nel resto dell'app: uno storico dei cambi non c'è. */
+   Lo stesso vale se una transazione non ha data. Ogni transazione è convertita
+   al cambio indicato nella transazione, se c'è (vedi txFx), altrimenti a
+   quello di oggi; una posizione in euro ha sempre cambio 1. */
 function personalFlows(){
   const byDay={}, excluded=[];
   let excludedValue=0;
@@ -4998,7 +5046,9 @@ function personalFlows(){
     if(!p)return;
     const rate=fxRate(p.currency), tx=(p.tx||[]).filter(t=>t&&t.type);
     const dated=tx.length&&tx.every(t=>ISO_DAY.test(String(t.date||'').slice(0,10)));
-    if(dated){ tx.forEach(t=>add(String(t.date).slice(0,10),txAmount(t)*rate)); return; }
+    /* prima le transazioni, poi la valuta: senza fx non si tocca BASE */
+    const fx=t=>txFx(t,0)>0&&p.currency&&p.currency!==BASE?txFx(t,rate):rate;
+    if(dated){ tx.forEach(t=>add(String(t.date).slice(0,10),txAmount(t)*fx(t))); return; }
     if(!tx.length&&ISO_DAY.test(String(p.dateAdded||''))){
       add(p.dateAdded,-num(p.qty)*num(p.avg)*rate); return; }
     if(!tx.length&&num(p.qty)<=EPS_QTY)return;   /* vuota: non c'è niente da escludere */
@@ -5034,7 +5084,7 @@ function kpiPersonal(){
   const tip=['Quanto hai guadagnato tu (XIRR), tenendo conto di quando e quanto hai versato o incassato.',
     'Il TWR misura invece quanto hanno reso i titoli, senza contare i versamenti: è quello giusto per il confronto con gli indici in History.',
     'Se i due divergono molto, ha pesato il momento in cui hai versato.',
-    'Gli importi in valuta estera sono convertiti al cambio di oggi.'];
+    'Gli importi in valuta estera sono convertiti al cambio indicato nella transazione, se c\'è, altrimenti a quello di oggi.'];
   if(R.excludedN)tip.push(R.excludedN+(R.excludedN===1?' posizione senza data esclusa':' posizioni senza data escluse')+' dal calcolo.');
   if(use==null)return {l:'Annual return',v:'–',s:'needs dated purchases',tip:tip.join('\n'),mask:1};
   const twr=R.twr!=null?' · TWR '+pctv(R.twr*100,1)+(R.twrAnnualized?'':' over the period'):'';
@@ -6478,6 +6528,24 @@ function syncTxLabels(){
   $('#txPriceLbl').textContent=dep||t==='fee'?'Amount':(t==='div'?'Div. per share':'Price');
   $('#txQty').disabled=(t==='fee');
   $('#txPrice').placeholder=dep&&t==='int'?'e.g. 12,50 or -2,00':'';
+  syncTxFx();
+}
+/* Il cambio della transazione (vedi txFx) c'è solo per un titolo in valuta
+   estera: sparisce in euro e su un conto, e segue la valuta scelta in
+   Dettagli. Il segnaposto è il cambio di oggi, quello che vale se resta
+   vuoto. Una commissione ('fee') non ha cambio. */
+function syncTxFx(){
+  const cur=$('#fCur').value||BASE, on=UI.posKind!=='deposit'&&cur!==BASE;
+  $('#txFxF').style.display=on?'':'none';
+  $('#txAddRow').classList[on?'add':'remove']('fx');
+  $('#txFxLbl').textContent='FX (€ per 1 '+cur+')';
+  $('#txFeeLbl').textContent=on?'Fee ('+cur+')':'Fee';
+  $('#txFx').placeholder=on?nf(fxRate(cur),4):'';
+  $('#txFx').disabled=$('#txType').value==='fee';
+  const hint=$('#txFxHint');
+  hint.style.display=on?'':'none';
+  hint.textContent=on?'Fineco di solito indica quanti '+cur+' vale 1 €: inserisci 1 ÷ quel valore. '+
+    'Vuoto = cambio di oggi. La commissione va in '+cur+', la valuta del titolo.':'';
 }
 function openPos(id){
   const p=id?S.positions.filter(x=>x.id===id)[0]:null;
@@ -6497,7 +6565,7 @@ function openPos(id){
   $('#fId').value=p?p.id:'';
   $('#posDelete').style.display=p?'':'none';
   $('#txDate').value=todayISO();
-  $('#txQty').value=''; $('#txPrice').value=''; $('#txFee').value='';
+  $('#txQty').value=''; $('#txPrice').value=''; $('#txFee').value=''; $('#txFx').value='';
   setPosTab('det'); toggleComp('f'); applyPosKind(); renderTxList();
   if(!tickerToIsin('f'))syncIsinUI(true,'f');
   $('#ovPos').classList.add('on');
@@ -6512,7 +6580,8 @@ function renderTxList(){
     const k=TXT[t.type]||TXT.buy, amt=txShown(t);
     /* su un conto l'importo dice già tutto: niente "quantità × 1" */
     const det=t.type==='fee'?money(num(t.amount),2):t.type==='int'?txIntNote(t):dep?''
-      :qtyf(num(t.qty))+' × '+nf(num(t.price),4)+(num(t.fee)?' · fee '+nf(num(t.fee),2):'');
+      :qtyf(num(t.qty))+' × '+nf(num(t.price),4)+(num(t.fee)?' · fee '+nf(num(t.fee),2):'')+
+       (txFx(t,0)>0?' · FX '+nf(t.fx,4):'');
     return '<div class="txr"><div class="ty '+k.c+'">'+k.s+'</div>'+
       '<div class="tx-m"><div class="d1">'+esc(txLabel(t,kp))+'</div><div class="d2">'+fmtDate(t.date)+(det?' · '+det:'')+'</div></div>'+
       '<div class="am '+(amt>=0?'up':'down')+'">'+(amt>=0?'+':'−')+nf(Math.abs(amt),2)+' <span class="cellsub">'+esc(cur)+'</span></div>'+
@@ -6565,9 +6634,14 @@ function addTx(){
     UI.editTx.push({id:uid(),type:'fee',date:date,amount:price,fee:0});
   }else{
     if(!qty||!price){toast('Enter quantity and price','err');return;}
-    UI.editTx.push({id:uid(),type:type,date:date,qty:qty,price:price,fee:fee});
+    const t={id:uid(),type:type,date:date,qty:qty,price:price,fee:fee};
+    /* il cambio solo se il campo è visibile e positivo: vuoto = assente,
+       e la transazione usa il cambio di oggi */
+    const fx=num($('#txFx').value);
+    if(fx>0&&$('#txFxF').style.display!=='none')t.fx=fx;
+    UI.editTx.push(t);
   }
-  $('#txQty').value=''; $('#txPrice').value=''; $('#txFee').value='';
+  $('#txQty').value=''; $('#txPrice').value=''; $('#txFee').value=''; $('#txFx').value='';
   renderTxList();
 }
 function savePos(){
@@ -6817,7 +6891,8 @@ function openDrawer(id){
         '<div class="v'+(s[1]==='—'?' ':' num')+(s[3]?' '+s[3]:'')+(s[2]?' mask':'')+'">'+s[1]+'</div></div>').join('')+'</div>'+
       (txs.length?'<div class="sec-t">Transactions'+((p.tx||[]).length>8?' · last 8 of '+p.tx.length:'')+'</div>'+
         txs.map(t=>{ const k=TXT[t.type]||TXT.buy, amt=txShown(t);
-          const det=t.type==='fee'?nf(num(t.amount),2):t.type==='int'?txIntNote(t):dep?'':qtyf(num(t.qty))+' × '+nf(num(t.price),4);
+          const det=t.type==='fee'?nf(num(t.amount),2):t.type==='int'?txIntNote(t):dep?'':qtyf(num(t.qty))+' × '+nf(num(t.price),4)+
+            (txFx(t,0)>0&&cur!==BASE?' · FX '+nf(t.fx,4):'');
           return '<div class="txr"><div class="ty '+k.c+'">'+k.s+'</div>'+
             '<div class="tx-m"><div class="d1">'+esc(txLabel(t,p))+'</div><div class="d2">'+fmtDate(t.date)+(det?' · '+det:'')+'</div></div>'+
             '<div class="am mask '+(amt>=0?'up':'down')+'">'+(amt>=0?'+':'−')+nf(Math.abs(amt),2)+'</div></div>';
@@ -10309,19 +10384,27 @@ function qtyAt(p,ts){
     return flat;
   }
   const iso=isoOf(ts), dep=isDeposit(p);
-  let q=0,cost=0;
+  /* costEur: il costo in euro con il cambio di ogni transazione, come in
+     derive(); null se fino a ts nessuna transazione ha il suo cambio o se la
+     posizione è in euro, e allora vale cost × cambio di oggi come sempre.
+     Prima le transazioni, poi la valuta: senza fx non si tocca BASE */
+  const on=tx.some(t=>String(t.date)<=iso&&txFx(t,0)>0)&&!!p.currency&&p.currency!==BASE;
+  const fb=on?fxRate(p.currency):1;
+  let q=0,cost=0,costE=0;
   tx.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(t=>{
     if(String(t.date)>iso)return;
     if(t.type==='sell'&&dep){   /* come in derive(): prima il capitale */
-      const useQ=Math.min(num(t.qty),q);
-      cost-=q-useQ<1e-9?cost:Math.min(useQ,cost); q-=useQ; if(q<1e-9){q=0;cost=0;}
+      const useQ=Math.min(num(t.qty),q), back=q-useQ<1e-9?cost:Math.min(useQ,cost);
+      costE-=q-useQ<1e-9?costE:(cost>0?costE*back/cost:0);
+      cost-=back; q-=useQ; if(q<1e-9){q=0;cost=0;costE=0;}
     }else if(t.type==='sell'){
-      const unit=q>0?cost/q:0, useQ=Math.min(num(t.qty),q);
-      cost-=useQ*unit; q-=useQ; if(q<1e-9){q=0;cost=0;}
-    }else if(t.type==='buy'){ q+=num(t.qty); cost+=num(t.qty)*num(t.price)+num(t.fee); }
+      const unit=q>0?cost/q:0, unitE=q>0?costE/q:0, useQ=Math.min(num(t.qty),q);
+      cost-=useQ*unit; costE-=useQ*unitE; q-=useQ; if(q<1e-9){q=0;cost=0;costE=0;}
+    }else if(t.type==='buy'){ q+=num(t.qty); cost+=num(t.qty)*num(t.price)+num(t.fee);
+      costE+=(num(t.qty)*num(t.price)+num(t.fee))*txFx(t,fb); }
     else if(t.type==='int')q=Math.max(0,q+num(t.amount));   /* come in derive() */
   });
-  return {qty:q,cost:cost,exact:true};
+  return {qty:q,cost:cost,exact:true,costEur:on?costE:null};
 }
 function reconstructedSeries(){
   const titoli=S.positions.filter(p=>!isDeposit(p)&&p.ticker&&MHIST[p.ticker]&&MHIST[p.ticker].pts&&MHIST[p.ticker].pts.length>=2);
@@ -10365,7 +10448,8 @@ function reconstructedSeries(){
       if(at.qty<=0)return;
       const fx=fxRate(p.currency);
       value+=at.qty*price*fx;
-      cost+=at.cost*fx;
+      /* il costo al cambio di ogni transazione, se ce l'ha (vedi qtyAt) */
+      cost+=at.costEur!=null?at.costEur:at.cost*fx;
       hold.push({tk:hk(p),qty:at.qty,price:price,fx:fx,p:p});
       any=true;
     });
@@ -10489,7 +10573,7 @@ function heroDailySeries(range,now){
       if(!(px>0))return;
       const at=qtyAt(p,tau); if(!(at.qty>EPS_QTY))return;
       const fx=fxRate(p.currency);
-      value+=at.qty*px*fx; cost+=at.cost*fx; n++;
+      value+=at.qty*px*fx; cost+=at.costEur!=null?at.costEur:at.cost*fx; n++;
     });
     return n?{t:t,value:value,cost:cost}:null;
   };
@@ -10958,9 +11042,13 @@ function renderTxAll(){
       'No transactions match the filters.</div></div>';
     return;
   }
+  /* la colonna del cambio compare solo se almeno una transazione in valuta
+     estera ce l'ha (vedi txFx) */
+  const hasFx=({p,t})=>txFx(t,0)>0&&!!p.currency&&p.currency!==BASE;
+  const fxCol=rows.some(hasFx);
   body.innerHTML='<div class="tbl-scroll"><table class="snap-tbl"><thead><tr>'+
     '<th>Asset</th><th>Type</th><th>Date</th><th>Quantity</th><th>Price</th>'+
-    '<th class="hide-sm">Fees</th><th>Amount</th>'+
+    '<th class="hide-sm">Fees</th>'+(fxCol?'<th class="hide-sm" title="€ per 1 unit of the asset currency">FX</th>':'')+'<th>Amount</th>'+
     '</tr></thead><tbody>'+
     rows.map(({p,t})=>{
       const k=TXT[t.type]||TXT.buy, amt=txShown(t), cur=p.currency||BASE, fee=num(t.fee);
@@ -10978,6 +11066,7 @@ function renderTxAll(){
         '<td class="num">'+(hasQty?qtyf(num(t.qty)):dash)+'</td>'+
         '<td class="num">'+(hasPrice?locCell(num(t.price),cur):dash)+'</td>'+
         '<td class="num hide-sm">'+(fee?locCell(fee,cur):dash)+'</td>'+
+        (fxCol?'<td class="num hide-sm">'+(hasFx({p,t})?nf(t.fx,4):dash)+'</td>':'')+
         '<td class="num mask '+(amt>=0?'up':'down')+'"><b>'+(amt>=0?'+':'−')+nf(Math.abs(amt),2)+'</b>'+
           (cur!==BASE?' <span class="cellsub">'+esc(cur)+'</span>':'')+'</td></tr>';
     }).join('')+'</tbody></table></div>';
@@ -11527,7 +11616,7 @@ const CSV_FIELDS=[
   ['price','Current price'],['yield','Dividend yield %'],['ter','TER %'],['risk','Risk 3–9'],['factor','Factor'],
   ['tier','Tier'],['quant','QUANT score'],['qual','QUAL score'],['score','Total score'],
   ['targetWeight','Target weight %'],['dateAdded','Date / Held since'],
-  ['txType','Transaction (buy/sell)'],['fee','Fee'],
+  ['txType','Transaction (buy/sell)'],['fee','Fee'],['fx','FX rate (€ per 1 unit)'],
   ['divTotal','Dividend (total)'],['divShare','Dividend per share']
 ];
 const CSV_HINTS={
@@ -11577,6 +11666,10 @@ const CSV_HINTS={
           'buy/sell','acquisto/vendita','side','direzione','segno',
           'type','operation','action','transaction type','trade type'],
   fee:['commissione','commissioni','commission','fee','spese','oneri','bollo','tassa'],
+  /* il cambio della transazione, € per 1 unità di valuta (vedi txFx). "fx"
+     solo come parola a sé. Nessuna di queste parole sta in "Valuta" o
+     "Prezzo": non rubano le colonne della valuta e del prezzo */
+  fx:['cambio','tasso di cambio',{re:/\bfx\b/,len:2},'exchange rate','fx rate'],
   divTotal:['dividendo totale','totale dividendo','dividendo lordo','dividendo netto',
             'importo dividendo','dividendo incassato','controvalore dividendo','cedola totale',
             'dividendo',
@@ -11787,6 +11880,10 @@ function csvDoImport(){
       return;
     }
     const qty=num(get(r,'qty')), price=num(get(r,'avg')), fee=has('fee')?num(get(r,'fee')):0;
+    /* il cambio della riga, se c'è e se è positivo: vuoto o zero = assente,
+       e la transazione usa il cambio di oggi. Da sola la colonna non fa di
+       un CSV di posizioni un CSV di movimenti (vedi txMode) */
+    const fx=has('fx')?num(get(r,'fx')):0, withFx=t=>(fx>0&&(t.fx=fx),t);
     /* delle due colonne dividendo vince il controvalore totale; se manca, si
        usa il dividendo per azione moltiplicato per la quantità della riga */
     const dTot=has('divTotal')?num(get(r,'divTotal')):0;
@@ -11795,13 +11892,13 @@ function csvDoImport(){
     let mossa=false;
 
     if(qty>0&&price>0&&(tipo||!has('txType'))){
-      p.tx.push({id:uid(),type:tipo||'buy',date:data||todayISO(),qty:qty,price:price,fee:fee});
+      p.tx.push(withFx({id:uid(),type:tipo||'buy',date:data||todayISO(),qty:qty,price:price,fee:fee}));
       movimenti++; mossa=true;
     }
     if(dTot>0||(dShare>0&&qty>0)){
-      p.tx.push(dTot>0
+      p.tx.push(withFx(dTot>0
         ? {id:uid(),type:'div',date:data||todayISO(),amount:dTot,fee:0}
-        : {id:uid(),type:'div',date:data||todayISO(),qty:qty,price:dShare,fee:0});
+        : {id:uid(),type:'div',date:data||todayISO(),qty:qty,price:dShare,fee:0}));
       movimenti++; mossa=true;
     }
     /* commissione isolata, senza né operazione né dividendo */
@@ -11879,13 +11976,15 @@ function exportTx(){
   const rows=[];
   S.positions.forEach(p=>(p.tx||[]).forEach(t=>rows.push({p:p,t:t})));
   if(!rows.length){ toast('No transactions recorded','err'); return; }
-  const lines=[['Ticker','ISIN','Tipo','Data','Quantità','Prezzo','Commissioni','Importo','Valuta'].join(',')];
+  /* Cambio: quello della transazione (€ per 1 unità), vuoto se non c'è.
+     Importo resta nella valuta del titolo */
+  const lines=[['Ticker','ISIN','Tipo','Data','Quantità','Prezzo','Commissioni','Cambio','Importo','Valuta'].join(',')];
   rows.sort((a,b)=>String(a.t.date).localeCompare(String(b.t.date)));
   rows.forEach(({p,t})=>lines.push([
     p.ticker,p.isin||'',txCsvLabel(t,p),t.date,
     t.type==='fee'||t.type==='int'?'':num(t.qty),
     t.type==='fee'?num(t.amount):t.type==='int'?'':num(t.price),
-    num(t.fee), txShown(t).toFixed(2), p.currency||'EUR'
+    num(t.fee), txFx(t,0)>0?t.fx:'', txShown(t).toFixed(2), p.currency||'EUR'
   ].map(csvField).join(',')));
   download('transazioni_'+stamp()+'.csv','﻿'+lines.join('\n'),'text/csv;charset=utf-8');
   toast('Transactions exported','ok');
@@ -12380,7 +12479,7 @@ function wire(){
 
   /* --- scheda posizione --- */
   $$('#posTabs button').forEach(b=>b.addEventListener('click',()=>setPosTab(b.getAttribute('data-t'))));
-  $('#fCur').addEventListener('change',renderTxList);
+  $('#fCur').addEventListener('change',()=>{ syncTxFx(); renderTxList(); });
   $('#fKind').addEventListener('change',()=>setPosKind($('#fKind').value));
   $('#txType').addEventListener('change',syncTxLabels);
   $('#txAdd').addEventListener('click',addTx);
