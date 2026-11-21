@@ -442,8 +442,10 @@ body.dock-hidden .dock-hdl svg{transform:rotate(-90deg)}
 /* .wrap sta sullo stesso elemento di .page e di .tb-in, con la stessa
    specificità: quelle regole fissano solo padding-top e padding-bottom. Con la
    scorciatoia "padding:24px 0 90px", venendo dopo, azzeravano i 28px laterali
-   e le card finivano attaccate al menu e al bordo destro. */
-.wrap{max-width:1320px;margin:0 auto;width:100%;padding:0 28px}
+   e le card finivano attaccate al menu e al bordo destro. Nessun tetto di
+   larghezza: da 1024 px in su .wrap arriva ai lati (vedi "formato web" in
+   RESPONSIVE); sotto, la finestra è comunque più stretta dei 1320 px di prima. */
+.wrap{margin:0 auto;width:100%;padding:0 28px}
 
 /* ==========================================================================
    4. TOPBAR
@@ -1081,6 +1083,16 @@ tbody tr.clk{cursor:pointer}
 .txadd .field input,.txadd .field select{padding:8px 9px;font-size:13px;background:var(--surface)}
 .derived{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:10px;
   background:var(--accent-soft);color:var(--accent-ink);font-size:12.5px;font-weight:600;margin-bottom:14px}
+/* modifica di una riga già registrata (startTxEdit): la riga e il form che la
+   modifica hanno il filo dell'accento. Matita e × vicine, della stessa misura.
+   Cancel va sotto ✓, su una riga sua allineata a destra: le colonne del form
+   non cambiano larghezza entrando in modifica (anche con il cambio, .fx) */
+.txr.editing{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.txr .rowbtn+.rowbtn{margin-left:-7px}
+.txadd.editing{box-shadow:inset 0 0 0 1px var(--accent)}
+.txadd.editing #txAdd{background:var(--accent-soft);color:var(--accent-ink)}
+.txadd #txCancel{grid-column:1/-1;justify-self:end;height:36px}
+.txedit-hint{margin:0 0 10px}
 
 /* --- drawer --- */
 .dw-hd{display:flex;align-items:center;gap:13px;padding:18px 22px;border-bottom:1px solid var(--line-soft);
@@ -1112,6 +1124,8 @@ tbody tr.clk{cursor:pointer}
 .rot-q.q-lag{color:var(--down)}
 /* pagina Rotation: mappa a sinistra, elenco a destra; una colonna sotto i 1.200 px */
 .rot-hd{flex-wrap:wrap}
+/* tre gruppi e il bottone: sul telefono il bottone va sotto il selettore */
+.rot-hd .right{flex-wrap:wrap}
 .rot-status{font-size:12.5px;color:var(--muted);margin-bottom:14px}
 .rot-status .old{color:var(--warn);font-weight:650}
 .rot-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px;align-items:start}
@@ -1128,6 +1142,10 @@ tbody tr.clk{cursor:pointer}
   letter-spacing:.3px;padding:6px 6px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
 .rot-tbl td{padding:7px 6px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
 .rot-tbl .num{text-align:right;font-variant-numeric:tabular-nums}
+/* valute: la didascalia sopra l'elenco e le righe EUR e n/a dopo i cambi */
+.rot-cap{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+.rot-tbl tr.rot-x td{background:var(--surface-2)}
+.rot-tbl tr.rot-x td.cellsub{white-space:normal}
 .rot-tbl tr.hl td{background:var(--surface-2)}
 .rot-miss{font-size:12px;color:var(--muted);margin-top:10px}
 
@@ -1585,6 +1603,29 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
 /* ==========================================================================
    14. RESPONSIVE
    ========================================================================== */
+/* --- formato web: da 1024 px in su ---
+   La pagina arriva ai lati della finestra: .wrap perde il tetto di 1320 px e
+   tiene solo un padding laterale che cresce con la finestra (padding-left e
+   padding-right, mai la scorciatoia: vedi il commento sopra .wrap). I
+   max-width di card, form, modali e note restano: sono scelte di leggibilità.
+   Tutto si ingrandisce con zoom su <html>, secondo S.settings.textSize
+   (applyTextSize mette data-size su <html>; --ui sta solo qui dentro, quindi
+   sotto 1024 px non esiste e uiZoom() vale 1). Sotto zoom 100vh vale 100vh
+   per --ui in px della finestra (misurato in Chromium): le altezze legate alla
+   finestra si dividono per --ui, altrimenti escono dal fondo. Le media query
+   guardano la finestra, non il layout: a 1440 px con Large il layout è largo
+   circa 1286 px ma valgono ancora le regole da 1121 px in su. */
+@media(min-width:1024px){
+  html[data-size="n"]{--ui:1}
+  html[data-size="g"]{--ui:1.12}
+  html[data-size="xg"]{--ui:1.25}
+  html{zoom:var(--ui,1)}
+  .wrap{max-width:none;padding-left:clamp(20px,2vw,40px);padding-right:clamp(20px,2vw,40px)}
+  .app{min-height:calc(100vh / var(--ui,1))}
+  .modal{max-height:calc(90vh / var(--ui,1))}
+  .sheet{max-height:calc(76vh / var(--ui,1))}
+  .castle-frame{height:calc(100vh / var(--ui,1) - 191px);height:calc(100dvh / var(--ui,1) - 191px)}
+}
 @media(max-width:1120px){
   .g2-wide,.g2-dash{grid-template-columns:1fr}
   .kpis{grid-template-columns:repeat(2,1fr)}
@@ -1639,6 +1680,9 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   .txadd button{grid-column:span 2}
   .txadd.fx #txFxF{grid-column:auto}
   .txadd.fx button{justify-self:stretch}
+  /* in modifica ✓ e Cancel dividono una riga intera */
+  .txadd.editing #txAdd{grid-column:1}
+  .txadd #txCancel{grid-column:2;justify-self:stretch}
   .dw-ft{padding:12px 16px}
   .dw-hd,.dw-bd{padding-left:16px;padding-right:16px}
   .gauges{grid-template-columns:1fr}
@@ -2238,10 +2282,10 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
 
       <section class="page wrap" id="pg-rotazione">
         <div class="card">
-          <div class="card-hd rot-hd"><h2><span class="chip t" id="chipRot"></span> Sector &amp; country rotation</h2>
-            <div class="right"><span class="sub hide-sm" id="rotSub"></span>
+          <div class="card-hd rot-hd"><h2><span class="chip t" id="chipRot"></span> Sector, country &amp; currency rotation</h2>
+            <div class="right wide-sm"><span class="sub hide-sm" id="rotSub"></span>
               <span class="seg" id="rotTabs">
-                <button type="button" data-g="sectors" class="on">Sectors</button><button type="button" data-g="countries">Countries</button>
+                <button type="button" data-g="sectors" class="on">Sectors</button><button type="button" data-g="countries">Countries</button><button type="button" data-g="currencies">Currencies</button>
               </span>
               <button type="button" class="btn btn-ghost btn-sm" id="rotRefresh"><span class="ic"></span>Update rotation</button></div>
           </div>
@@ -2584,7 +2628,8 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
           <div id="txAllBody"></div>
           <div class="note mt18">Tutte le transazioni registrate, di ogni titolo, dalla più recente. Ci sono anche
             quelle dei titoli venduti al 100% e quelle delle posizioni a quantità zero, che non compaiono più
-            nell'elenco del portafoglio. Clicca una riga per aprire la scheda del titolo.</div>
+            nell'elenco del portafoglio. Clicca una riga per aprire la scheda del titolo, o la matita per
+            correggere quella transazione: si apre la scheda della posizione con la riga già in modifica.</div>
         </div>
 
         <div class="card mt18">
@@ -2621,7 +2666,9 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
         <div class="card" id="appearCard">
           <div class="card-hd"><h2><span class="chip a" id="chipTheme"></span> Appearance</h2>
             <div class="right"><button class="btn btn-ghost btn-sm" id="btnTheme" aria-haspopup="menu" aria-expanded="false" aria-controls="themeMenu"><span class="ic"></span><span class="lbl">Theme</span></button></div></div>
-          <div class="card-bd"><div class="note">Il tema vale per tutta l'app e viaggia con le altre impostazioni: backup e sincronizzazione cloud lo portano con sé.</div></div>
+          <div class="card-bd">
+            <div class="kv"><span class="k">Text size</span><span class="v"><span class="seg" id="textSize" role="group" aria-label="Text size"><button type="button" data-size-v="n">Normal</button><button type="button" data-size-v="g">Large</button><button type="button" data-size-v="xg">Extra large</button></span></span></div>
+            <div class="note" style="margin-top:12px">Il tema vale per tutta l'app e viaggia con le altre impostazioni: backup e sincronizzazione cloud lo portano con sé. La dimensione del testo ingrandisce tutta la pagina solo nella finestra del computer (da 1.024 px di larghezza in su); su telefono e tablet l'app resta com'è.</div></div>
         </div>
         <div class="grid g2 mt18">
           <div class="card">
@@ -3006,6 +3053,7 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
     <div id="tabTx" style="display:none">
       <div class="note" id="txNote" style="margin-bottom:14px"></div>
       <div id="txList"></div>
+      <div class="txhint txedit-hint" id="txEditHint" style="display:none">Changes take effect when you click Save.</div>
       <div class="txhint" id="txHint" style="display:none">Gli interessi si registrano al netto di ritenuta. Per bollo o imposte addebitate usa un importo negativo.</div>
       <div class="txadd" id="txAddRow">
         <div class="field"><label>Type</label><select id="txType">
@@ -3016,7 +3064,8 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
         <div class="field"><label id="txPriceLbl">Price</label><input id="txPrice" type="text" inputmode="decimal"></div>
         <div class="field" id="txFeeF"><label id="txFeeLbl">Fee</label><input id="txFee" type="text" inputmode="decimal" placeholder="0"></div>
         <div class="field" id="txFxF" style="display:none"><label id="txFxLbl">FX (€ per 1 USD)</label><input id="txFx" type="text" inputmode="decimal"></div>
-        <button class="btn btn-soft" id="txAdd" style="height:36px">＋</button>
+        <button class="btn btn-soft" id="txAdd" style="height:36px" title="Add transaction">＋</button>
+        <button class="btn btn-ghost btn-sm" id="txCancel" style="display:none">Cancel</button>
       </div>
       <div class="txhint" id="txFxHint" style="display:none"></div>
     </div>
@@ -3440,7 +3489,7 @@ function blankState(){
   return {
     v:3, positions:[], watchlist:[], goals:[], targets:{}, history:[], countries:[],
     fx:{EUR:1}, lastUpdate:0, updatedAt:0, rulesLog:[],
-    settings:{theme:'dark',privacy:false,dockHidden:false,riskFree:2,proxy:'',
+    settings:{theme:'dark',textSize:'g',privacy:false,dockHidden:false,riskFree:2,proxy:'',
               rebalanceBands:[10,20,30],capGainTax:26,
               scenBench:'6040',scenSel:'inflEU',scenSens:{},benchKey:'URTH',rules:rulesCfg(),tierPlan:tplanCfg(),
               sim:simDefaults(),distMode:'count'}
@@ -3453,6 +3502,8 @@ const UI={
   filters:{search:'',platform:'',cls:'',sector:'',country:'',tier:'',action:''},
   sortK:'_value', sortDir:-1,
   editId:null, editTx:[], posKind:'', drawerId:null,
+  /* id della transazione in modifica nella tab Transazioni (startTxEdit), null altrimenti */
+  txEditId:null,
   expo:{level:'cat',leaf:null},
   perf:{size:'peso',per:'1G'},
   rbMode:'cat', rbOpen:{}, editWatch:null,
@@ -4294,6 +4345,30 @@ function smoothPath(P2){
   return d;
 }
 
+/* --- zoom del formato web, per i punti che misurano a schermo ---
+   Da 1024 px in su <html> è ingrandito di --ui (CSS "formato web"). In Chromium
+   getBoundingClientRect, clientX e innerWidth danno px a schermo, mentre
+   style.left, style.top, clientWidth e offsetWidth sono px del layout, uiZoom()
+   volte più piccoli: chi passa una misura a schermo a style.* la divide per
+   uiZoom(). Le frazioni come (clientX − left) / width non cambiano. Unico punto
+   che legge lo zoom; sotto 1024 px --ui non c'è e vale 1. */
+function uiZoom(){
+  const v=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui'));
+  return v>0&&isFinite(v)?v:1;
+}
+/* Tooltip dei grafici a linee (Chart.area, Chart.lines), in px del layout
+   dentro l'host: x, y nel sistema dello SVG largo W e alto H, r il suo
+   getBoundingClientRect, z = uiZoom(), m il margine minimo dai lati. */
+function chartTipPos(x,y,W,H,r,z,m){
+  const rw=r.width/z, rh=r.height/z;
+  return {left:Math.max(m,Math.min(rw-m,x/W*rw)), top:y/H*rh};
+}
+/* Riquadro b (una tessera, una cella) dentro il contenitore del tooltip hr,
+   entrambi da getBoundingClientRect: posizione e misure in px del layout, e
+   la larghezza del contenitore (hw). z = uiZoom(). */
+function boxInLayout(b,hr,z){
+  return {left:(b.left-hr.left)/z, top:(b.top-hr.top)/z, width:b.width/z, height:b.height/z, hw:hr.width/z};
+}
 const Chart={};
 Chart.area=function(host,pts,opt){
   opt=opt||{};
@@ -4405,9 +4480,9 @@ Chart.area=function(host,pts,opt){
     tip.classList.add('on');
     tip.innerHTML='<div class="d">'+esc(opt.fmtTipX?opt.fmtTipX(pts[bi].t):fmtDate(new Date(pts[bi].t).toISOString()))+'</div>'+
                   '<div class="v">'+(opt.fmtTip?opt.fmtTip(pts[bi],bi):money(pts[bi].v))+'</div>';
-    const px=p.x/W*r.width;
-    tip.style.left=Math.max(60,Math.min(r.width-60,px))+'px';
-    tip.style.top=(p.y/H*r.height)+'px';
+    const tp=chartTipPos(p.x,p.y,W,H,r,uiZoom(),60);
+    tip.style.left=tp.left+'px';
+    tip.style.top=tp.top+'px';
   }
   function out(){ cur.setAttribute('opacity','0'); tip.classList.remove('on'); }
   svg.addEventListener('pointermove',move);
@@ -4550,6 +4625,19 @@ function applyTheme(){
   $$('#themeMenu [data-theme-v]').forEach(x=>
     x.setAttribute('aria-checked',x.getAttribute('data-theme-v')===t.v?'true':'false'));
 }
+/* --- dimensione del testo: solo da 1024 px in su (CSS "formato web").
+   Tre valori, Large di base; uno sconosciuto vale Large. Il fattore di ogni
+   valore sta solo nel CSS (--ui); qui si mette data-size su <html> e si
+   accende il bottone giusto del selettore in Appearance. --- */
+const TEXT_SIZES=[{v:'n',n:'Normal'},{v:'g',n:'Large'},{v:'xg',n:'Extra large'}];
+function applyTextSize(){
+  const t=TEXT_SIZES.find(x=>x.v===S.settings.textSize)||TEXT_SIZES[1];
+  document.documentElement.setAttribute('data-size',t.v);
+  $$('#textSize [data-size-v]').forEach(b=>{
+    const on=b.getAttribute('data-size-v')===t.v;
+    b.classList.toggle('on',on); b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
 /* --- menu dei temi: un pulsante con aria-haspopup apre quattro voci
    menuitemradio. Frecce, Home e Fine spostano il focus; Esc e Tab chiudono
    e riportano il focus al pulsante, come la scelta di una voce. --- */
@@ -4565,13 +4653,16 @@ function themeMenuHTML(cur){
 }
 /* sopra il pulsante, allineato a sinistra; se sopra non c'è posto (la card
    "Appearance" è in cima alle Impostazioni, sotto la barra) si apre sotto,
-   invece di coprire il pulsante. Sempre dentro la finestra, a 8 px dai bordi. */
+   invece di coprire il pulsante. Sempre dentro la finestra, a 8 px dai bordi.
+   Tutto in px del layout: il pulsante e la finestra si misurano a schermo e
+   si dividono per uiZoom() (formato web); offsetWidth/Height lo sono già. */
 function placeThemeMenu(m,btn){
-  const r=btn.getBoundingClientRect(), pad=8, w=m.offsetWidth, h=m.offsetHeight;
+  const z=uiZoom(), b=btn.getBoundingClientRect(), pad=8, w=m.offsetWidth, h=m.offsetHeight;
+  const r={left:b.left/z,top:b.top/z,bottom:b.bottom/z}, vw=innerWidth/z, vh=innerHeight/z;
   let x=r.left, y=r.top-h-6;
-  if(y<pad&&r.bottom+6+h<=innerHeight-pad)y=r.bottom+6;
-  x=Math.max(pad,Math.min(x,innerWidth-w-pad));
-  y=Math.max(pad,Math.min(y,innerHeight-h-pad));
+  if(y<pad&&r.bottom+6+h<=vh-pad)y=r.bottom+6;
+  x=Math.max(pad,Math.min(x,vw-w-pad));
+  y=Math.max(pad,Math.min(y,vh-h-pad));
   m.style.left=Math.round(x)+'px'; m.style.top=Math.round(y)+'px';
 }
 function openThemeMenu(btn){
@@ -4634,7 +4725,7 @@ const NAV=[
     {k:'salute',l:'Health',i:'heart',sub:'Score, signals and risk metrics'},
     {k:'castello',l:'Castle',i:'castle',sub:'The portfolio as a 3D castle'},
     {k:'scenari',l:'Scenarios',i:'bolt',sub:'Macro stress tests against a benchmark'},
-    {k:'rotazione',l:'Rotation',i:'rotate',sub:'Sector and country momentum against the market'},
+    {k:'rotazione',l:'Rotation',i:'rotate',sub:'Sector, country and currency momentum'},
     {k:'dividendi',l:'Dividends',i:'coins',tab:1,sub:'Income, calendar and projection'}
   ]},
   {g:'Planning',items:[
@@ -5684,6 +5775,29 @@ const ROT_COUNTRIES_EXTRA=[
   {t:'EWN',n:'Netherlands'},{t:'EWD',n:'Sweden'},{t:'EDEN',n:'Denmark'},{t:'NORW',n:'Norway'},
   {t:'EFNL',n:'Finland'},{t:'EWP',n:'Spain'},{t:'EIRL',n:'Ireland'},{t:'EWK',n:'Belgium'},
   {t:'EWO',n:'Austria'}];
+/* Cambi contro l'euro: il portafoglio è in euro, quindi il benchmark è
+   l'euro stesso, una serie piatta a 1, e il rapporto è il cambio (rotRRG
+   con flatBench). t è il simbolo Yahoo nel verso di refreshFx, € per 1
+   unità: sale = la valuta si rafforza sull'euro. alt è il simbolo inverso,
+   da usare con 1/x se t non dà almeno ROT_FX_BARS barre. c è la valuta, n il
+   nome esteso. Le barre settimanali dei cambi partono dalla mezzanotte di
+   Londra del lunedì, che d'estate è domenica 23:00 UTC: shift le porta 12
+   ore avanti prima di prendere la settimana, altrimenti d'estate ogni barra
+   cadrebbe nella settimana prima e a fine marzo due barre si sovrappongono. */
+const ROT_FX={bench:'EUR',shift:12*3600e3,items:[
+  {c:'USD',t:'USDEUR=X',alt:'EURUSD=X',n:'US dollar'},{c:'GBP',t:'GBPEUR=X',alt:'EURGBP=X',n:'British pound'},
+  {c:'CHF',t:'CHFEUR=X',alt:'EURCHF=X',n:'Swiss franc'},{c:'JPY',t:'JPYEUR=X',alt:'EURJPY=X',n:'Japanese yen'},
+  {c:'CAD',t:'CADEUR=X',alt:'EURCAD=X',n:'Canadian dollar'},{c:'AUD',t:'AUDEUR=X',alt:'EURAUD=X',n:'Australian dollar'},
+  {c:'SEK',t:'SEKEUR=X',alt:'EURSEK=X',n:'Swedish krona'},{c:'NOK',t:'NOKEUR=X',alt:'EURNOK=X',n:'Norwegian krone'},
+  {c:'CNY',t:'CNYEUR=X',alt:'EURCNY=X',n:'Chinese yuan'}]};
+/* Il dollaro di Hong Kong è agganciato al dollaro USA: si legge con la sua
+   serie. Le valute con un motivo in ROT_FX_NOTE non hanno la gamba e
+   restano n/d; quelle fuori da ROT_FX e da qui non sono coperte. */
+const ROT_FX_ALIAS={HKD:'USD'};
+const ROT_FX_NOTE={DKK:'peg'};
+const ROT_FX_WHY={base:'base currency',peg:'pegged to the euro: no rotation signal',nocover:'currency not covered',
+  nodata:'no data'};
+const ROT_FX_BARS=52;
 /* In settimane: EMA veloce e lenta del rapporto, passo del momentum, finestra
    della deviazione standard. Gli stessi di RotationIQ. */
 const RRG={fast:10,slow:30,mom:4,sigmaWeeks:52};
@@ -5717,19 +5831,28 @@ function yWeekly(sym){
     return pts.sort((x,y)=>x.t-y.t);
   });
 }
-/* Tutti i ticker da scaricare, benchmark compresi, una volta sola */
+/* Tutti i ticker da scaricare, benchmark compresi, una volta sola. I cambi
+   ci sono col simbolo principale (non alt): è anche la loro chiave in ROTH,
+   così la potatura di refreshRotation non li cancella. L'euro, benchmark
+   piatto, non si scarica. */
 function rotUniverse(){
   const seen={}, out=[];
   [ROT_SECTORS.bench,ROT_COUNTRIES.bench]
-    .concat(ROT_SECTORS.items.concat(ROT_COUNTRIES.items,ROT_COUNTRIES_EXTRA).map(i=>i.t))
+    .concat(ROT_SECTORS.items.concat(ROT_COUNTRIES.items,ROT_COUNTRIES_EXTRA,ROT_FX.items).map(i=>i.t))
     .forEach(t=>{ if(t&&!seen[t]){ seen[t]=1; out.push(t); } });
   return out;
 }
+const ROT_FX_T=Object.create(null);
+ROT_FX.items.forEach(i=>{ ROT_FX_T[i.t]=i; });
+/* La serie inversa di un cambio: 1/x su v e su a, stesse date */
+function rotInvert(pts){ return (pts||[]).map(b=>({t:b.t,v:1/b.v,a:1/b.a})); }
 /* Scarica le serie scadute (tutte con force) nella coda di rete comune. Un
    ticker che non risponde non ferma gli altri e tiene la serie che aveva.
-   Una corsa alla volta. Restituisce {ok, fail, skip}: scaricati, falliti (in
-   ordine di universo), saltati perché ancora freschi. Nessuna chiamata
-   automatica: la avvia solo il bottone della pagina Rotazione. */
+   Un cambio con meno di ROT_FX_BARS barre si riprova col simbolo inverso e
+   vince la serie più lunga; quella inversa entra in cache già girata, con
+   inv:true. Una corsa alla volta. Restituisce {ok, fail, skip}: scaricati,
+   falliti (in ordine di universo), saltati perché ancora freschi. Nessuna
+   chiamata automatica: la avvia solo il bottone della pagina Rotazione. */
 let rotRun=null;
 function refreshRotation(force){
   if(rotRun)return rotRun;
@@ -5745,7 +5868,13 @@ function refreshRotation(force){
     const fail=list.filter(t=>ko[t]);
     return {ok:list.length-fail.length,fail:fail,skip:skip};
   };
-  rotRun=netQueue(list,t=>yWeekly(t).then(pts=>{ ROTH[t]={pts:pts,at:Date.now()}; },()=>{ ko[t]=1; }))
+  const get=s=>yWeekly(s).then(p=>p,()=>null);
+  const job=t=>get(t).then(p=>{
+    const fx=ROT_FX_T[t];
+    if(!fx||p&&p.length>=ROT_FX_BARS)return p&&{pts:p,at:Date.now()};
+    return get(fx.alt).then(q=>q&&(!p||q.length>p.length)?{pts:rotInvert(q),at:Date.now(),inv:true}:p&&{pts:p,at:Date.now()});
+  }).then(c=>{ if(c)ROTH[t]=c; else ko[t]=1; },()=>{ ko[t]=1; });
+  rotRun=netQueue(list,job)
     .then(done,()=>{ list.forEach(t=>{ ko[t]=1; }); return done(); });
   return rotRun;
 }
@@ -5770,12 +5899,13 @@ function rotWeekKey(t){ return Math.floor((Math.floor(t/864e5)+3)/7); }
 /* Quadrante: sul bordo vince quello a destra e in alto */
 function rotQuad(x,y){ return x>=100?(y>=100?'lead':'weak'):(y>=100?'imp':'lag'); }
 /* Ultima chiusura rettificata di ogni settimana: la barra della settimana in
-   corso, se Yahoo ne dà due, prende il posto della prima */
-function rotWeekly(pts){
+   corso, se Yahoo ne dà due, prende il posto della prima. sh (ms) sposta le
+   date solo per scegliere la settimana: vedi ROT_FX.shift. */
+function rotWeekly(pts,sh){
   const val=new Map(), at=new Map();
   (pts||[]).forEach(b=>{
     if(!b||!(typeof b.a==='number'&&isFinite(b.a)&&b.a>0)||!isFinite(b.t))return;
-    const k=rotWeekKey(b.t);
+    const k=rotWeekKey(b.t+(sh||0));
     if(!at.has(k)||b.t>=at.get(k)){ at.set(k,b.t); val.set(k,b.a); }
   });
   return val;
@@ -5789,18 +5919,22 @@ function rotWeekly(pts){
    centro gli ETF tranquilli, solo la sua farebbe sembrare enorme un movimento
    minimo. x = 100 + L/σL, y = 100 + M/σM. Senza 42 settimane in comune l'ETF
    non c'è. pts è la scia (ultimi 21 punti), dx/dy la direzione sugli ultimi 3;
-   week è il lunedì (in ms, UTC) dell'ultima settimana sulla mappa. */
-function rotRRG(serie,bench,tickers){
+   week è il lunedì (in ms, UTC) dell'ultima settimana sulla mappa.
+   opts.flatBench: il benchmark è una serie piatta a 1 (l'euro per i cambi),
+   bench si ignora e il rapporto è la serie stessa, su tutte le sue
+   settimane. opts.shift: vedi rotWeekly. Senza opts non cambia niente. */
+function rotRRG(serie,bench,tickers,opts){
+  const o=opts||{}, flat=!!o.flatBench, sh=o.shift||0;
   const out={items:[],byT:{},week:null};
-  const wb=rotWeekly(serie&&serie[bench]);
-  if(!wb.size)return out;
+  const wb=flat?null:rotWeekly(serie&&serie[bench],sh);
+  if(wb&&!wb.size)return out;
   const raw=[];
   (tickers||[]).forEach(t=>{
-    if(t===bench)return;
-    const wp=rotWeekly(serie[t]);
-    const keys=[...wp.keys()].filter(k=>wb.has(k)).sort((a,b)=>a-b);
+    if(!flat&&t===bench)return;
+    const wp=rotWeekly(serie&&serie[t],sh);
+    const keys=[...wp.keys()].filter(k=>flat||wb.has(k)).sort((a,b)=>a-b);
     if(keys.length<RRG.slow+RRG.mom+8)return;
-    const rs=keys.map(k=>wp.get(k)/wb.get(k));
+    const rs=keys.map(k=>flat?wp.get(k):wp.get(k)/wb.get(k));
     const f=rotEma(rs,RRG.fast), s=rotEma(rs,RRG.slow);
     const L=rs.map((_,i)=>f[i]/s[i]-1);
     const Ls=rotEma(L,2);
@@ -5839,9 +5973,27 @@ function rotSectorOf(name){ return ROT_SEC_TK[normSector(name)]||null; }
 function rotCountryOf(name){ return ROT_CTR_TK[normCountry(name)]||null; }
 function rotSectorTicker(p){ return rotSectorOf(p&&p.sector); }
 function rotCountryTicker(p){ return rotCountryOf(p&&p.country); }
-/* Le due mappe dalle serie in cache, {sectors, countries, at}: at è l'ultimo
-   download. Si ricalcolano solo quando la cache cambia (ultimo download e
-   numero di serie), non a ogni render della tabella. */
+/* Dalla valuta di quotazione del titolo al simbolo del suo cambio:
+   {t, c, via, why}. c è p.currency, via la valuta di cui si usa la serie
+   (HKD → USD). Con t null, why dice perché: 'base' (EUR, o nessuna valuta,
+   che l'app conta in euro come fxRate), 'peg' (agganciata all'euro),
+   'nocover' (fuori da ROT_FX o da CURRENCIES). Nessun parsing: p.currency
+   è già validata contro CURRENCIES nell'import e nel form. È la valuta di
+   quotazione, non il paese del business, e per un ETF mai il sottostante. */
+const ROT_FX_C=Object.create(null);
+ROT_FX.items.forEach(i=>{ ROT_FX_C[i.c]=i.t; });
+function rotFxTicker(p){
+  const c=(p&&p.currency)||BASE;
+  if(c===BASE)return {t:null,c:c,via:null,why:'base'};
+  if(CURRENCIES.indexOf(c)<0)return {t:null,c:c,via:null,why:'nocover'};
+  if(ROT_FX_NOTE[c])return {t:null,c:c,via:null,why:ROT_FX_NOTE[c]};
+  const via=ROT_FX_ALIAS[c]||c, t=ROT_FX_C[via]||null;
+  return t?{t:t,c:c,via:via,why:''}:{t:null,c:c,via:null,why:'nocover'};
+}
+/* Le tre mappe dalle serie in cache, {sectors, countries, fx, at}: at è
+   l'ultimo download. Si ricalcolano solo quando la cache cambia (ultimo
+   download e numero di serie), non a ogni render della tabella. I cambi
+   sono contro l'euro piatto, normalizzati fra loro. */
 let rotMemo=null;
 function rotCompute(){
   const serie={}; let at=0, n=0;
@@ -5854,15 +6006,17 @@ function rotCompute(){
   const tk=a=>a.map(i=>i.t);
   const val={sectors:rotRRG(serie,ROT_SECTORS.bench,tk(ROT_SECTORS.items)),
     countries:rotRRG(serie,ROT_COUNTRIES.bench,tk(ROT_COUNTRIES.items.concat(ROT_COUNTRIES_EXTRA))),
+    fx:rotRRG(serie,null,tk(ROT_FX.items),{flatBench:true,shift:ROT_FX.shift}),
     at:at||null};
   rotMemo={key:key,val:val};
   return val;
 }
 
 /* --------------------------------------------------------------------------
-   Punteggio per titolo: il quadrante del suo settore e del suo paese.
-   Leading +2, Improving +1, Weakening −1, Lagging −2; il punteggio è la
-   media delle gambe disponibili, da −2 a +2. Solo azioni ed ETF. Misura il
+   Punteggio per titolo: il quadrante del suo settore, del suo paese e della
+   sua valuta di quotazione contro l'euro. Leading +2, Improving +1,
+   Weakening −1, Lagging −2; il punteggio è la media delle gambe
+   disponibili, da −2 a +2. Solo azioni ed ETF. Misura il
    vento a favore o contro, non la qualità del titolo: non entra in
    QUANT/QUAL né nelle Regole, e non cambia niente in S.
    -------------------------------------------------------------------------- */
@@ -5891,25 +6045,42 @@ function rotLeg(p,lvl,rrg){
   const share=tot>0?cov/tot:0;
   return {pts:cov>0&&share>=ROT_MIN_COV?sum/cov:null,cov:share,comp:comp,parts:parts.sort((a,b)=>b.w-a.w)};
 }
-/* Funzione pura: p, la mappa dei settori e quella dei paesi. score null =
-   n/d, con il motivo in why: 'cls' (non è un'azione né un ETF), 'nodata'
-   (nessuna serie scaricata), 'nomap' (nessuna gamba). partial: una gamba
-   sola. */
-function rotScore(p,rs,rc){
-  const out={score:null,partial:false,why:'',sector:null,country:null};
+/* La gamba della valuta: il quadrante del cambio della valuta di quotazione
+   (rotFxTicker) sulla mappa dei cambi. st: 'ok' (c'è il quadrante), 'na'
+   (EUR: nessun effetto cambio, la gamba non esiste), 'nd' (valuta estera
+   senza segnale: agganciata, non coperta o senza dati). why: '', 'base',
+   'peg', 'nocover' o 'nodata'. {pts|null, st, why, t, c, via, q} */
+function rotFxLeg(p,rf){
+  const m=rotFxTicker(p), it=m.t&&rf&&rf.byT?rf.byT[m.t]:null, q=it?it.q:null;
+  return {pts:q?ROT_QUADS[q].pts:null,st:m.why==='base'?'na':q?'ok':'nd',why:q?'':m.why||'nodata',
+    t:m.t,c:m.c,via:m.via,q:q};
+}
+/* Funzione pura: p e le mappe dei settori, dei paesi e dei cambi. Ogni
+   gamba ha uno stato: ok, na (non applicabile), nd (applicabile ma senza
+   dato). La valuta è na per i titoli in EUR; settore e paese sono ok o nd
+   (Multi-sector e World compresi: era già così, e un titolo in EUR deve
+   restare com'era, punteggio e partial). score = media delle gambe ok, ma
+   la sola valuta non basta: senza settore né paese è n/d. score null = n/d,
+   con il motivo in why: 'cls' (non è un'azione né un ETF), 'nodata'
+   (nessuna serie di settori o paesi), 'nomap' (nessuna gamba), 'fxonly'
+   (solo la valuta). partial: almeno una gamba applicabile è nd. */
+function rotScore(p,rs,rc,rf){
+  const out={score:null,partial:false,why:'',sector:null,country:null,currency:null};
   const cls=normCls(p&&p.cls);
   if(cls!=='Stocks'&&cls!=='ETF'){ out.why='cls'; return out; }
   const has=r=>!!(r&&r.items&&r.items.length);
   if(!has(rs)&&!has(rc)){ out.why='nodata'; return out; }
-  out.sector=rotLeg(p,'sector',rs); out.country=rotLeg(p,'country',rc);
+  out.sector=rotLeg(p,'sector',rs); out.country=rotLeg(p,'country',rc); out.currency=rotFxLeg(p,rf);
+  out.sector.st=out.sector.pts!=null?'ok':'nd'; out.country.st=out.country.pts!=null?'ok':'nd';
   const legs=[out.sector.pts,out.country.pts].filter(v=>v!=null);
-  if(!legs.length){ out.why='nomap'; return out; }
+  if(!legs.length){ out.why=out.currency.st==='ok'?'fxonly':'nomap'; return out; }
+  if(out.currency.st==='ok')legs.push(out.currency.pts);
   out.score=legs.reduce((a,b)=>a+b,0)/legs.length;
-  out.partial=legs.length===1;
+  out.partial=[out.sector,out.country,out.currency].some(l=>l.st==='nd');
   return out;
 }
 /* Il punteggio di una posizione dalla cache, di qualsiasi età */
-function rotFor(p){ const rc=rotCompute(); return rotScore(p,rc.sectors,rc.countries); }
+function rotFor(p){ const rc=rotCompute(); return rotScore(p,rc.sectors,rc.countries,rc.fx); }
 /* Una cifra decimale col segno: +1,5 · −0,5 · 0,0 · — */
 function rotFmt(x){
   if(x==null||!isFinite(x))return '—';
@@ -5921,11 +6092,11 @@ function rotFmt(x){
 function rotDay(ts){ return new Date(ts).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 /* Data del dato: il lunedì dell'ultima settimana sulla mappa */
 function rotWeekTxt(rc){
-  const w=Math.max(rc.sectors.week||0,rc.countries.week||0);
+  const w=Math.max(rc.sectors.week||0,rc.countries.week||0,rc.fx&&rc.fx.week||0);
   return w?fmtDate(new Date(w).toISOString()):'';
 }
 const ROT_WHY={cls:'Only stocks and ETFs',nodata:'No rotation data yet: see the Rotation page',
-  nomap:'No sector or country ETF for this asset'};
+  nomap:'No sector or country ETF for this asset',fxonly:'Currency only: a sector or country ETF is needed too'};
 const rotSignCls=v=>v==null?'':v>0?'up':v<0?'down':'';
 function rotLegTxt(lab,leg){
   if(!leg||leg.pts==null)return lab+': n/a';
@@ -5933,18 +6104,29 @@ function rotLegTxt(lab,leg){
   return lab+' '+(one?one.t+' '+ROT_QUADS[one.q].l:'composition, '+Math.round(leg.cov*100)+'% covered')+
     ' '+rotFmt(leg.pts);
 }
+/* La valuta in breve, testo semplice (chi lo mette in HTML usa esc()):
+   «USD vs EUR», «HKD (as USD) vs EUR» */
+function rotFxLab(l){ return String(l.c)+(l.via&&l.via!==l.c?' (as '+l.via+')':'')+' vs '+BASE; }
+function rotFxTxt(l){
+  return 'Currency '+rotFxLab(l)+': '+(l.pts==null?'n/a ('+(ROT_FX_WHY[l.why]||ROT_FX_WHY.nodata)+')':
+    ROT_QUADS[l.q].l+' '+rotFmt(l.pts));
+}
+/* La gamba della valuta conta (e si mostra) solo per i titoli non in EUR */
+const rotFxOn=r=>!!(r&&r.currency&&r.currency.st!=='na');
 /* Cella della tabella posizioni: un pallino per gamba (verde a favore,
-   rosso contro, vuoto senza gamba) e il punteggio. Il dettaglio sta nel
-   title, con la settimana del dato. */
+   rosso contro, vuoto senza gamba) e il punteggio. Il terzo pallino, la
+   valuta, c'è solo per i titoli non in EUR. Il dettaglio sta nel title,
+   con la settimana del dato. */
 function rotCell(p){
   const r=rotFor(p);
   if(r.score==null)return '<td class="num hide-sm" title="'+esc(ROT_WHY[r.why]||'')+'"><span class="cellsub">—</span></td>';
-  const wk=rotWeekTxt(rotCompute());
+  const wk=rotWeekTxt(rotCompute()), fx=rotFxOn(r);
   const dot=leg=>'<i class="'+(!leg||leg.pts==null?'na':leg.pts>0?'p':leg.pts<0?'n':'z')+'"></i>';
-  const tip=rotLegTxt('Sector',r.sector)+' · '+rotLegTxt('Country',r.country)+(wk?' · week of '+wk:'');
+  const tip=rotLegTxt('Sector',r.sector)+' · '+rotLegTxt('Country',r.country)+(fx?' · '+rotFxTxt(r.currency):'')+
+    (wk?' · week of '+wk:'');
   const c=rotSignCls(r.score);
   return '<td class="num hide-sm'+(c?' '+c:'')+'" title="'+esc(tip)+'"><span class="rot-dots">'+
-    dot(r.sector)+dot(r.country)+'</span>'+rotFmt(r.score)+'</td>';
+    dot(r.sector)+dot(r.country)+(fx?dot(r.currency):'')+'</span>'+rotFmt(r.score)+'</td>';
 }
 /* Una gamba nella scheda: la voce, l'ETF e il quadrante; per un ETF composto
    la copertura e le voci, dalla più pesante. Tutto ciò che viene da p passa
@@ -5962,38 +6144,70 @@ function rotLegHTML(lab,leg){
   return '<div class="rot-leg"><span class="k">'+lab+'</span><span class="d">'+d+'</span>'+
     '<b class="'+rotSignCls(leg.pts)+'">'+(leg.pts==null?'n/a':rotFmt(leg.pts))+'</b></div>'+sub;
 }
-/* Riga e sezione della scheda titolo, solo per azioni ed ETF: {stat, html} */
+/* La gamba della valuta nella scheda: la valuta contro l'euro e il
+   quadrante, o il motivo per cui non c'è un segnale */
+function rotFxLegHTML(l){
+  const d=esc(rotFxLab(l))+' · '+(l.q?'<span class="rot-q q-'+l.q+'">'+ROT_QUADS[l.q].l+'</span>':
+    esc(ROT_FX_WHY[l.why]||ROT_FX_WHY.nodata));
+  return '<div class="rot-leg"><span class="k">Currency</span><span class="d">'+d+'</span>'+
+    '<b class="'+rotSignCls(l.pts)+'">'+(l.pts==null?'n/a':rotFmt(l.pts))+'</b></div>';
+}
+/* Che cosa manca a un punteggio parziale: «sector only» se resta una gamba
+   sola, altrimenti «without country», «without currency». Per un titolo in
+   EUR le gambe applicabili sono due, quindi resta «sector/country only». */
+function rotPartialTxt(r){
+  const L=[['sector',r.sector],['country',r.country],['currency',r.currency]].filter(x=>x[1]&&x[1].st&&x[1].st!=='na');
+  const ok=L.filter(x=>x[1].st==='ok'), nd=L.filter(x=>x[1].st==='nd');
+  return ok.length===1?ok[0][0]+' only':'without '+nd.map(x=>x[0]).join(' and ');
+}
+/* Riga e sezione della scheda titolo, solo per azioni ed ETF: {stat, html}.
+   Per un titolo in EUR restano come prima della valuta. */
 function rotView(p){
   const cls=normCls(p&&p.cls);
   if(cls!=='Stocks'&&cls!=='ETF')return null;
-  const rc=rotCompute(), r=rotScore(p,rc.sectors,rc.countries), wk=rotWeekTxt(rc);
-  const val=r.score==null?'—':rotFmt(r.score)+(r.partial?' <span class="cellsub">'+
-    (r.sector.pts!=null?'sector only':'country only')+'</span>':'');
+  const rc=rotCompute(), r=rotScore(p,rc.sectors,rc.countries,rc.fx), wk=rotWeekTxt(rc), fx=rotFxOn(r);
+  const val=r.score==null?'—':rotFmt(r.score)+(r.partial?' <span class="cellsub">'+rotPartialTxt(r)+'</span>':'');
+  const legs=fx?'settore, paese e valuta':'settore e paese';
   let body;
   if(r.why==='nodata')body='<div class="note">No rotation data yet: download it from the Rotation page.</div>';
-  else body='<div class="rot-legs">'+rotLegHTML('Sector',r.sector)+rotLegHTML('Country',r.country)+'</div>'+
+  else body='<div class="rot-legs">'+rotLegHTML('Sector',r.sector)+rotLegHTML('Country',r.country)+
+    (fx?rotFxLegHTML(r.currency):'')+'</div>'+
     '<div class="note">'+(wk?'Settimana del '+wk+(rc.at?', dati scaricati il '+rotDay(rc.at):'')+'. ':'')+
-    'Il punteggio va da −2 a +2: è la media di settore e paese, con Leading +2, Improving +1, '+
-    'Weakening −1 e Lagging −2. Dice se settore e paese hanno il vento a favore o contro, non se il '+
+    'Il punteggio va da −2 a +2: è la media di '+legs+', con Leading +2, Improving +1, '+
+    'Weakening −1 e Lagging −2. Dice se '+legs+' hanno il vento a favore o contro, non se il '+
     'titolo è buono: è un indicatore di tendenza, in ritardo per costruzione, e non un segnale di '+
     'acquisto o di vendita.'+
     (r.sector.pts!=null&&normCountry(p.country)!=='USA'?' Il settore è misurato sugli ETF di settore '+
-      'USA (XLK, XLV…): per un titolo fuori dagli USA è un\'approssimazione.':'')+'</div>';
+      'USA (XLK, XLV…): per un titolo fuori dagli USA è un\'approssimazione.':'')+
+    (fx?' La valuta è quella di quotazione, misurata contro l\'euro: Leading vuol dire che si rafforza '+
+      'sull\'euro con slancio, e a prezzo locale fermo il titolo vale di più in euro.'+
+      (r.currency.via&&r.currency.via!==r.currency.c?' '+esc(r.currency.c)+' si legge con la serie di '+
+        esc(r.currency.via)+', a cui è agganciato.':'')+
+      (r.why==='fxonly'?' Senza settore né paese la valuta da sola non dà un punteggio.':''):'')+'</div>';
   return {stat:['Rotation',val,0,rotSignCls(r.score)],
-    html:'<div class="sec-t">Sector &amp; country rotation</div>'+body};
+    html:'<div class="sec-t">'+(fx?'Sector, country &amp; currency rotation':'Sector &amp; country rotation')+'</div>'+body};
 }
 
 /* --------------------------------------------------------------------------
-   Pagina Rotation: la mappa di un gruppo (settori contro SPY o paesi contro
-   ACWI) disegnata in SVG, l'elenco con il peso che ogni ETF ha nel
-   portafoglio attraverso i titoli, lo stato del dato e il bottone. Il
-   bottone è l'unico punto da cui parte refreshRotation().
+   Pagina Rotation: la mappa di un gruppo (settori contro SPY, paesi contro
+   ACWI o valute contro l'euro) disegnata in SVG, l'elenco con il peso che
+   ogni voce ha nel portafoglio attraverso i titoli, lo stato del dato e il
+   bottone. Il bottone è l'unico punto da cui parte refreshRotation().
    -------------------------------------------------------------------------- */
+const ROT_GROUPS=['sectors','countries','currencies'];
+/* g è il gruppo della pagina, k la chiave della sua mappa in rotCompute() */
 function rotGroupOf(g){
   return g==='countries'
     ?{k:'countries',l:'Countries',bench:ROT_COUNTRIES.bench,items:ROT_COUNTRIES.items.concat(ROT_COUNTRIES_EXTRA)}
+    :g==='currencies'?{k:'fx',l:'Currencies',bench:ROT_FX.bench,items:ROT_FX.items,fx:true}
     :{k:'sectors',l:'Sectors',bench:ROT_SECTORS.bench,items:ROT_SECTORS.items};
 }
+/* Il nome breve di una serie: il ticker per un ETF, USD/EUR per un cambio */
+function rotLabel(t){ const i=ROT_FX_T[t]; return i?i.c+'/'+BASE:t; }
+/* Voce del gruppo, etichetta sulla mappa (il codice per una valuta) e nome */
+function rotItemOf(grp,t){ return grp.items.filter(x=>x.t===t)[0]||null; }
+function rotLabOf(grp,t){ const i=rotItemOf(grp,t); return i&&i.c||t; }
+function rotNameOf(grp,t){ const i=rotItemOf(grp,t); return i?(i.l||i.n||''):''; }
 /* colori dei quadranti: solo variabili dei temi, scritte in style perché
    come attributo SVG var() non si risolve */
 const ROT_QCOL={lead:'var(--up)',imp:'var(--sky)',weak:'var(--warn)',lag:'var(--down)'};
@@ -6007,18 +6221,28 @@ function rotHeading(it){
 }
 /* Quanto del portafoglio passa da ogni ETF: per ogni azione o ETF in
    portafoglio, il suo peso per la quota della voce (settore o paese) che
-   l'ETF rappresenta. {ticker:{w (% del portafoglio), n:[titoli]}} */
+   l'ETF rappresenta. {ticker:{w (% del portafoglio), n:[titoli]}}. Per le
+   valute (expoParts al livello currency: tutta la posizione nella sua
+   valuta di quotazione) il peso va al simbolo del cambio se ha un punto
+   sulla mappa, altrimenti a _base (EUR) o a _nd (agganciate, non coperte,
+   senza dati; c dice quali e perché). _tot è la somma di azioni ed ETF,
+   in % e in euro: cambi, _base e _nd la coprono tutta. */
 function rotExposure(rows,rc){
   const out={};
+  const add=(k,w,p)=>{ const o=out[k]||(out[k]={w:0,n:[]}); o.w+=w;
+    const nm=tkLabel(p); if(o.n.indexOf(nm)<0)o.n.push(nm); return o; };
   (rows||[]).forEach(p=>{
-    const r=rotScore(p,rc.sectors,rc.countries);
+    const r=rotScore(p,rc.sectors,rc.countries,rc.fx);
     [r.sector,r.country].forEach(leg=>{ if(!leg)return;
-      leg.parts.forEach(c=>{ if(!c.t)return;
-        const o=out[c.t]||(out[c.t]={w:0,n:[]});
-        o.w+=(p._w||0)*c.w;
-        const nm=tkLabel(p); if(o.n.indexOf(nm)<0)o.n.push(nm);
-      });
+      leg.parts.forEach(c=>{ if(!c.t)return; add(c.t,(p._w||0)*c.w,p); });
     });
+    if(r.why==='cls')return;
+    const l=r.currency||rotFxLeg(p,rc.fx), k=l.st==='ok'?l.t:l.st==='na'?'_base':'_nd';
+    expoParts(Object.assign({},p,{_value:1}),'currency').forEach(c=>{
+      const o=add(k,(p._w||0)*c.v,p);
+      if(k==='_nd'){ o.c=o.c||{}; o.c[c.name]=l.why; }
+    });
+    const t=out._tot||(out._tot={w:0,v:0}); t.w+=p._w||0; t.v+=p._value||0;
   });
   return out;
 }
@@ -6038,7 +6262,7 @@ function rotMapSVG(r,grp){
   r.items.forEach(it=>it.pts.forEach(q=>{ mx=Math.max(mx,Math.abs(q.x-100)); my=Math.max(my,Math.abs(q.y-100)); }));
   const ex=Math.max(1,mx*1.12), ey=Math.max(1,my*1.12);
   const X=x=>L+(x-100+ex)/(2*ex)*pw, Y=y=>T+(100+ey-y)/(2*ey)*ph, cx=X(100), cy=Y(100);
-  const name=t=>{ const i=grp.items.filter(x=>x.t===t)[0]; return i?(i.l||i.n||''):''; };
+  const name=t=>rotNameOf(grp,t), lab=t=>rotLabOf(grp,t);
   const box=(x0,y0,x1,y1,q)=>'<rect x="'+f(x0)+'" y="'+f(y0)+'" width="'+f(x1-x0)+'" height="'+f(y1-y0)+
     '" style="fill:'+ROT_QCOL[q]+';fill-opacity:.07"/>';
   const qlab=(x,y,a,q)=>'<text x="'+x+'" y="'+y+'" text-anchor="'+a+'" style="fill:'+ROT_QCOL[q]+
@@ -6065,38 +6289,73 @@ function rotMapSVG(r,grp){
   /* le scie: prima quelle vicine al centro, così i punti lontani restano sopra */
   r.items.slice().sort((a,b)=>Math.hypot(a.x-100,a.y-100)-Math.hypot(b.x-100,b.y-100)).forEach(it=>{
     const col=ROT_QCOL[it.q], hx=X(it.x), hy=Y(it.y), left=hx>R-44;
-    const tip=it.t+(name(it.t)?' · '+name(it.t):'')+' · '+ROT_QUADS[it.q].l+' · RS '+nf(it.x,2)+' · Mom. '+nf(it.y,2)+' · '+rotHeading(it);
+    const tip=lab(it.t)+(name(it.t)?' · '+name(it.t):'')+(grp.fx?' vs '+grp.bench:'')+' · '+ROT_QUADS[it.q].l+
+      ' · RS '+nf(it.x,2)+' · Mom. '+nf(it.y,2)+' · '+rotHeading(it);
     o+='<g class="rot-it" data-t="'+esc(it.t)+'"><title>'+esc(tip)+'</title>'+
       '<polyline points="'+it.pts.map(q=>f(X(q.x))+','+f(Y(q.y))).join(' ')+
         '" style="fill:none;stroke:'+col+';stroke-width:1.6;stroke-opacity:.55;stroke-linejoin:round"/>'+
       it.pts.slice(0,-1).map(q=>'<circle cx="'+f(X(q.x))+'" cy="'+f(Y(q.y))+'" r="1.7" style="fill:'+col+';fill-opacity:.5"/>').join('')+
       '<circle cx="'+f(hx)+'" cy="'+f(hy)+'" r="5" style="fill:'+col+';stroke:var(--surface);stroke-width:1.5"/>'+
       '<text x="'+f(left?hx-8:hx+8)+'" y="'+f(hy-7)+'" text-anchor="'+(left?'end':'start')+'" style="fill:var(--ink);font-weight:650">'+
-        esc(it.t)+'</text></g>';
+        esc(lab(it.t))+'</text></g>';
   });
   return o+'</svg>';
 }
 /* L'elenco: dal quadrante col punteggio più alto, e dentro il quadrante dalla
-   forza relativa più alta. Sotto, gli ETF del gruppo che non hanno un punto. */
+   forza relativa più alta. Sotto, le voci del gruppo che non hanno un punto.
+   Per le valute la voce è il codice col nome, e dopo i cambi due righe a
+   parte: EUR (valuta base) e n/a (valute senza segnale, col motivo); con le
+   righe dei cambi coprono tutto il valore di azioni ed ETF, scritto sotto. */
 function rotListHTML(r,grp,expo){
   const ord={lead:0,imp:1,weak:2,lag:3}, E=expo||{};
-  const name=t=>{ const i=grp.items.filter(x=>x.t===t)[0]; return i?(i.l||i.n||''):''; };
-  const rows=(r&&r.items?r.items:[]).slice().sort((a,b)=>ord[a.q]-ord[b.q]||b.x-a.x).map(it=>{
-    const e=E[it.t];
-    return '<tr data-t="'+esc(it.t)+'"><td><b>'+esc(it.t)+'</b><div class="cellsub">'+esc(name(it.t))+'</div></td>'+
+  const wt=e=>'<td class="num"'+(e&&e.w>0?' title="'+esc(e.n.join(', '))+'">'+nf(e.w,1)+'%':'><span class="cellsub">—</span>')+'</td>';
+  const rows=(r&&r.items?r.items:[]).slice().sort((a,b)=>ord[a.q]-ord[b.q]||b.x-a.x).map(it=>
+    '<tr data-t="'+esc(it.t)+'"><td><b>'+esc(rotLabOf(grp,it.t))+'</b><div class="cellsub">'+esc(rotNameOf(grp,it.t))+'</div></td>'+
       '<td><span class="rot-q q-'+it.q+'">'+ROT_QUADS[it.q].l+'</span></td>'+
       '<td class="num">'+nf(it.x,2)+'</td><td class="num">'+nf(it.y,2)+'</td><td class="hide-xs">'+rotHeading(it)+'</td>'+
-      '<td class="num"'+(e&&e.w>0?' title="'+esc(e.n.join(', '))+'">'+nf(e.w,1)+'%':'><span class="cellsub">—</span>')+'</td></tr>';
-  }).join('');
-  const miss=grp.items.filter(i=>!(r&&r.byT&&r.byT[i.t])).map(i=>i.t);
-  return (rows?'<table class="rot-tbl"><thead><tr><th>ETF</th><th>Quadrant</th>'+
-    '<th class="num" title="Relative strength: above 100 beats the benchmark">RS</th>'+
+      wt(E[it.t])+'</tr>').join('');
+  let extra='', foot='';
+  if(grp.fx&&rows){
+    const x=(k,lab,sub,d)=>E[k]&&E[k].w>0?'<tr class="rot-x" data-x="'+k+'"><td><b>'+lab+'</b><div class="cellsub">'+sub+'</div></td>'+
+      '<td colspan="3" class="cellsub">'+d+'</td><td class="hide-xs"></td>'+wt(E[k])+'</tr>':'';
+    const nd=E._nd&&E._nd.c?Object.keys(E._nd.c).sort():[];
+    extra=x('_base',esc(BASE),'Base currency','no FX effect')+
+      x('_nd','n/a',nd.map(esc).join(', '),nd.map(c=>esc(c)+' '+esc(ROT_FX_WHY[E._nd.c[c]]||ROT_FX_WHY.nodata)).join(' · '));
+    if(E._tot&&E._tot.w>0)foot='<div class="rot-miss">Stocks and ETFs: <span class="mask">'+money0(E._tot.v)+'</span>, '+
+      nf(E._tot.w,1)+'% of the portfolio, by quoting currency. An ETF counts in the currency it is quoted in.</div>';
+  }
+  const miss=grp.items.filter(i=>!(r&&r.byT&&r.byT[i.t])).map(i=>rotLabOf(grp,i.t));
+  return (grp.fx?'<div class="rot-cap">Currencies against the euro: up = stronger than the euro</div>':'')+
+    (rows?'<table class="rot-tbl"><thead><tr><th>'+(grp.fx?'Currency':'ETF')+'</th><th>Quadrant</th>'+
+    (grp.fx?'<th class="num" title="Strength against the euro: above 100 the currency is gaining on the euro">RS</th>'
+      :'<th class="num" title="Relative strength: above 100 beats the benchmark">RS</th>')+
     '<th class="num" title="Momentum of relative strength: above 100 it is rising">Mom.</th><th class="hide-xs">Trend</th>'+
-    '<th class="num" title="Share of your portfolio exposed through your stocks and ETFs">Your wt.</th></tr></thead>'+
-    '<tbody>'+rows+'</tbody></table>':'')+
+    '<th class="num" title="'+(grp.fx?'Share of your portfolio in stocks and ETFs quoted in this currency':
+      'Share of your portfolio exposed through your stocks and ETFs')+'">Your wt.</th></tr></thead>'+
+    '<tbody>'+rows+extra+'</tbody></table>':'')+foot+
     (miss.length?'<div class="rot-miss">Not on the map (no data, or fewer than 42 weeks): '+miss.map(esc).join(', ')+'</div>':'');
 }
 function rotNoteHTML(g){
+  if(g==='currencies')return 'Valute contro l\'euro: sale = valuta più forte dell\'euro. Ogni valuta è il suo cambio '+
+    'in euro per un\'unità, su chiusure settimanali di due anni da Yahoo, e il benchmark è l\'euro stesso, fermo a 1. '+
+    'In orizzontale la forza della valuta sull\'euro: sopra 100 si sta rafforzando. In verticale il suo momentum: '+
+    'sopra 100 la forza sta crescendo. La scia mostra le ultime venti settimane; di solito i punti girano in senso '+
+    'orario, da Improving a Leading, Weakening e Lagging. Leading vuol dire che la valuta si rafforza sull\'euro con '+
+    'slancio, e che a prezzo locale fermo i titoli quotati in quella valuta valgono di più in euro: non vuol dire che '+
+    'batte il mercato o le altre valute. Con l\'euro come benchmark le valute non sono neutrali fra loro: quando è '+
+    'l\'euro a muoversi, si spostano tutte dalla stessa parte. I valori sono normalizzati sul gruppo delle nove '+
+    'valute, e vicino a 100 il quadrante cambia per poco.<br><br>'+
+    'HKD si legge con la serie del dollaro USA, a cui è agganciato. DKK è esclusa perché è agganciata all\'euro e non '+
+    'dà un segnale; PLN e le valute fuori elenco non sono coperte. La valuta è quella di quotazione del titolo, non il '+
+    'paese del suo business, e per un ETF è quella in cui è quotato, non quella dei titoli che contiene: un ETF '+
+    'quotato in euro su azioni americane non ha la gamba della valuta. Il prezzo locale di un titolo incorpora già '+
+    'una parte dell\'effetto cambio (un esportatore giapponese tende a salire quando lo yen scende), quindi la valuta '+
+    'non va letta da sola.<br><br>'+
+    'Da qui viene la terza gamba della colonna Rotation per i titoli quotati fuori dall\'euro: Leading +2, '+
+    'Improving +1, Weakening −1, Lagging −2, nella media con settore e paese; da sola non dà un punteggio. I dati '+
+    'sono settimanali e in ritardo per costruzione: dicono dove soffia il vento, non cosa comprare o vendere, e non '+
+    'sono un segnale di acquisto o di vendita. Si scaricano solo con il bottone Update rotation, restano in questo '+
+    'browser e non entrano nel backup.';
   return 'Ogni ETF è confrontato con il suo benchmark su chiusure settimanali rettificate per i dividendi '+
     '(due anni, da Yahoo). In orizzontale la forza relativa: sopra 100 fa meglio del benchmark. In verticale '+
     'il suo momentum: sopra 100 la forza sta crescendo. La scia mostra le ultime venti settimane; di solito i '+
@@ -6111,30 +6370,37 @@ function rotNoteHTML(g){
       :'Gli ETF di settore sono americani (XLK, XLF…): per un titolo europeo o asiatico il settore è misurato su di '+
        'loro, ed è un\'approssimazione.')+
     '<br><br>Da qui viene la colonna Rotation della tabella posizioni: Leading +2, Improving +1, Weakening −1, '+
-    'Lagging −2, media di settore e paese. I dati si scaricano solo con il bottone Update rotation, restano in '+
-    'questo browser e non entrano nel backup.';
+    'Lagging −2, media di settore, paese e, per i titoli quotati fuori dall\'euro, valuta (vedi Currencies). I dati '+
+    'si scaricano solo con il bottone Update rotation, restano in questo browser e non entrano nel backup.';
 }
 function renderRotation(){
-  const g=UI.rotGroup==='countries'?'countries':'sectors', grp=rotGroupOf(g), rc=rotCompute(), r=rc[g];
+  const g=ROT_GROUPS.indexOf(UI.rotGroup)>-1?UI.rotGroup:'sectors', grp=rotGroupOf(g), rc=rotCompute(), r=rc[grp.k];
   $$('#rotTabs button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-g')===g));
   const btn=$('#rotRefresh'); if(btn){ btn.disabled=!!rotRun; btn.classList.toggle('spin',!!rotRun); }
   $('#rotSub').textContent='vs '+grp.bench;
-  const uni=rotUniverse(), have=uni.filter(t=>ROTH[t]&&Array.isArray(ROTH[t].pts)).length;
+  const uni=rotUniverse(), miss=uni.filter(t=>!(ROTH[t]&&Array.isArray(ROTH[t].pts))), have=uni.length-miss.length;
   let st='';
   if(rotRun)st='Downloading weekly series from Yahoo… it can take a minute.';
   else if(rc.at)st='Week of '+rotWeekTxt(rc)+' · downloaded '+rotDay(rc.at)+' at '+fmtTime(rc.at)+' · '+have+' of '+uni.length+' series'+
-    (Date.now()-rc.at>ROT_TTL?' · <span class="old">older than 24 hours</span>':'');
+    (Date.now()-rc.at>ROT_TTL?' · <span class="old">older than 24 hours</span>':'')+
+    /* ETF e cambi mancanti in un solo elenco: Update rotation li riprova */
+    (miss.length?' · <span class="old">not downloaded: '+miss.slice(0,6).map(t=>esc(rotLabel(t))).join(', ')+
+      (miss.length>6?' and '+(miss.length-6)+' more':'')+'</span> (Update rotation retries them)':'');
   $('#rotStatus').innerHTML=st;
   const map=$('#rotMap');
   map.classList.remove('has-hl');
   if(!rc.at){
     map.innerHTML='<div class="empty"><div class="ic">'+ic('rotate',22)+'</div><div class="big">No rotation data yet</div>'+
-      '<div class="sm">Update rotation downloads two years of weekly closes for '+uni.length+' ETFs from Yahoo. '+
+      '<div class="sm">Update rotation downloads two years of weekly closes for '+(uni.length-ROT_FX.items.length)+' ETFs and '+
+        ROT_FX.items.length+' exchange rates from Yahoo. '+
       'It takes about a minute, and once a day is enough.</div></div>';
     $('#rotList').innerHTML='';
   }else if(!r.items.length){
-    map.innerHTML='<div class="empty"><div class="big">No ETF of this group has enough data</div>'+
-      '<div class="sm">The benchmark '+esc(grp.bench)+' or the ETFs may be missing: try Update rotation again.</div></div>';
+    map.innerHTML=grp.fx
+      ?'<div class="empty"><div class="big">No exchange rate has enough data</div>'+
+        '<div class="sm">The exchange rates may be missing: try Update rotation again.</div></div>'
+      :'<div class="empty"><div class="big">No ETF of this group has enough data</div>'+
+        '<div class="sm">The benchmark '+esc(grp.bench)+' or the ETFs may be missing: try Update rotation again.</div></div>';
     $('#rotList').innerHTML=rotListHTML(r,grp,{});
   }else{
     map.innerHTML=rotMapSVG(r,grp);
@@ -6162,7 +6428,7 @@ function rotUpdate(){
   return run.then(r=>{
     if(!r.ok&&!r.fail.length)toast('Rotation data is less than 24 hours old: nothing to download');
     else if(r.fail.length)toast('Rotation: '+r.ok+' series updated · '+r.fail.length+' unavailable ('+
-      r.fail.slice(0,4).join(', ')+(r.fail.length>4?'…':'')+')',r.ok?'':'err');
+      r.fail.slice(0,4).map(rotLabel).join(', ')+(r.fail.length>4?'…':'')+')',r.ok?'':'err');
     else toast('Rotation updated: '+r.ok+' series'+(r.skip?' ('+r.skip+' already fresh)':''),'ok');
     renderPage(UI.page);
     return r;
@@ -6739,6 +7005,9 @@ function txAmount(t){
 const txShown=t=>t.type==='int'?num(t.amount):txAmount(t);
 /* Il dettaglio di una riga di interessi, al posto di quantità × prezzo */
 const txIntNote=t=>num(t.amount)<0?'charge (stamp duty or taxes)':'net credit';
+/* "quantità × prezzo" di una riga, nella scheda e nel drawer; un dividendo
+   registrato come importo unico (import CSV) non li ha: "lump sum". */
+const txQtyPrice=t=>t.type==='div'&&t.amount!=null?'lump sum':qtyf(num(t.qty))+' × '+nf(num(t.price),4);
 /* Su un conto deposito acquisto e vendita sono un versamento e un prelievo. */
 function txLabel(t,p){
   if(isDeposit(p)&&t.type==='buy')return 'Deposit';
@@ -7121,14 +7390,23 @@ function setPosKind(kind){
   });
   applyPosKind();
 }
+/* Vero se il form chiede un importo unico, nel campo Prezzo, invece di
+   quantità × prezzo: per una commissione, e per un dividendo registrato come
+   importo unico (import CSV) mentre lo si modifica. Un dividendo nuovo, o uno
+   per azione, resta quantità × dividendo per azione. */
+function txFormAmount(type){
+  if(type==='fee')return true;
+  const e=UI.txEditId?UI.editTx.filter(x=>x.id===UI.txEditId)[0]:null;
+  return type==='div'&&!!e&&e.type==='div'&&e.amount!=null;
+}
 /* Un conto chiede solo l'importo: quantità e commissione spariscono. */
 function syncTxLabels(){
-  const t=$('#txType').value, dep=UI.posKind==='deposit';
+  const t=$('#txType').value, dep=UI.posKind==='deposit', am=txFormAmount(t);
   $('#txQtyF').style.display=dep?'none':'';
   $('#txFeeF').style.display=dep?'none':'';
-  $('#txQtyLbl').textContent=t==='fee'?'—':'Quantity';
-  $('#txPriceLbl').textContent=dep||t==='fee'?'Amount':(t==='div'?'Div. per share':'Price');
-  $('#txQty').disabled=(t==='fee');
+  $('#txQtyLbl').textContent=am?'—':'Quantity';
+  $('#txPriceLbl').textContent=dep||am?'Amount':(t==='div'?'Div. per share':'Price');
+  $('#txQty').disabled=am;
   $('#txPrice').placeholder=dep&&t==='int'?'e.g. 12,50 or -2,00':'';
   syncTxFx();
 }
@@ -7154,6 +7432,7 @@ function openPos(id){
   buildCountryList(); buildSectorList();
   UI.editId=p?p.id:null;
   UI.editTx=p&&p.tx?JSON.parse(JSON.stringify(p.tx)):[];
+  UI.txEditId=null;
   UI.posKind=isDeposit(p)?'deposit':'';
   $('#fKind').value=UI.posKind; $('#fKind').disabled=false;
   descToForm('f',p); logoPreview('f');
@@ -7177,24 +7456,36 @@ function renderTxList(){
   const cur=$('#fCur').value||'EUR';
   const list=UI.editTx.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   $('#txCountLbl').textContent=UI.editTx.length?'('+UI.editTx.length+')':'';
-  const dep=UI.posKind==='deposit', kp={kind:UI.posKind};
+  const dep=UI.posKind==='deposit', kp={kind:UI.posKind}, ed=UI.txEditId;
   $('#txList').innerHTML=list.length?list.map(t=>{
     const k=TXT[t.type]||TXT.buy, amt=txShown(t);
     /* su un conto l'importo dice già tutto: niente "quantità × 1" */
     const det=t.type==='fee'?money(num(t.amount),2):t.type==='int'?txIntNote(t):dep?''
-      :qtyf(num(t.qty))+' × '+nf(num(t.price),4)+(num(t.fee)?' · fee '+nf(num(t.fee),2):'')+
+      :txQtyPrice(t)+(num(t.fee)?' · fee '+nf(num(t.fee),2):'')+
        (txFx(t,0)>0?' · FX '+nf(t.fx,4):'');
-    return '<div class="txr"><div class="ty '+k.c+'">'+k.s+'</div>'+
-      '<div class="tx-m"><div class="d1">'+esc(txLabel(t,kp))+'</div><div class="d2">'+fmtDate(t.date)+(det?' · '+det:'')+'</div></div>'+
+    return '<div class="txr'+(ed&&t.id===ed?' editing':'')+'"><div class="ty '+k.c+'">'+k.s+'</div>'+
+      '<div class="tx-m"><div class="d1">'+esc(txLabel(t,kp))+'</div><div class="d2">'+esc(fmtDate(t.date))+(det?' · '+det:'')+'</div></div>'+
       '<div class="am '+(amt>=0?'up':'down')+'">'+(amt>=0?'+':'−')+nf(Math.abs(amt),2)+' <span class="cellsub">'+esc(cur)+'</span></div>'+
-      '<button class="rowbtn" data-txdel="'+t.id+'" title="Delete">×</button></div>';
+      '<button class="rowbtn" data-txedit="'+esc(t.id)+'" title="Edit" aria-label="Edit">'+ic('edit',15)+'</button>'+
+      '<button class="rowbtn" data-txdel="'+esc(t.id)+'" title="Delete">×</button></div>';
   }).join('')
   :'<div class="empty" style="padding:24px 16px"><div class="sm">'+(dep
     ?'No transactions recorded. Add deposits, withdrawals and interest below: the balance is computed from them.'
     :'No transactions recorded. Add one below to compute average cost, realized gains and dividends automatically.')+'</div></div>';
+  $$('#txList [data-txedit]').forEach(b=>b.addEventListener('click',()=>startTxEdit(b.getAttribute('data-txedit'))));
+  /* eliminare la riga in modifica chiude anche la modifica, col form svuotato */
   $$('#txList [data-txdel]').forEach(b=>b.addEventListener('click',()=>{
-    UI.editTx=UI.editTx.filter(x=>x.id!==b.getAttribute('data-txdel')); renderTxList();
+    const id=b.getAttribute('data-txdel');
+    UI.editTx=UI.editTx.filter(x=>x.id!==id);
+    if(id===UI.txEditId)cancelTxEdit(); else renderTxList();
   }));
+  /* durante una modifica ＋ diventa ✓ (salva la riga) e compare Cancel */
+  $('#txAdd').textContent=ed?'✓':'＋';
+  $('#txAdd').title=ed?'Save changes':'Add transaction';
+  $('#txCancel').style.display=ed?'':'none';
+  $('#txAddRow').classList[ed?'add':'remove']('editing');
+  /* matita e × lavorano sul buffer della scheda: lo si ricorda sotto la lista */
+  $('#txEditHint').style.display=UI.editTx.length?'':'none';
   const d=derive({tx:UI.editTx,qty:0,avg:0,kind:UI.posKind});
   /* il tipo si sceglie prima dei movimenti: dopo, resta quello */
   if(!UI.editId)$('#fKind').disabled=UI.editTx.length>0;
@@ -7212,16 +7503,46 @@ function renderTxList(){
     $('#derivedNote').innerHTML=''; $('#fQty').disabled=false; $('#fAvg').disabled=false;
   }
 }
-function addTx(){
+/* Il form delle transazioni, letto e controllato in un posto solo: lo usano
+   addTx (riga nuova) e saveTxEdit (riga già registrata), con le stesse regole
+   e gli stessi messaggi. Ritorna la transazione con l'id dato, o null dopo il
+   toast d'errore. Data vuota = oggi. */
+function readTxForm(id){
   const type=$('#txType').value, date=$('#txDate').value||todayISO();
   if(UI.posKind==='deposit'){
-    const t=depositTx(type,date,$('#txPrice').value,uid());
-    if(t.err){ toast(t.err,'err'); return; }
+    const t=depositTx(type,date,$('#txPrice').value,id);
+    if(t.err){ toast(t.err,'err'); return null; }
+    return t;
+  }
+  const qty=num($('#txQty').value), price=num($('#txPrice').value), fee=num($('#txFee').value);
+  if(type==='fee'){
+    if(!price){toast('Enter the fee amount','err');return null;}
+    return {id:id,type:'fee',date:date,amount:price,fee:0};
+  }
+  let t;
+  if(txFormAmount(type)){
+    /* dividendo a importo unico, in modifica: resta un importo */
+    if(!price){toast('Enter the dividend amount','err');return null;}
+    t={id:id,type:'div',date:date,amount:price,fee:fee};
+  }else{
+    if(!qty||!price){toast('Enter quantity and price','err');return null;}
+    t={id:id,type:type,date:date,qty:qty,price:price,fee:fee};
+  }
+  /* il cambio solo se il campo è visibile e positivo: vuoto = assente,
+     e la transazione usa il cambio di oggi */
+  const fx=num($('#txFx').value);
+  if(fx>0&&$('#txFxF').style.display!=='none')t.fx=fx;
+  return t;
+}
+function addTx(){
+  const t=readTxForm(uid());
+  if(!t)return;
+  if(UI.posKind==='deposit'){
     /* il primo movimento: il saldo scritto nei Dettagli diventa il versamento
        iniziale, alla data "In portafoglio dal" */
     const s0=UI.editTx.length?0:num($('#fQty').value);
     if(s0>0){
-      const d0=$('#fDateAdded').value||date;
+      const d0=$('#fDateAdded').value||t.date;
       UI.editTx.push({id:uid(),type:'buy',date:d0,qty:s0,price:1,fee:0});
       toast('The balance entered became the initial deposit on '+fmtDate(d0),'ok');
     }
@@ -7230,23 +7551,71 @@ function addTx(){
     renderTxList();
     return;
   }
-  const qty=num($('#txQty').value), price=num($('#txPrice').value), fee=num($('#txFee').value);
-  if(type==='fee'){
-    if(!price){toast('Enter the fee amount','err');return;}
-    UI.editTx.push({id:uid(),type:'fee',date:date,amount:price,fee:0});
-  }else{
-    if(!qty||!price){toast('Enter quantity and price','err');return;}
-    const t={id:uid(),type:type,date:date,qty:qty,price:price,fee:fee};
-    /* il cambio solo se il campo è visibile e positivo: vuoto = assente,
-       e la transazione usa il cambio di oggi */
-    const fx=num($('#txFx').value);
-    if(fx>0&&$('#txFxF').style.display!=='none')t.fx=fx;
-    UI.editTx.push(t);
-  }
+  UI.editTx.push(t);
   $('#txQty').value=''; $('#txPrice').value=''; $('#txFee').value=''; $('#txFx').value='';
   renderTxList();
 }
+/* Modifica di una riga già registrata, nello stesso form: i campi prendono i
+   valori della riga, ＋ diventa ✓ (saveTxEdit) e compare Cancel. Come tutta
+   la tab, la modifica resta in UI.editTx finché non si salva la scheda; Cancel
+   della scheda la scarta. Un id che non c'è, o un tipo che il form di questa
+   scheda non offre: non fa niente. Un'altra matita sostituisce la modifica in
+   corso, che non era ancora applicata. */
+function startTxEdit(id){
+  const t=UI.editTx.filter(x=>x.id===id)[0];
+  if(!t||txTypeKeys(UI.posKind).indexOf(t.type)<0)return;
+  const dep=UI.posKind==='deposit', am=t.type==='fee'||(t.type==='div'&&t.amount!=null);
+  /* importo nel campo Prezzo: commissione, dividendo a importo unico, interessi
+     di un conto; versamenti e prelievi sono quantità × 1 (vedi depositTx) */
+  const amount=t.type==='int'||am?t.amount
+    :dep?num(t.qty)*(t.price!=null?num(t.price):1):t.price;
+  UI.txEditId=id;
+  $('#txType').value=t.type;
+  $('#txDate').value=t.date||'';
+  $('#txQty').value=am||dep?'':fnum(t.qty);
+  $('#txPrice').value=fnum(amount);
+  $('#txFee').value=t.type!=='fee'&&num(t.fee)?fnum(t.fee):'';
+  $('#txFx').value=txFx(t,0)>0?fnum(t.fx):'';
+  syncTxLabels(); renderTxList();
+  /* la riga cliccata può essere lontana dal form: lo si porta in vista */
+  $('#txAddRow').scrollIntoView({block:'nearest',behavior:reducedMotion()?'auto':'smooth'});
+  $('#txType').focus({preventScroll:true});
+}
+/* La riga in modifica, sostituita al suo posto nell'array: stesso id e campi
+   che il form non conosce (note e altri) intatti. Dei campi del form restano
+   solo quelli del tipo nuovo: qty e price, oppure amount. Il cambio (fx) è
+   del form solo quando il campo si vede; una commissione non lo ha mai. Se il
+   form non va, il toast di readTxForm e la modifica resta aperta. */
+function saveTxEdit(){
+  const i=UI.editTx.findIndex(x=>x.id===UI.txEditId);
+  if(i<0){ cancelTxEdit(); return; }
+  const old=UI.editTx[i], nu=readTxForm(old.id);
+  if(!nu)return;
+  const t=Object.assign({},old,nu);
+  ['qty','price','amount'].forEach(k=>{ if(!(k in nu))delete t[k]; });
+  if(!('fx' in nu)&&(nu.type==='fee'||$('#txFxF').style.display!=='none'))delete t.fx;
+  UI.editTx[i]=t;
+  cancelTxEdit();   /* chiude la modifica: form svuotato come dopo addTx */
+}
+/* Chiude la modifica senza toccare la riga: form svuotato come dopo addTx
+   (tipo e data restano), ＋ al posto di ✓. */
+function cancelTxEdit(){
+  UI.txEditId=null;
+  $('#txQty').value=''; $('#txPrice').value=''; $('#txFee').value=''; $('#txFx').value='';
+  syncTxLabels(); renderTxList();
+}
+/* il bottone del form: ＋ aggiunge, ✓ salva la riga in modifica */
+function submitTx(){ if(UI.txEditId)saveTxEdit(); else addTx(); }
+/* Dalla matita dello Storico transazioni: la scheda della posizione, tab
+   Transazioni, con quella riga già in modifica. */
+function openTxEdit(posId,txId){
+  if(!S.positions.some(p=>p.id===posId))return;
+  openPos(posId); setPosTab('tx'); startTxEdit(txId);
+}
 function savePos(){
+  /* una riga in modifica (matita) senza ✓ andrebbe persa in silenzio: la
+     scheda resta aperta, sul tab Transazioni, col fuoco su ✓ */
+  if(UI.txEditId){ toast('Confirm or cancel the edit first','err'); setPosTab('tx'); $('#txAdd').focus(); return; }
   const dep=UI.posKind==='deposit';
   if(dep){
     const chk=depositFromForm(descFromForm('f'),$('#fRate').value);
@@ -7496,7 +7865,7 @@ function openDrawer(id){
       (rv?rv.html:'')+
       (txs.length?'<div class="sec-t">Transactions'+((p.tx||[]).length>8?' · last 8 of '+p.tx.length:'')+'</div>'+
         txs.map(t=>{ const k=TXT[t.type]||TXT.buy, amt=txShown(t);
-          const det=t.type==='fee'?nf(num(t.amount),2):t.type==='int'?txIntNote(t):dep?'':qtyf(num(t.qty))+' × '+nf(num(t.price),4)+
+          const det=t.type==='fee'?nf(num(t.amount),2):t.type==='int'?txIntNote(t):dep?'':txQtyPrice(t)+
             (txFx(t,0)>0&&cur!==BASE?' · FX '+nf(t.fx,4):'');
           return '<div class="txr"><div class="ty '+k.c+'">'+k.s+'</div>'+
             '<div class="tx-m"><div class="d1">'+esc(txLabel(t,p))+'</div><div class="d2">'+fmtDate(t.date)+(det?' · '+det:'')+'</div></div>'+
@@ -8008,9 +8377,9 @@ function renderPerfMap(){
       '<div class="v">'+esc(tkLabel(p))+' · '+esc(perfPct(r.ret))+' <span style="font-weight:500;color:var(--muted)">'+PERF_LBL[per]+'</span></div>'+
       '<div class="d">weight '+nf(p._w,1)+'% · value <span class="mask">'+money0(p._value)+'</span></div>'+
       '<div class="d">'+(r.vol?'today\'s volume <span class="mask">'+moneyShort(r.vol)+'</span>':'volume n/a')+'</div>';
-    const hr=tip.parentNode.getBoundingClientRect(), b=el.getBoundingClientRect();
-    tip.style.left=Math.max(90,Math.min(hr.width-90,b.left-hr.left+b.width/2))+'px';
-    tip.style.top=(b.top-hr.top+Math.min(b.height/2,24))+'px';
+    const q=boxInLayout(el.getBoundingClientRect(),tip.parentNode.getBoundingClientRect(),uiZoom());
+    tip.style.left=Math.max(90,Math.min(q.hw-90,q.left+q.width/2))+'px';
+    tip.style.top=(q.top+Math.min(q.height/2,24))+'px';
     tip.classList.add('on');
   };
   const hide=()=>{ if(tip)tip.classList.remove('on'); };
@@ -10950,9 +11319,9 @@ Chart.lines=function(host,seriesList,opt){
           '<span style="width:8px;height:8px;border-radius:2px;background:'+s.color+'"></span>'+
           esc(s.label)+' <b style="margin-left:auto">'+(opt.fmtV?opt.fmtV(p.v):pctv(p.v))+'</b></div>':'';
       }).join('');
-    const px=X(bt)/W*r.width;
-    tip.style.left=Math.max(80,Math.min(r.width-80,px))+'px';
-    tip.style.top=(padT/H*r.height)+'px';
+    const tp=chartTipPos(X(bt),padT,W,H,r,uiZoom(),80);
+    tip.style.left=tp.left+'px';
+    tip.style.top=tp.top+'px';
     tip.style.transform='translate(-50%,-108%)';
   });
   svg.addEventListener('pointerleave',()=>{ cur.setAttribute('opacity','0'); tip.classList.remove('on'); });
@@ -11484,9 +11853,10 @@ function renderHeatmap(){
       'avevano storico prezzi: sono gli stessi numeri di <b>Health → Quantitative risk</b>. '+
       'La colonna <b>Year</b> compone i mesi, non li somma. Clicca un mese per il dettaglio titolo per titolo.</div>';
 
-  /* sotto ~44px il valore dentro la cella diventa illeggibile: resta nel tooltip */
+  /* sotto ~44px (del layout) il valore dentro la cella diventa illeggibile:
+     resta nel tooltip. La misura è a schermo, quindi si divide per lo zoom. */
   const grid=$('#hmGrid'), first=grid.querySelector('.hm-c');
-  if(first)grid.classList.toggle('hm-compact',first.getBoundingClientRect().width<44);
+  if(first)grid.classList.toggle('hm-compact',first.getBoundingClientRect().width/uiZoom()<44);
 
   const tip=$('#hmTip');
   const show=el=>{
@@ -11495,9 +11865,9 @@ function renderHeatmap(){
     tip.innerHTML='<div class="d">'+esc(el.getAttribute('data-lab'))+'</div>'+
       '<div class="v">'+esc(pctIt(ret))+'</div>'+
       (cov!=null&&cov<.999?'<div class="d">coverage '+nf(cov*100,0)+'% of portfolio</div>':'');
-    const hr=host.getBoundingClientRect(), r=el.getBoundingClientRect();
-    tip.style.left=(r.left-hr.left+r.width/2)+'px';
-    tip.style.top=(r.top-hr.top)+'px';
+    const q=boxInLayout(el.getBoundingClientRect(),host.getBoundingClientRect(),uiZoom());
+    tip.style.left=(q.left+q.width/2)+'px';
+    tip.style.top=q.top+'px';
     tip.classList.add('on');
   };
   const hide=()=>tip.classList.remove('on');
@@ -11654,6 +12024,7 @@ function renderTxAll(){
   body.innerHTML='<div class="tbl-scroll"><table class="snap-tbl"><thead><tr>'+
     '<th>Asset</th><th>Type</th><th>Date</th><th>Quantity</th><th>Price</th>'+
     '<th class="hide-sm">Fees</th>'+(fxCol?'<th class="hide-sm" title="€ per 1 unit of the asset currency">FX</th>':'')+'<th>Amount</th>'+
+    '<th aria-label="Edit"></th>'+
     '</tr></thead><tbody>'+
     rows.map(({p,t})=>{
       const k=TXT[t.type]||TXT.buy, amt=txShown(t), cur=p.currency||BASE, fee=num(t.fee);
@@ -11667,14 +12038,21 @@ function renderTxAll(){
         '<td><div style="font-weight:650">'+esc(tkLabel(p))+'</div>'+
           (p.name&&p.name!==tkLabel(p)?'<div class="cellsub">'+esc(p.name)+'</div>':'')+'</td>'+
         '<td><span class="badge '+(TX_BADGE[t.type]||'')+'">'+k.s+' '+esc(txLabel(t,p))+'</span></td>'+
-        '<td class="num">'+(t.date?fmtDate(t.date):dash)+'</td>'+
+        '<td class="num">'+(t.date?esc(fmtDate(t.date)):dash)+'</td>'+
         '<td class="num">'+(hasQty?qtyf(num(t.qty)):dash)+'</td>'+
         '<td class="num">'+(hasPrice?locCell(num(t.price),cur):dash)+'</td>'+
         '<td class="num hide-sm">'+(fee?locCell(fee,cur):dash)+'</td>'+
         (fxCol?'<td class="num hide-sm">'+(hasFx({p,t})?nf(t.fx,4):dash)+'</td>':'')+
         '<td class="num mask '+(amt>=0?'up':'down')+'"><b>'+(amt>=0?'+':'−')+nf(Math.abs(amt),2)+'</b>'+
-          (cur!==BASE?' <span class="cellsub">'+esc(cur)+'</span>':'')+'</td></tr>';
+          (cur!==BASE?' <span class="cellsub">'+esc(cur)+'</span>':'')+'</td>'+
+        '<td class="rowacts"><button class="rowbtn" data-txedit="'+esc(t.id)+'" data-pos="'+esc(p.id)+'" '+
+          'title="Edit" aria-label="Edit">'+ic('edit',15)+'</button></td></tr>';
     }).join('')+'</tbody></table></div>';
+  /* la matita apre la scheda con la riga in modifica (openTxEdit); il clic si
+     ferma qui e non arriva al listener della riga, che aprirebbe il drawer */
+  $$('#txAllBody [data-txedit]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation(); openTxEdit(b.getAttribute('data-pos'),b.getAttribute('data-txedit'));
+  }));
 }
 
 /* ---------- rendering dello storico ---------- */
@@ -12621,7 +12999,7 @@ function restoreBackup(file){
     S.settings=Object.assign(blankState().settings,data.settings||{});
     S.fx=Object.assign({EUR:1},data.fx||{});
     normalizeState();
-    save(); applyTheme(); applyPrivacy(); applyDock();
+    save(); applyTheme(); applyTextSize(); applyPrivacy(); applyDock();
     buildCountryList(); buildSectorList(); renderAll();
     toast('Backup restored: '+n+(n===1?' position':' positions'),'ok');
   };
@@ -12742,7 +13120,7 @@ function applyRemote(remote){
   /* come all'avvio e nel ripristino del backup: i dati di un'altra versione
      dell'app arrivano con le etichette normalizzate */
   normalizeState();
-  applyTheme(); applyPrivacy(); applyDock(); buildCountryList(); buildSectorList(); renderAll();
+  applyTheme(); applyTextSize(); applyPrivacy(); applyDock(); buildCountryList(); buildSectorList(); renderAll();
   /* i prezzi arrivati dal cloud sono quelli dell'altro dispositivo: si
      riaggiornano. Con un giro in volo esce subito e ci pensa il suo rilancio. */
   if(activeCount())refreshPrices(true);
@@ -12867,7 +13245,10 @@ function castleFrameH(vh,top,riserva,min){
    maniglia del dock al fondo della finestra, più 8 px. Con la scheda nascosta
    non misura nulla. La cima esclude lo slittamento delle animazioni
    d'ingresso, che getBoundingClientRect conterebbe: quello della pagina
-   (slide, 7 px) e, nei temi Glass, quello della cornice stessa (glassRise, 14 px). */
+   (slide, 7 px) e, nei temi Glass, quello della cornice stessa (glassRise, 14 px).
+   Altezza e riserva sono px del layout: le misure a schermo (cima, finestra,
+   menu) si dividono per uiZoom() (formato web); lo slittamento ty, letto dal
+   transform, lo è già. */
 function fitCastleFrame(){
   const f=$('#castleFrame'); if(!f||UI.page!=='castello')return;
   let pg=null,h=null,ris=null;
@@ -12879,10 +13260,11 @@ function fitCastleFrame(){
       const tr=getComputedStyle(e).transform;
       if(tr&&tr!=='none')ty+=new DOMMatrixReadOnly(tr).m42||0;
     }
-    const top=r.top+window.scrollY-ty, vh=window.innerHeight;
+    const z=uiZoom();
+    const top=(r.top+window.scrollY)/z-ty, vh=window.innerHeight/z;
     const tb=$('.tabbar'), tbr=tb?tb.getBoundingClientRect():null, dt=$('#dockToggle');
     const menu=tbr&&tbr.height>0?tbr:(dt?dt.getBoundingClientRect():null);
-    if(menu)ris=vh-menu.top+CASTLE_GAP;
+    if(menu)ris=vh-menu.top/z+CASTLE_GAP;
     h=castleFrameH(vh,top,ris,CASTLE_MIN_H);
   }catch(e){ h=null; }
   try{
@@ -12926,7 +13308,8 @@ function renderCastle(){
     const c=f.contentWindow.__castello; if(c)c.pagina.ritorno();
   }catch(e){}
 }
-function closeAll(){ $$('.ov').forEach(o=>o.classList.remove('on')); }
+/* chiudere la scheda posizione chiude anche la modifica di una transazione */
+function closeAll(){ $$('.ov').forEach(o=>o.classList.remove('on')); UI.txEditId=null; }
 function renderAll(){
   enrich();
   renderKpis();
@@ -12945,6 +13328,12 @@ function renderAll(){
    14. EVENTI
    ========================================================================== */
 function wire(){
+  /* --- dimensione del testo: subito, senza ricaricare; la pagina si ridisegna
+     perché i grafici prendono la larghezza del layout, che cambia --- */
+  $('#textSize').addEventListener('click',e=>{
+    const b=e.target.closest('[data-size-v]'); if(!b)return;
+    S.settings.textSize=b.getAttribute('data-size-v'); applyTextSize(); save(); renderPage(UI.page);
+  });
   /* --- menu dei temi --- */
   $('#btnTheme').addEventListener('click',e=>{
     const b=e.currentTarget;
@@ -12991,7 +13380,7 @@ function wire(){
   $('#wcAdd').addEventListener('click',()=>openPos(null));
   $('#btnWipe').addEventListener('click',()=>{
     if(!confirm('Erase all data in this dashboard? This cannot be undone.'))return;
-    S=blankState(); save(); applyTheme(); applyPrivacy(); applyDock(); renderAll(); toast('Data erased');
+    S=blankState(); save(); applyTheme(); applyTextSize(); applyPrivacy(); applyDock(); renderAll(); toast('Data erased');
   });
   $$('#heroRange button').forEach(b=>b.addEventListener('click',()=>{
     $$('#heroRange button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
@@ -13088,7 +13477,8 @@ function wire(){
   $('#fCur').addEventListener('change',()=>{ syncTxFx(); renderTxList(); });
   $('#fKind').addEventListener('change',()=>setPosKind($('#fKind').value));
   $('#txType').addEventListener('change',syncTxLabels);
-  $('#txAdd').addEventListener('click',addTx);
+  $('#txAdd').addEventListener('click',submitTx);
+  $('#txCancel').addEventListener('click',()=>{ cancelTxEdit(); $('#txAdd').focus(); });
   $('#posSave').addEventListener('click',savePos);
   $('#posDelete').addEventListener('click',()=>{ if(UI.editId)deletePos(UI.editId); });
   /* scheda posizione e scheda watchlist: composizione solo per gli ETF; ISIN:
@@ -13339,7 +13729,7 @@ function wire(){
   window.addEventListener('hashchange',()=>{ const k=location.hash.slice(1); if(k&&k!==UI.page)go(k); });
   document.addEventListener('error',onLogoError,true);
   document.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){ $$('.ov').forEach(o=>o.classList.remove('on'));
+    if(e.key==='Escape'){ closeAll();
       $('#sheet').classList.remove('on'); $('#drawer').classList.remove('on'); $('#drawerOv').classList.remove('on'); }
     if((e.metaKey||e.ctrlKey)&&e.key==='k'){ e.preventDefault(); $('#globalSearch').focus(); }
   });
@@ -13405,7 +13795,7 @@ $('#btnAddWatch').querySelector('.ic').innerHTML=ic('plus',15);
 $('#btnHist').querySelector('.ic').innerHTML=ic('refresh',15);
 $$('.modal .x[data-close]').forEach(b=>b.innerHTML=ic('x',16));
 loadSync(); load(); loadPHist(); loadMHist(); loadDHist(); loadRoth(); loadBHist(); buildNav(); initPosForm(); initWatchForm(); syncTxLabels(); wire();
-applyTheme(); applyPrivacy(); applyDock();
+applyTheme(); applyTextSize(); applyPrivacy(); applyDock();
 enrich();
 go(location.hash.slice(1)||'dashboard');
 watchHero();
