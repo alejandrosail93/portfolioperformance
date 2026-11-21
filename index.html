@@ -1624,7 +1624,10 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   .app{min-height:calc(100vh / var(--ui,1))}
   .modal{max-height:calc(90vh / var(--ui,1))}
   .sheet{max-height:calc(76vh / var(--ui,1))}
-  .castle-frame{height:calc(100vh / var(--ui,1) - 191px);height:calc(100dvh / var(--ui,1) - 191px)}
+  /* Safari applica lo zoom di <html> anche al contenuto della cornice, ma ne dimensiona la
+     finestra senza: la pagina del castello usciva a destra e in basso. La cornice annulla
+     lo zoom (zoom 1/--ui): dentro è a scala 1, le altezze sono px a schermo. */
+  .castle-frame{zoom:calc(1 / var(--ui,1));height:calc(100vh - 191px * var(--ui,1));height:calc(100dvh - 191px * var(--ui,1))}
 }
 @media(max-width:1120px){
   .g2-wide,.g2-dash{grid-template-columns:1fr}
@@ -13269,7 +13272,7 @@ function fitCastleFrame(){
   }catch(e){ h=null; }
   try{
     if(h==null){ f.style.removeProperty('height'); if(pg)pg.style.removeProperty('padding-bottom'); return; }
-    f.style.height=h+'px';
+    f.style.height=Math.floor(h*uiZoom())+'px';   /* h è in px del layout, la cornice (zoom annullato) in px a schermo */
     if(pg)pg.style.paddingBottom=ris+'px';
   }catch(e){}
 }
