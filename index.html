@@ -5811,8 +5811,88 @@ const RRG={fast:10,slow:30,mom:4,sigmaWeeks:52};
    valgono solo per refreshRotation(): chi legge usa la cache di ogni età. */
 const ROTKEY='pf_v2_roth', ROT_TTL=24*3600e3;
 let ROTH={};
-function loadRoth(){ try{ ROTH=JSON.parse(localStorage.getItem(ROTKEY))||{}; }catch(e){ ROTH={}; } }
-function saveRoth(){ try{ localStorage.setItem(ROTKEY,JSON.stringify(ROTH)); }catch(e){} }
+/* Nello storage le serie stanno in forma compatta, {at, inv?, p:[[t, v, a]]}:
+   t in secondi, v e a a 6 cifre significative, a omesso se uguale a v. In
+   memoria resta {pts:[{t,v,a}], at, inv?}: la conversione è solo qui, in
+   saveRoth() e loadRoth(). Il vecchio formato {pts, at} si legge ancora e si
+   riscrive compatto al primo salvataggio. */
+const rotSig=x=>+(+x).toPrecision(6);
+function rotPack(c){
+  const o={at:c.at,p:c.pts.map(b=>{ const v=rotSig(b.v), a=rotSig(b.a); return a===v?[b.t/1000,v]:[b.t/1000,v,a]; })};
+  if(c.inv)o.inv=true;
+  return o;
+}
+/* null se la voce non è leggibile; le barre con valori non numerici o non
+   positivi si scartano, come in yWeekly() */
+function rotUnpack(o){
+  if(!o||typeof o!=='object')return null;
+  let pts;
+  if(Array.isArray(o.p))pts=o.p.filter(Array.isArray).map(r=>{
+    const v=+r[1]; return {t:Math.round(r[0]*1000),v:v,a:r[2]==null?v:+r[2]};
+  });
+  else if(Array.isArray(o.pts))pts=o.pts.filter(b=>b&&typeof b==='object').map(b=>({t:+b.t,v:+b.v,a:b.a==null?+b.v:+b.a}));
+  else return null;
+  pts=pts.filter(b=>isFinite(b.t)&&isFinite(b.v)&&b.v>0&&isFinite(b.a)&&b.a>0);
+  const c={pts:pts,at:typeof o.at==='number'&&isFinite(o.at)?o.at:0};
+  if(o.inv)c.inv=true;
+  return c;
+}
+/* rotDirty: ROTH è cambiata dall'ultimo salvataggio riuscito */
+let rotDirty=false;
+function loadRoth(){
+  ROTH={}; rotDirty=false;
+  let o=null;
+  try{ o=JSON.parse(localStorage.getItem(ROTKEY)); }catch(e){ o=null; }
+  if(!o||typeof o!=='object'||Array.isArray(o))return;
+  Object.keys(o).forEach(t=>{
+    const c=rotUnpack(o[t]); if(!c)return;
+    ROTH[t]=c;
+    if(!Array.isArray(o[t].p))rotDirty=true;      /* vecchio formato: da riscrivere */
+  });
+}
+/* Esito dell'ultimo salvataggio: null se non si è ancora provato, '' se è
+   riuscito, 'full' se lo spazio del browser è pieno (circa 5 MB per origine,
+   condivisi fra tutte le pagine aperte da file), 'off' se lo storage non è
+   disponibile. Se fallisce i dati restano solo in ROTH fino alla chiusura:
+   lo dicono un solo avviso per sessione, lo stato e la nota della pagina. */
+let rotSaveFail=null, rotSaveWarned=false, rotSaveKB=0;
+function saveRoth(){
+  let s='';
+  try{
+    const o={};
+    Object.keys(ROTH).forEach(t=>{ const c=ROTH[t]; if(c&&Array.isArray(c.pts))o[t]=rotPack(c); });
+    s=JSON.stringify(o);
+    localStorage.setItem(ROTKEY,s);
+    rotSaveFail=''; rotDirty=false;
+    return true;
+  }catch(e){
+    rotDirty=true;
+    rotSaveFail=e&&(e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'||e.code===22||e.code===1014)?'full':'off';
+    rotSaveKB=Math.round(s.length/1024);
+    if(!rotSaveWarned){
+      rotSaveWarned=true;
+      toast(rotSaveFail==='full'
+        ?'Rotation data could not be saved: browser storage is full ('+(rotSaveKB?'about '+nf(rotSaveKB,0)+' KB needed':'size unknown')+
+          '). Free space by clearing the rotiq: keys, or open the app from a separate origin.'
+        :'Rotation data could not be saved: browser storage is unavailable','err');
+    }
+    return false;
+  }
+}
+/* Chiudendo la pagina (anche a metà download) si salva quello che è cambiato */
+function rotPageHide(){ if(rotDirty)saveRoth(); }
+/* Avvertenza breve (stato, avviso finale) e spiegazione lunga (nota) */
+function rotSaveShort(){ return rotSaveFail==='full'?'not saved: storage full':'not saved: storage unavailable'; }
+function rotSaveNoteHTML(){
+  if(!rotSaveFail)return '';
+  return '<b>I dati scaricati non sono stati salvati.</b> '+(rotSaveFail==='full'
+    ?'Lo spazio del browser per questa pagina è pieno (circa 5 MB per origine'+(rotSaveKB?'; la rotazione ne chiede circa '+nf(rotSaveKB,0)+' KB':'')+'). '+
+     'Aprendo il file con doppio click, tutte le pagine aperte da file condividono lo stesso spazio, comprese altre app come RotationIQ, '+
+     'le cui chiavi rotiq: possono occuparne quasi metà. '
+    :'Lo storage del browser non è disponibile (navigazione privata o dati del sito bloccati). ')+
+    'Per ora la pagina mostra i dati in memoria, che si perdono chiudendo il browser. Per tenerli: libera spazio cancellando '+
+    'le chiavi rotiq: dell\'altra app, oppure apri la piattaforma da un\'origine separata (per esempio dal sito), poi premi di nuovo Update rotation.<br><br>';
+}
 
 /* Chiusure settimanali di due anni: v è la chiusura, a la chiusura
    rettificata per dividendi e split, su cui si calcola (total return, come
@@ -5854,29 +5934,38 @@ function rotInvert(pts){ return (pts||[]).map(b=>({t:b.t,v:1/b.v,a:1/b.a})); }
    Un cambio con meno di ROT_FX_BARS barre si riprova col simbolo inverso e
    vince la serie più lunga; quella inversa entra in cache già girata, con
    inv:true. Una corsa alla volta. Restituisce {ok, fail, skip}: scaricati,
-   falliti (in ordine di universo), saltati perché ancora freschi. Nessuna
+   falliti (in ordine di universo), saltati perché ancora freschi, e saved:
+   se il salvataggio in localStorage è riuscito. Si salva anche ogni
+   ROT_SAVE_EVERY serie scaricate. Nessuna
    chiamata automatica: la avvia solo il bottone della pagina Rotazione. */
 let rotRun=null;
+const ROT_SAVE_EVERY=10;
 function refreshRotation(force){
   if(rotRun)return rotRun;
   const now=Date.now(), all=rotUniverse();
   const list=all.filter(t=>{ const c=ROTH[t]; return !!force||!c||!(now-c.at<ROT_TTL); });
   const skip=all.length-list.length;
-  if(!list.length)return Promise.resolve({ok:0,fail:[],skip:skip});
-  const ko={};
+  /* nulla da scaricare: se l'ultimo salvataggio era fallito, si riprova */
+  if(!list.length)return Promise.resolve({ok:0,fail:[],skip:skip,saved:rotDirty||rotSaveFail?saveRoth():true});
+  const ko={}; let got=0;
   const done=()=>{
     /* via le serie di ETF tolti dall'universo */
-    Object.keys(ROTH).forEach(t=>{ if(all.indexOf(t)<0)delete ROTH[t]; });
-    saveRoth(); rotRun=null;
+    Object.keys(ROTH).forEach(t=>{ if(all.indexOf(t)<0){ delete ROTH[t]; rotDirty=true; } });
+    const saved=saveRoth(); rotRun=null;
     const fail=list.filter(t=>ko[t]);
-    return {ok:list.length-fail.length,fail:fail,skip:skip};
+    return {ok:list.length-fail.length,fail:fail,skip:skip,saved:saved};
   };
   const get=s=>yWeekly(s).then(p=>p,()=>null);
   const job=t=>get(t).then(p=>{
     const fx=ROT_FX_T[t];
     if(!fx||p&&p.length>=ROT_FX_BARS)return p&&{pts:p,at:Date.now()};
     return get(fx.alt).then(q=>q&&(!p||q.length>p.length)?{pts:rotInvert(q),at:Date.now(),inv:true}:p&&{pts:p,at:Date.now()});
-  }).then(c=>{ if(c)ROTH[t]=c; else ko[t]=1; },()=>{ ko[t]=1; });
+  }).then(c=>{
+    if(!c){ ko[t]=1; return; }
+    ROTH[t]=c; rotDirty=true;
+    /* un salvataggio ogni ROT_SAVE_EVERY serie: chiudere a metà non perde tutto */
+    if(++got%ROT_SAVE_EVERY===0)saveRoth();
+  },()=>{ ko[t]=1; });
   rotRun=netQueue(list,job)
     .then(done,()=>{ list.forEach(t=>{ ko[t]=1; }); return done(); });
   return rotRun;
@@ -6389,6 +6478,8 @@ function renderRotation(){
     /* ETF e cambi mancanti in un solo elenco: Update rotation li riprova */
     (miss.length?' · <span class="old">not downloaded: '+miss.slice(0,6).map(t=>esc(rotLabel(t))).join(', ')+
       (miss.length>6?' and '+(miss.length-6)+' more':'')+'</span> (Update rotation retries them)':'');
+  /* l'ultimo salvataggio è fallito: i dati ci sono solo fino alla chiusura */
+  if(rotSaveFail)st+=(st?' · ':'')+'<span class="old">'+rotSaveShort()+'</span>';
   $('#rotStatus').innerHTML=st;
   const map=$('#rotMap');
   map.classList.remove('has-hl');
@@ -6409,7 +6500,7 @@ function renderRotation(){
     map.innerHTML=rotMapSVG(r,grp);
     $('#rotList').innerHTML=rotListHTML(r,grp,rotExposure(activePositions(),rc));
   }
-  $('#rotNote').innerHTML=rotNoteHTML(g);
+  $('#rotNote').innerHTML=rotSaveNoteHTML()+rotNoteHTML(g);
   /* passando su un ETF, nella mappa o nell'elenco, si accende in tutti e due */
   const hl=t=>{
     map.classList.toggle('has-hl',!!t);
@@ -6429,10 +6520,12 @@ function rotUpdate(){
   const run=refreshRotation(false);
   renderRotation();
   return run.then(r=>{
-    if(!r.ok&&!r.fail.length)toast('Rotation data is less than 24 hours old: nothing to download');
+    /* salvataggio fallito: lo dice in coda, e l'avviso è d'errore */
+    const ns=r.saved===false?' · '+rotSaveShort():'';
+    if(!r.ok&&!r.fail.length)toast('Rotation data is less than 24 hours old: nothing to download'+ns,ns?'err':'');
     else if(r.fail.length)toast('Rotation: '+r.ok+' series updated · '+r.fail.length+' unavailable ('+
-      r.fail.slice(0,4).map(rotLabel).join(', ')+(r.fail.length>4?'…':'')+')',r.ok?'':'err');
-    else toast('Rotation updated: '+r.ok+' series'+(r.skip?' ('+r.skip+' already fresh)':''),'ok');
+      r.fail.slice(0,4).map(rotLabel).join(', ')+(r.fail.length>4?'…':'')+')'+ns,r.ok&&!ns?'':'err');
+    else toast('Rotation updated: '+r.ok+' series'+(r.skip?' ('+r.skip+' already fresh)':'')+ns,ns?'err':'ok');
     renderPage(UI.page);
     return r;
   });
@@ -13798,6 +13891,8 @@ $('#btnAddWatch').querySelector('.ic').innerHTML=ic('plus',15);
 $('#btnHist').querySelector('.ic').innerHTML=ic('refresh',15);
 $$('.modal .x[data-close]').forEach(b=>b.innerHTML=ic('x',16));
 loadSync(); load(); loadPHist(); loadMHist(); loadDHist(); loadRoth(); loadBHist(); buildNav(); initPosForm(); initWatchForm(); syncTxLabels(); wire();
+/* la rotazione salva quello che resta da salvare quando la pagina si chiude */
+addEventListener('pagehide',rotPageHide);
 applyTheme(); applyTextSize(); applyPrivacy(); applyDock();
 enrich();
 go(location.hash.slice(1)||'dashboard');
