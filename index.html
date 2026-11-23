@@ -1064,6 +1064,9 @@ tbody tr.clk{cursor:pointer}
 .txr .ty.sell{background:var(--down-soft);color:var(--down)}
 .txr .ty.div{background:var(--gold-soft);color:var(--gold)}
 .txr .ty.fee{background:var(--surface-3);color:var(--muted)}
+.txr .ty.split{background:var(--surface-3);color:var(--accent)}
+.txr .am.nil{color:var(--muted)}
+.txr .sl{white-space:nowrap}
 .txr .tx-m{flex:1;min-width:0}
 .txr .d1{font-size:13px;font-weight:650}
 .txr .d2{font-size:11.5px;color:var(--muted)}
@@ -3061,7 +3064,8 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
       <div class="txadd" id="txAddRow">
         <div class="field"><label>Type</label><select id="txType">
           <option value="buy">Buy</option><option value="sell">Sell</option>
-          <option value="div">Dividend</option><option value="fee">Fee</option></select></div>
+          <option value="div">Dividend</option><option value="fee">Fee</option>
+          <option value="split">Split / reverse split</option></select></div>
         <div class="field"><label>Date</label><input id="txDate" type="date"></div>
         <div class="field" id="txQtyF"><label id="txQtyLbl">Quantity</label><input id="txQty" type="text" inputmode="decimal"></div>
         <div class="field"><label id="txPriceLbl">Price</label><input id="txPrice" type="text" inputmode="decimal"></div>
@@ -3980,9 +3984,16 @@ function ensureFx(){ usedCurrencies().forEach(c=>{ if(S.fx[c]==null)S.fx[c]=DEFA
    ('fee', 'int') danno sempre fb. Per una posizione in euro il chiamante non
    lo usa: lì il cambio è sempre 1. */
 function txFx(t,fb){
-  if(!t||t.type==='fee'||t.type==='int')return fb;
+  if(!t||t.type==='fee'||t.type==='int'||t.type==='split')return fb;
   const v=t.fx;
   return typeof v==='number'&&isFinite(v)&&v>0?v:fb;
+}
+/* Rapporto di uno split ('split', vedi derive): un numero finito e positivo,
+   altrimenti 1, cioè nessun effetto. Un dato sporco (0, negativo, NaN, testo)
+   non deve rompere il render: la riga vale come se non ci fosse. */
+function splitRatio(t){
+  const r=t&&t.ratio;
+  return typeof r==='number'&&isFinite(r)&&r>0?r:1;
 }
 
 /* ==========================================================================
@@ -3990,7 +4001,15 @@ function txFx(t,fb){
    --------------------------------------------------------------------------
    Ogni posizione può avere un registro `tx`:
      {id,type:'buy'|'sell'|'div'|'fee'|'int', date:'YYYY-MM-DD', qty, price, amount, fee, note}
-   'int' sono gli interessi di un conto deposito (vedi isDeposit). Se il registro esiste, quantità e prezzo di carico sono DERIVATI da lì
+     {id,type:'split', date:'YYYY-MM-DD', ratio, fee:0}
+   'int' sono gli interessi di un conto deposito (vedi isDeposit). 'split' è
+   uno split o un raggruppamento: ratio = azioni di oggi per ogni azione di
+   prima (2 = 2 per 1, 0,1 = 1 per 10). Moltiplica la quantità e lascia il
+   costo totale com'è, quindi il prezzo medio si adegua da solo; niente qty,
+   price, amount né flussi di cassa (txAmount = 0). Un ratio non valido (vedi
+   splitRatio) si ignora, come se la riga non ci fosse. A pari data vale
+   l'ordine di inserimento: il sort è stabile.
+   Se il registro esiste, quantità e prezzo di carico sono DERIVATI da lì
    (costo medio mobile) e si sbloccano plusvalenze realizzate e dividendi
    incassati. Se non esiste, valgono i campi manuali qty/avg.
 
@@ -4044,6 +4063,9 @@ function derive(p){
          e non porta il saldo sotto zero */
       const a=num(t.amount);
       q=Math.max(0,q+a); out.interest+=a;
+    }else if(t.type==='split'){
+      /* solo la quantità: costo, realizzato, dividendi e commissioni restano */
+      q*=splitRatio(t);
     }else{ // buy
       q+=num(t.qty); cost+=num(t.qty)*num(t.price)+fee;
       costE+=(num(t.qty)*num(t.price)+fee)*f;
@@ -7086,13 +7108,25 @@ const TXT={
   sell:{l:'Sell',c:'sell',s:'−'},
   div:{l:'Dividend',c:'div',s:'◎'},
   fee:{l:'Fee',c:'fee',s:'⌁'},
-  int:{l:'Interest',c:'div',s:'％'}
+  int:{l:'Interest',c:'div',s:'％'},
+  split:{l:'Split',c:'split',s:'÷'}
 };
+/* Il nome di uno split (vedi derive), uguale nella scheda, nel drawer e nello
+   Storico transazioni: "Split 2-for-1" se il rapporto è almeno 1,
+   "Reverse split 1-for-10" sotto 1. csv=true dà la forma italiana dell'export
+   ("Split 2 per 1", "Raggruppamento 1 per 10"), come le altre operazioni del
+   file (TX_CSV_LBL). Numeri it-IT, al massimo 4 decimali. */
+function splitLabel(ratio,csv){
+  const r=splitRatio({ratio:ratio}), f=v=>Number(+v.toFixed(4)).toLocaleString('it-IT',{maximumFractionDigits:4});
+  if(r>=1)return csv?'Split '+f(r)+' per 1':'Split '+f(r)+'-for-1';
+  return csv?'Raggruppamento 1 per '+f(1/r):'Reverse split 1-for-'+f(1/r);
+}
 /* Flusso di cassa della transazione: negativo se il denaro esce dalle tue
    tasche, positivo se ci torna. Gli interessi restano sul conto, quindi
-   valgono 0 (per l'XIRR il loro effetto è già nel saldo finale). */
+   valgono 0 (per l'XIRR il loro effetto è già nel saldo finale). Uno split
+   non muove denaro: 0, e personalFlows lo scarta. */
 function txAmount(t){
-  if(t.type==='int')return 0;
+  if(t.type==='int'||t.type==='split')return 0;
   if(t.type==='fee')return -(num(t.amount)+num(t.fee));
   if(t.type==='div')return (t.amount!=null?num(t.amount):num(t.qty)*num(t.price))-num(t.fee);
   if(t.type==='sell')return num(t.qty)*num(t.price)-num(t.fee);
@@ -7101,6 +7135,15 @@ function txAmount(t){
 /* Importo mostrato negli elenchi e nell'export: per gli interessi quello
    accreditato (o addebitato), per il resto il flusso di cassa. */
 const txShown=t=>t.type==='int'?num(t.amount):txAmount(t);
+/* Il nome dello split nel dettaglio di una riga, tutto su una riga anche a
+   375 px: "Split 2-for-1" non va a capo sul trattino. */
+const splitHtml=t=>'<span class="sl">'+esc(splitLabel(t.ratio))+'</span>';
+/* L'importo di una riga nella scheda e nel drawer: con il segno, verde o
+   rosso; uno split non muove denaro e mostra "–" in colore neutro. */
+function txAmDiv(t,amt,cls,tail){
+  if(t.type==='split')return '<div class="am nil'+cls+'">–</div>';
+  return '<div class="am'+cls+' '+(amt>=0?'up':'down')+'">'+(amt>=0?'+':'−')+nf(Math.abs(amt),2)+tail+'</div>';
+}
 /* Il dettaglio di una riga di interessi, al posto di quantità × prezzo */
 const txIntNote=t=>num(t.amount)<0?'charge (stamp duty or taxes)':'net credit';
 /* "quantità × prezzo" di una riga, nella scheda e nel drawer; un dividendo
@@ -7118,6 +7161,7 @@ const TX_CSV_LBL={buy:'Acquisto',sell:'Vendita',div:'Dividendo',fee:'Commissione
 function txCsvLabel(t,p){
   if(isDeposit(p)&&t.type==='buy')return 'Versamento';
   if(isDeposit(p)&&t.type==='sell')return 'Prelievo';
+  if(t.type==='split')return splitLabel(t.ratio,true);
   return TX_CSV_LBL[t.type]||TX_CSV_LBL.buy;
 }
 /* menu a tendina comuni alla scheda posizione ('f') e a quella watchlist ('fw') */
@@ -7420,12 +7464,14 @@ const POS_FIELD_IDS={ticker:['pfTickerRow'],isin:['pfTickerRow','isinResults'],a
    (un conto che non è il fondo emergenza: settore Cash, flag vuoto). */
 const DEPOSIT_DEFAULTS={Sector:'Emergency fund',Tier:'Cash',Emergency:'1',Cur:'EUR'};
 /* I movimenti che la scheda Transazioni offre per un tipo */
-function txTypeKeys(kind){ return kind==='deposit'?['buy','sell','int']:['buy','sell','div','fee']; }
-const TX_TYPE_LBL={'':{buy:'Buy',sell:'Sell',div:'Dividend',fee:'Fee'},
+function txTypeKeys(kind){ return kind==='deposit'?['buy','sell','int']:['buy','sell','div','fee','split']; }
+const TX_TYPE_LBL={'':{buy:'Buy',sell:'Sell',div:'Dividend',fee:'Fee',split:'Split / reverse split'},
   deposit:{buy:'Deposit',sell:'Withdrawal',int:'Interest'}};
 const TX_NOTE={'':'Se registri le transazioni, <b>quantità e prezzo di carico</b> vengono calcolati '+
   'automaticamente a costo medio, e si sbloccano <b>plusvalenze realizzate</b> e <b>dividendi incassati</b>. '+
-  'Puoi anche non usarle: in quel caso valgono i valori inseriti nella scheda Details.',
+  'Puoi anche non usarle: in quel caso valgono i valori inseriti nella scheda Details. '+
+  'Per uno split o un aumento di capitale gratuito (nuove azioni in regalo) usa il tipo Split: '+
+  'la quantità si moltiplica e il costo totale non cambia.',
   deposit:'Registra <b>versamenti</b>, <b>prelievi</b> e <b>interessi</b>: il <b>saldo</b> si calcola da qui, '+
   'e il guadagno del conto sono gli interessi netti. Puoi anche non usarli: in quel caso vale il saldo '+
   'inserito nella scheda Details, che al primo movimento diventa il versamento iniziale.'};
@@ -7502,9 +7548,14 @@ function syncTxLabels(){
   const t=$('#txType').value, dep=UI.posKind==='deposit', am=txFormAmount(t);
   $('#txQtyF').style.display=dep?'none':'';
   $('#txFeeF').style.display=dep?'none':'';
-  $('#txQtyLbl').textContent=am?'—':'Quantity';
+  const sp=t==='split';
+  $('#txQtyLbl').textContent=am?'—':sp?'Ratio (2 = 2-for-1)':'Quantity';
   $('#txPriceLbl').textContent=dep||am?'Amount':(t==='div'?'Div. per share':'Price');
   $('#txQty').disabled=am;
+  /* uno split ha solo il rapporto, nel campo Quantità: prezzo e commissione
+     si svuotano e si spengono, e tornano con gli altri tipi */
+  if(sp){ $('#txPrice').value=''; $('#txFee').value=''; }
+  $('#txPrice').disabled=sp; $('#txFee').disabled=sp;
   $('#txPrice').placeholder=dep&&t==='int'?'e.g. 12,50 or -2,00':'';
   syncTxFx();
 }
@@ -7519,7 +7570,7 @@ function syncTxFx(){
   $('#txFxLbl').textContent='FX (€ per 1 '+cur+')';
   $('#txFeeLbl').textContent=on?'Fee ('+cur+')':'Fee';
   $('#txFx').placeholder=on?nf(fxRate(cur),4):'';
-  $('#txFx').disabled=$('#txType').value==='fee';
+  $('#txFx').disabled=$('#txType').value==='fee'||$('#txType').value==='split';
   const hint=$('#txFxHint');
   hint.style.display=on?'':'none';
   hint.textContent=on?'Fineco di solito indica quanti '+cur+' vale 1 €: inserisci 1 ÷ quel valore. '+
@@ -7558,12 +7609,12 @@ function renderTxList(){
   $('#txList').innerHTML=list.length?list.map(t=>{
     const k=TXT[t.type]||TXT.buy, amt=txShown(t);
     /* su un conto l'importo dice già tutto: niente "quantità × 1" */
-    const det=t.type==='fee'?money(num(t.amount),2):t.type==='int'?txIntNote(t):dep?''
+    const det=t.type==='split'?splitHtml(t):t.type==='fee'?money(num(t.amount),2):t.type==='int'?txIntNote(t):dep?''
       :txQtyPrice(t)+(num(t.fee)?' · fee '+nf(num(t.fee),2):'')+
        (txFx(t,0)>0?' · FX '+nf(t.fx,4):'');
     return '<div class="txr'+(ed&&t.id===ed?' editing':'')+'"><div class="ty '+k.c+'">'+k.s+'</div>'+
       '<div class="tx-m"><div class="d1">'+esc(txLabel(t,kp))+'</div><div class="d2">'+esc(fmtDate(t.date))+(det?' · '+det:'')+'</div></div>'+
-      '<div class="am '+(amt>=0?'up':'down')+'">'+(amt>=0?'+':'−')+nf(Math.abs(amt),2)+' <span class="cellsub">'+esc(cur)+'</span></div>'+
+      txAmDiv(t,amt,'',' <span class="cellsub">'+esc(cur)+'</span>')+
       '<button class="rowbtn" data-txedit="'+esc(t.id)+'" title="Edit" aria-label="Edit">'+ic('edit',15)+'</button>'+
       '<button class="rowbtn" data-txdel="'+esc(t.id)+'" title="Delete">×</button></div>';
   }).join('')
@@ -7617,6 +7668,7 @@ function readTxForm(id){
     if(!price){toast('Enter the fee amount','err');return null;}
     return {id:id,type:'fee',date:date,amount:price,fee:0};
   }
+  if(type==='split')return readSplit(id,date,$('#txQty').value);
   let t;
   if(txFormAmount(type)){
     /* dividendo a importo unico, in modifica: resta un importo */
@@ -7631,6 +7683,26 @@ function readTxForm(id){
   const fx=num($('#txFx').value);
   if(fx>0&&$('#txFxF').style.display!=='none')t.fx=fx;
   return t;
+}
+/* Uno split dal form: il rapporto (vedi derive) dal campo Quantità, "2",
+   "1,5", "1.5" o "0,1". Deve essere finito, positivo e diverso da 1, e alla
+   sua data ci devono essere azioni da moltiplicare: lo split davanti a tutto
+   non ha senso. Le righe considerate sono quelle della scheda (UI.editTx),
+   senza quella in modifica. Una posizione con solo quantità e prezzo medio
+   manuali, senza registro: niente split, prima l'acquisto di apertura,
+   perché con la prima transazione quantità e prezzo diventano calcolati e
+   quelli manuali sparirebbero senza avviso. Mai il cambio (fx). */
+function readSplit(id,date,raw){
+  const r=num(raw);
+  if(!(r>0)||!isFinite(r)||r===1){ toast('Enter the split ratio (greater than 0, not 1)','err'); return null; }
+  const rest=UI.editTx.filter(x=>x&&x.id!==id);
+  if(!rest.length&&num($('#fQty').value)>0){
+    toast('Record an opening buy first: with transactions, quantity and average cost are computed from them','err');
+    return null;
+  }
+  const before=rest.filter(x=>String(x.date)<=date);
+  if(!(derive({tx:before,qty:0,avg:0}).qty>EPS_QTY)){ toast('Record a buy before the split','err'); return null; }
+  return {id:id,type:'split',date:date,ratio:r,fee:0};
 }
 function addTx(){
   const t=readTxForm(uid());
@@ -7670,9 +7742,10 @@ function startTxEdit(id){
   UI.txEditId=id;
   $('#txType').value=t.type;
   $('#txDate').value=t.date||'';
-  $('#txQty').value=am||dep?'':fnum(t.qty);
-  $('#txPrice').value=fnum(amount);
-  $('#txFee').value=t.type!=='fee'&&num(t.fee)?fnum(t.fee):'';
+  const sp=t.type==='split';   /* il rapporto torna nel campo Quantità */
+  $('#txQty').value=sp?fnum(t.ratio):am||dep?'':fnum(t.qty);
+  $('#txPrice').value=sp?'':fnum(amount);
+  $('#txFee').value=!sp&&t.type!=='fee'&&num(t.fee)?fnum(t.fee):'';
   $('#txFx').value=txFx(t,0)>0?fnum(t.fx):'';
   syncTxLabels(); renderTxList();
   /* la riga cliccata può essere lontana dal form: lo si porta in vista */
@@ -7681,8 +7754,9 @@ function startTxEdit(id){
 }
 /* La riga in modifica, sostituita al suo posto nell'array: stesso id e campi
    che il form non conosce (note e altri) intatti. Dei campi del form restano
-   solo quelli del tipo nuovo: qty e price, oppure amount. Il cambio (fx) è
-   del form solo quando il campo si vede; una commissione non lo ha mai. Se il
+   solo quelli del tipo nuovo: qty e price, oppure amount, oppure ratio. Il
+   cambio (fx) è del form solo quando il campo si vede; una commissione e uno
+   split non lo hanno mai. Se il
    form non va, il toast di readTxForm e la modifica resta aperta. */
 function saveTxEdit(){
   const i=UI.editTx.findIndex(x=>x.id===UI.txEditId);
@@ -7690,8 +7764,8 @@ function saveTxEdit(){
   const old=UI.editTx[i], nu=readTxForm(old.id);
   if(!nu)return;
   const t=Object.assign({},old,nu);
-  ['qty','price','amount'].forEach(k=>{ if(!(k in nu))delete t[k]; });
-  if(!('fx' in nu)&&(nu.type==='fee'||$('#txFxF').style.display!=='none'))delete t.fx;
+  ['qty','price','amount','ratio'].forEach(k=>{ if(!(k in nu))delete t[k]; });
+  if(!('fx' in nu)&&(nu.type==='fee'||nu.type==='split'||$('#txFxF').style.display!=='none'))delete t.fx;
   UI.editTx[i]=t;
   cancelTxEdit();   /* chiude la modifica: form svuotato come dopo addTx */
 }
@@ -7877,6 +7951,15 @@ function closeDrawer(){
   UI.drawerId=null;
   $('#drawer').classList.remove('on'); $('#drawerOv').classList.remove('on');
 }
+/* Una riga delle ultime transazioni nel drawer di una posizione. */
+function drawerTxRow(t,p){
+  const k=TXT[t.type]||TXT.buy, amt=txShown(t), cur=p.currency||BASE;
+  const det=t.type==='split'?splitHtml(t):esc(t.type==='fee'?nf(num(t.amount),2):t.type==='int'?txIntNote(t)
+    :isDeposit(p)?'':txQtyPrice(t)+(txFx(t,0)>0&&cur!==BASE?' · FX '+nf(t.fx,4):''));
+  return '<div class="txr"><div class="ty '+k.c+'">'+k.s+'</div>'+
+    '<div class="tx-m"><div class="d1">'+esc(txLabel(t,p))+'</div><div class="d2">'+esc(fmtDate(t.date))+(det?' · '+det:'')+'</div></div>'+
+    txAmDiv(t,amt,' mask','')+'</div>';
+}
 function openDrawer(id){
   const p=S.positions.filter(x=>x.id===id)[0]; if(!p)return;
   UI.drawerId=id;
@@ -7962,13 +8045,7 @@ function openDrawer(id){
         '<div class="v'+(s[1]==='—'?' ':' num')+(s[3]?' '+s[3]:'')+(s[2]?' mask':'')+'">'+s[1]+'</div></div>').join('')+'</div>'+
       (rv?rv.html:'')+
       (txs.length?'<div class="sec-t">Transactions'+((p.tx||[]).length>8?' · last 8 of '+p.tx.length:'')+'</div>'+
-        txs.map(t=>{ const k=TXT[t.type]||TXT.buy, amt=txShown(t);
-          const det=t.type==='fee'?nf(num(t.amount),2):t.type==='int'?txIntNote(t):dep?'':txQtyPrice(t)+
-            (txFx(t,0)>0&&cur!==BASE?' · FX '+nf(t.fx,4):'');
-          return '<div class="txr"><div class="ty '+k.c+'">'+k.s+'</div>'+
-            '<div class="tx-m"><div class="d1">'+esc(txLabel(t,p))+'</div><div class="d2">'+fmtDate(t.date)+(det?' · '+det:'')+'</div></div>'+
-            '<div class="am mask '+(amt>=0?'up':'down')+'">'+(amt>=0?'+':'−')+nf(Math.abs(amt),2)+'</div></div>';
-        }).join(''):'')+
+        txs.map(t=>drawerTxRow(t,p)).join(''):'')+
       (p.compSector||p.compCountry?'<div class="sec-t">Declared composition</div><div class="note">'+
         (p.compSector?'<b>Sectors</b><br>'+esc(p.compSector).replace(/\n/g,'<br>'):'')+
         (p.compSector&&p.compCountry?'<br><br>':'')+
@@ -11462,9 +11539,14 @@ function qtyAt(p,ts){
      Prima le transazioni, poi la valuta: senza fx non si tocca BASE */
   const on=tx.some(t=>String(t.date)<=iso&&txFx(t,0)>0)&&!!p.currency&&p.currency!==BASE;
   const fb=on?fxRate(p.currency):1;
-  let q=0,cost=0,costE=0;
+  /* later: prodotto dei rapporti degli split dopo iso. I prezzi storici
+     (adjclose, vedi yHistory) sono già rettificati per gli split, quindi la
+     quantità di allora va espressa in azioni di oggi: 10 azioni prima di uno
+     split 2 per 1 valgono come 20. Il costo non cambia. */
+  let q=0,cost=0,costE=0,later=1;
   tx.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(t=>{
-    if(String(t.date)>iso)return;
+    if(String(t.date)>iso){ if(t.type==='split')later*=splitRatio(t); return; }
+    if(t.type==='split'){ q*=splitRatio(t); return; }   /* come in derive() */
     if(t.type==='sell'&&dep){   /* come in derive(): prima il capitale */
       const useQ=Math.min(num(t.qty),q), back=q-useQ<1e-9?cost:Math.min(useQ,cost);
       costE-=q-useQ<1e-9?costE:(cost>0?costE*back/cost:0);
@@ -11476,6 +11558,7 @@ function qtyAt(p,ts){
       costE+=(num(t.qty)*num(t.price)+num(t.fee))*txFx(t,fb); }
     else if(t.type==='int')q=Math.max(0,q+num(t.amount));   /* come in derive() */
   });
+  if(later!==1)q*=later;
   return {qty:q,cost:cost,exact:true,costEur:on?costE:null};
 }
 function reconstructedSeries(){
@@ -12076,7 +12159,7 @@ function allTxRows(){
   return rows.sort((a,b)=>String(b.t.date).localeCompare(String(a.t.date))||
     tkLabel(a.p).localeCompare(tkLabel(b.p),'en'));
 }
-const TX_BADGE={buy:'u',sell:'d',div:'g',fee:'',int:'g'};
+const TX_BADGE={buy:'u',sell:'d',div:'g',fee:'',int:'g',split:'a'};
 function populateTxFilters(all){
   const sp=$('#txFltPos'), st=$('#txFltType'); if(!sp||!st)return;
   const seen={},opts=[];
@@ -12135,14 +12218,16 @@ function renderTxAll(){
       return '<tr class="clk" data-txpos="'+esc(p.id)+'">'+
         '<td><div style="font-weight:650">'+esc(tkLabel(p))+'</div>'+
           (p.name&&p.name!==tkLabel(p)?'<div class="cellsub">'+esc(p.name)+'</div>':'')+'</td>'+
-        '<td><span class="badge '+(TX_BADGE[t.type]||'')+'">'+k.s+' '+esc(txLabel(t,p))+'</span></td>'+
+        '<td><span class="badge '+(TX_BADGE[t.type]||'')+'">'+k.s+' '+esc(t.type==='split'?splitLabel(t.ratio):txLabel(t,p))+'</span></td>'+
         '<td class="num">'+(t.date?esc(fmtDate(t.date)):dash)+'</td>'+
         '<td class="num">'+(hasQty?qtyf(num(t.qty)):dash)+'</td>'+
         '<td class="num">'+(hasPrice?locCell(num(t.price),cur):dash)+'</td>'+
         '<td class="num hide-sm">'+(fee?locCell(fee,cur):dash)+'</td>'+
         (fxCol?'<td class="num hide-sm">'+(hasFx({p,t})?nf(t.fx,4):dash)+'</td>':'')+
+        /* uno split non muove denaro: "–" in colore neutro, non +0,00 */
+        (t.type==='split'?'<td class="num">'+dash+'</td>':
         '<td class="num mask '+(amt>=0?'up':'down')+'"><b>'+(amt>=0?'+':'−')+nf(Math.abs(amt),2)+'</b>'+
-          (cur!==BASE?' <span class="cellsub">'+esc(cur)+'</span>':'')+'</td>'+
+          (cur!==BASE?' <span class="cellsub">'+esc(cur)+'</span>':'')+'</td>')+
         '<td class="rowacts"><button class="rowbtn" data-txedit="'+esc(t.id)+'" data-pos="'+esc(p.id)+'" '+
           'title="Edit" aria-label="Edit">'+ic('edit',15)+'</button></td></tr>';
     }).join('')+'</tbody></table></div>';
@@ -13058,13 +13143,14 @@ function exportTx(){
   S.positions.forEach(p=>(p.tx||[]).forEach(t=>rows.push({p:p,t:t})));
   if(!rows.length){ toast('No transactions recorded','err'); return; }
   /* Cambio: quello della transazione (€ per 1 unità), vuoto se non c'è.
-     Importo resta nella valuta del titolo */
+     Importo resta nella valuta del titolo. Uno split ha il rapporto nel Tipo
+     ("Split 2 per 1"), Quantità e Prezzo vuoti, Importo 0.00 */
   const lines=[['Ticker','ISIN','Tipo','Data','Quantità','Prezzo','Commissioni','Cambio','Importo','Valuta'].join(',')];
   rows.sort((a,b)=>String(a.t.date).localeCompare(String(b.t.date)));
   rows.forEach(({p,t})=>lines.push([
     p.ticker,p.isin||'',txCsvLabel(t,p),t.date,
-    t.type==='fee'||t.type==='int'?'':num(t.qty),
-    t.type==='fee'?num(t.amount):t.type==='int'?'':num(t.price),
+    t.type==='fee'||t.type==='int'||t.type==='split'?'':num(t.qty),
+    t.type==='fee'?num(t.amount):t.type==='int'||t.type==='split'?'':num(t.price),
     num(t.fee), txFx(t,0)>0?t.fx:'', txShown(t).toFixed(2), p.currency||'EUR'
   ].map(csvField).join(',')));
   download('transazioni_'+stamp()+'.csv','﻿'+lines.join('\n'),'text/csv;charset=utf-8');
