@@ -818,18 +818,22 @@ html[data-theme="terra"] .field textarea,html[data-theme="terra"] .inp{backgroun
 #fIsinHint:empty,#fwIsinHint:empty{display:none}
 /* "Thesis and scores" in fondo ai Dettagli, nella scheda posizione e nella
    watchlist: un blocco che si apre e si chiude, generato da rulesFieldsHTML() */
-.rl-fields{margin-top:16px;border:1px solid var(--line-soft);border-radius:var(--r-sm)}
-.rl-fields>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px;
+.rl-fields,.bdet{margin-top:16px;border:1px solid var(--line-soft);border-radius:var(--r-sm)}
+.rl-fields>summary,.bdet>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px;
   padding:11px 14px;font-size:13px;font-weight:650;color:var(--ink-soft)}
-.rl-fields>summary::-webkit-details-marker{display:none}
-.rl-fields>summary::before{content:"";flex:none;width:6px;height:6px;margin:0 2px;
+.rl-fields>summary::-webkit-details-marker,.bdet>summary::-webkit-details-marker{display:none}
+.rl-fields>summary::before,.bdet>summary::before{content:"";flex:none;width:6px;height:6px;margin:0 2px;
   border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s}
-.rl-fields[open]>summary::before{transform:rotate(45deg)}
+.rl-fields[open]>summary::before,.bdet[open]>summary::before{transform:rotate(45deg)}
 .rl-fields>summary .sub{margin-left:auto;font-size:11.5px;font-weight:500;color:var(--muted)}
 .rl-fields .rl-in{padding:2px 14px 14px}
 .rl-fields .rl-in>.hint{font-size:11.5px;color:var(--muted);margin:-8px 0 14px}
 .rl-fields .field:last-child{margin-bottom:0}
 .rl-fields textarea{min-height:58px}
+/* .bdet: "Beta by security" nella card Beta della Salute, chiuso
+   all'apertura; condivide l'aspetto di .rl-fields qui sopra */
+.bdet .tbl-scroll{border-top:1px solid var(--line-soft)}
+.bdet tr.btot td{font-weight:650;border-top:1px solid var(--line)}
 .frow3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .field .hint.bad{color:var(--warn)}
 /* logo nella scheda: anteprima accanto al nome, tre pulsanti sotto */
@@ -2262,6 +2266,15 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
             <div class="note mt18">Le metriche applicano i <b>pesi attuali</b> delle posizioni ai rendimenti mensili storici: è l'approssimazione più onesta possibile senza conoscere le date esatte di ogni acquisto passato, non un rendimento realmente pesato nel tempo. Nei mesi in cui solo una parte delle posizioni ha storico, i pesi vengono <b>rinormalizzati</b> su quelle disponibili: leggi quindi le metriche come la performance della quota di capitale coperta, indicata qui sotto. I prezzi storici sono nella valuta originale di ciascun titolo, senza effetto cambio.</div>
           </div>
         </div>
+
+        <div class="card mt18">
+          <div class="card-hd"><h2><span class="chip t" id="chipBeta"></span> Beta vs index</h2>
+            <div class="right"><select class="hsel" id="betaPick" aria-label="Benchmark for the beta"></select></div></div>
+          <div class="card-bd">
+            <div id="betaBody"></div>
+            <div class="note mt18">Il benchmark <b>Custom</b> mette ogni titolo contro l'indice della sua valuta: i titoli in dollari e nelle altre valute contro MSCI World, quelli in euro contro EuroStoxx 50 (quotato in euro), con le quote attuali del portafoglio. Come nelle altre metriche della pagina, i <b>pesi attuali</b> sono applicati allo storico e i prezzi sono nella valuta originale, senza effetto cambio: con un solo indice, un titolo in euro confrontato con un indice in dollari mescola le due valute. Il Beta dello Storico usa invece il tuo rendimento reale e richiede 12 mesi di snapshot: per questo i due numeri possono differire.</div>
+          </div>
+        </div>
       </section>
       <section class="page wrap" id="pg-scenari">
         <div class="card">
@@ -3504,7 +3517,7 @@ function blankState(){
     fx:{EUR:1}, lastUpdate:0, updatedAt:0, rulesLog:[],
     settings:{theme:'dark',textSize:'g',privacy:false,dockHidden:false,riskFree:2,proxy:'',
               rebalanceBands:[10,20,30],capGainTax:26,
-              scenBench:'6040',scenSel:'inflEU',scenSens:{},benchKey:'URTH',rules:rulesCfg(),tierPlan:tplanCfg(),
+              scenBench:'6040',scenSel:'inflEU',scenSens:{},benchKey:'URTH',betaBench:'custom',rules:rulesCfg(),tierPlan:tplanCfg(),
               sim:simDefaults(),distMode:'count'}
   };
 }
@@ -3604,8 +3617,23 @@ function normalizeState(){
   S.targets=tg;
   /* indice delle metriche nello Storico: una chiave che non è più fra gli
      indici disponibili torna al default invece di lasciare le metriche vuote */
+  /* FEZ (EuroStoxx 50 in dollari) è diventato SXRT.DE (in euro): chi l'aveva
+     scelto resta sull'EuroStoxx 50 invece di tornare al default */
+  if(S.settings)['benchKey','betaBench'].forEach(k=>{
+    if(S.settings[k]==='FEZ'){ S.settings[k]='SXRT.DE'; dirty=true; }
+  });
   if(S.settings&&S.settings.benchKey!=null&&typeof BENCH_LIST!=='undefined'&&
      !BENCH_LIST.some(b=>b.key===S.settings.benchKey)){ S.settings.benchKey='URTH'; dirty=true; }
+  /* benchmark del beta in Salute, indipendente da benchKey: 'custom' (su
+     misura per valuta) o una chiave di BENCH_LIST. Non valido (anche null) →
+     'custom'; se manca ci pensa il default di blankState(), unito alle
+     impostazioni a ogni caricamento, come per distMode. Senza BENCH_LIST
+     (test) si controlla solo che sia una stringa */
+  if(S.settings&&S.settings.betaBench!==undefined){
+    const bb=S.settings.betaBench;
+    if(typeof bb!=='string'||(bb!=='custom'&&typeof BENCH_LIST!=='undefined'&&
+       !BENCH_LIST.some(b=>b.key===bb))){ S.settings.betaBench='custom'; dirty=true; }
+  }
   /* peso delle distribuzioni in Analisi: un valore sconosciuto torna a
      "Titoli". Se manca ci pensa il default di blankState() */
   if(S.settings&&S.settings.distMode!==undefined&&DIST_MODES.indexOf(S.settings.distMode)<0){
@@ -8990,6 +9018,32 @@ function pearson(xs,ys){
    i prezzi europei erano attribuiti al mese precedente e disallineati di un
    mese rispetto a quelli americani dentro lo stesso portafoglio. */
 const monthIdx=t=>{ const d=new Date(t); return d.getFullYear()*12+d.getMonth(); };
+/* Rendimenti mensili di una serie [{t,v}], indicizzati per mese di calendario
+   (monthIdx, ora locale): {m: v_m/v_{m−1} − 1}. Un rendimento esiste solo se
+   ci sono le barre di m e di m−1, entrambe positive: un mese mancante non
+   viene spalmato su due mesi. Due barre nello stesso mese: vince l'ultima. */
+function monthlyRetMap(pts){
+  const bars={}, out={};
+  (pts||[]).forEach(q=>{ if(q&&q.v>0)bars[monthIdx(q.t)]=q.v; });
+  Object.keys(bars).forEach(k=>{
+    const m=Number(k), a=bars[m-1], b=bars[m];
+    if(a>0&&b>0)out[m]=b/a-1;
+  });
+  return out;
+}
+/* Beta e correlazione di rp contro rb (rendimenti appaiati, stessa
+   lunghezza). null sotto i 12 mesi o se l'indice non si muove. È il calcolo
+   del Beta di benchStats() (Storico) e del "Beta vs indice" della Salute.
+   Da non confondere con la sensibilità per settore degli Scenari. */
+function betaCalc(rp,rb){
+  const n=rp.length;
+  if(n<12||rb.length!==n)return null;
+  const mp=meanArr(rp), mb=meanArr(rb);
+  let cov=0,vb=0;
+  for(let i=0;i<n;i++){ cov+=(rp[i]-mp)*(rb[i]-mb); vb+=(rb[i]-mb)*(rb[i]-mb); }
+  if(!(vb>0))return null;
+  return {n:n,beta:cov/vb,corr:pearson(rp,rb)};   /* le due n−1 si semplificano */
+}
 function tickerReturns(rows){
   const maps={}, keys={};
   rows.forEach(r=>{
@@ -9010,9 +9064,16 @@ function tickerReturns(rows){
   });
   return {grid:grid,per:per};
 }
-function portfolioSeries(){
-  const rows=S.positions.filter(p=>p.ticker&&MHIST[p.ticker]&&MHIST[p.ticker].pts&&
+/* Le posizioni che entrano nel backtest dei pesi attuali: con ticker, almeno
+   due barre mensili di storico e valore positivo. Condiviso da
+   portfolioSeries() e dai beta per titolo, così le due cose guardano le
+   stesse righe. */
+function seriesRows(){
+  return S.positions.filter(p=>p.ticker&&MHIST[p.ticker]&&MHIST[p.ticker].pts&&
     MHIST[p.ticker].pts.length>=2&&p._value>0);
+}
+function portfolioSeries(){
+  const rows=seriesRows();
   if(!rows.length||T.value<=0)return null;
   const qr=tickerReturns(rows);
   let totW=0; rows.forEach(p=>{ totW+=p._value; });
@@ -9027,7 +9088,9 @@ function portfolioSeries(){
        storico: senza questa divisione un mese coperto al 60% restituirebbe il
        60% del rendimento reale, schiacciando verso lo zero sia il rendimento
        sia la volatilità di tutto il periodo iniziale. */
-    if(wUsed>0)monthly.push({m:qr.grid[i+1],ret:sum/wUsed,cov:wUsed});
+    /* p = mese iniziale del rendimento: se la griglia ha un buco, m−p>1 e
+       il rendimento copre più di un mese (portfolioBeta lo scarta) */
+    if(wUsed>0)monthly.push({m:qr.grid[i+1],p:qr.grid[i],ret:sum/wUsed,cov:wUsed});
   }
   /* i conti deposito non hanno storico prezzi e restano fuori dalle
      metriche: non abbassano la copertura, la nota lo dice a parte */
@@ -9044,6 +9107,95 @@ function portfolioVolAnn(res){
   if(res===undefined)res=portfolioSeries();
   if(!res||res.monthly.length<3)return null;
   return {vol:stdevArr(res.monthly.map(m=>m.ret))*Math.sqrt(12),months:res.monthly.length};
+}
+/* --------------------------------------------------------------------------
+   Beta contro un indice (pagina Salute). bmap = rendimenti mensili del
+   benchmark {monthIdx: ret}, da betaBenchMap() (o monthlyRetMap() di un
+   indice): prezzi senza effetto cambio come MHIST.
+   - portfolioBeta: regressione del backtest a pesi attuali (portfolioSeries)
+     contro l'indice. Valgono solo i rendimenti di un mese (m−p===1) con il
+     rendimento dell'indice dello stesso mese.
+   - positionBetas: beta di ogni titolo di seriesRows(), null sotto i 12 mesi
+     in comune con l'indice.
+   - betaSumProduct: Σ peso × beta (il SUMPRODUCT del foglio Excel), con i
+     pesi rinormalizzati sulle sole posizioni con beta: una posizione senza
+     beta è esclusa e dichiarata (wCovered), non contata come 0.
+   -------------------------------------------------------------------------- */
+/* I mesi del backtest appaiati al benchmark: solo rendimenti di un mese
+   (m−p===1) con il rendimento del benchmark nello stesso mese. Serve anche a
+   renderBeta() per dire quanti mesi ci sono quando non bastano. */
+function betaPairs(res,bmap){
+  const bm=bmap||{}, rp=[], rb=[];
+  (res&&res.monthly||[]).forEach(x=>{
+    if(x.m-x.p!==1||bm[x.m]==null)return;
+    rp.push(x.ret); rb.push(bm[x.m]);
+  });
+  return {rp:rp,rb:rb};
+}
+function portfolioBeta(bmap){
+  const res=portfolioSeries(); if(!res)return null;
+  const P=betaPairs(res,bmap), b=betaCalc(P.rp,P.rb); if(!b)return null;
+  return {beta:b.beta,corr:b.corr,n:b.n,coveragePct:res.coveragePct};
+}
+function positionBetas(bmap){
+  const bm=bmap||{};
+  return seriesRows().map(p=>{
+    const pm=monthlyRetMap(MHIST[p.ticker].pts), rp=[], rb=[];
+    Object.keys(pm).map(Number).sort((a,b)=>a-b).forEach(m=>{
+      if(bm[m]!=null){ rp.push(pm[m]); rb.push(bm[m]); }
+    });
+    const b=betaCalc(rp,rb);
+    return {ticker:p.ticker,value:p._value,beta:b?b.beta:null,corr:b?b.corr:null,n:rp.length,pos:p};
+  });
+}
+function betaSumProduct(rows){
+  const has=r=>r&&r.value>0&&r.beta!=null&&isFinite(r.beta);
+  let tot=0,cov=0,nUsed=0;
+  (rows||[]).forEach(r=>{ if(!(r&&r.value>0))return; tot+=r.value; if(has(r)){ cov+=r.value; nUsed++; } });
+  if(!nUsed)return null;
+  let sum=0;
+  rows.forEach(r=>{ if(has(r))sum+=r.value/cov*r.beta; });
+  return {sum:sum,wCovered:cov/tot,nUsed:nUsed,nTot:rows.length};
+}
+/* Benchmark del beta (S.settings.betaBench): una chiave di BENCH_LIST oppure
+   'custom', il composito su misura per valuta. Nel composito ogni riga di
+   seriesRows() va sull'indice della sua valuta (BETA_BENCH_MAP, le altre su
+   MSCI World) e il rendimento del mese è Σ quota × rendimento dell'indice,
+   con le quote di valore attuali. Un mese in cui manca un indice con quota
+   non entra (niente rinormalizzazione sugli indici rimasti); un indice senza
+   storico finisce in missing e la mappa resta vuota.
+   → {map:{monthIdx:ret}, label, missing:[chiavi]} */
+const BETA_BENCH_MAP={USD:'URTH',EUR:'SXRT.DE'};
+function betaBenchMap(key,rows){
+  const data=BHIST.data||{}, has=k=>!!(data[k]&&data[k].length);
+  const lab=k=>{ const b=BENCH_LIST.filter(x=>x.key===k)[0]; return b?b.label:k; };
+  if(key!=='custom'){
+    if(!has(key))return {map:{},label:lab(key),missing:[key]};
+    return {map:monthlyRetMap(data[key]),label:lab(key),missing:[]};
+  }
+  const w={}; let tot=0;
+  (rows||[]).forEach(p=>{
+    if(!(p&&p._value>0))return;
+    const k=BETA_BENCH_MAP[p.currency||BASE]||'URTH';
+    w[k]=(w[k]||0)+p._value; tot+=p._value;
+  });
+  const keys=Object.keys(w).sort((a,b)=>w[b]-w[a]);
+  if(!keys.length)return {map:{},label:'Custom',missing:[]};
+  const q=keys.map(k=>w[k]/tot);
+  /* quote intere che sommano 100 (resti più grandi) */
+  const pc=q.map(x=>Math.floor(x*100));
+  let rest=100-pc.reduce((a,b)=>a+b,0);
+  q.map((x,i)=>({i:i,d:x*100-pc[i]})).sort((a,b)=>b.d-a.d).forEach(o=>{ if(rest>0){ pc[o.i]++; rest--; } });
+  const label='Custom: '+keys.map((k,i)=>pc[i]+'% '+lab(k)).join(' · ');
+  const missing=keys.filter(k=>!has(k));
+  if(missing.length)return {map:{},label:label,missing:missing};
+  const maps=keys.map(k=>monthlyRetMap(data[k])), map={};
+  Object.keys(maps[0]).forEach(m=>{
+    if(!maps.every(x=>x[m]!=null))return;
+    let r=0; maps.forEach((x,i)=>{ r+=q[i]*x[m]; });
+    map[m]=r;
+  });
+  return {map:map,label:label,missing:missing};
 }
 let downloading=false;
 /* Da quando serve davvero lo storico: la data d'ingresso più remota fra tutte
@@ -9261,6 +9413,71 @@ function renderQuant(){
   '<div class="statusline">Computed on '+res.monthly.length+' months of history'+
     (res.coveragePct<99.5?' · coverage '+nf(res.coveragePct,0)+'% of capital in securities ('+res.nUsed+'/'+res.nTotal+' positions)':'')+
     (res.conti>0?' · deposit accounts excluded':'')+'.</div>';
+}
+/* Card "Beta vs index" della Salute: beta del backtest a pesi attuali,
+   Σ peso × beta e correlazione sullo stesso benchmark (S.settings.betaBench,
+   indipendente dall'indice dello Storico), più la tabella per titolo. */
+function renderBeta(){
+  const wrap=$('#betaBody'), pick=$('#betaPick'); if(!wrap)return;
+  let want=S.settings.betaBench||'custom';
+  if(want!=='custom'&&!BENCH_LIST.some(b=>b.key===want))want='custom';
+  if(pick){
+    pick.innerHTML='<option value="custom">Custom (by currency)</option>'+
+      BENCH_LIST.map(b=>'<option value="'+esc(b.key)+'">'+esc(b.label)+'</option>').join('');
+    pick.value=want;
+  }
+  const empty=html=>{ wrap.innerHTML='<div class="empty" style="padding:20px"><div class="sm">'+html+'</div></div>'; };
+  if(!activeCount()||T.value<=0)return empty('Add positions to compute the beta.');
+  if(!hasMonthly())return empty('No history downloaded — press <b>Download history</b> above.');
+  const rows=seriesRows(), B=betaBenchMap(want,rows);
+  const labelOf=k=>{ const b=BENCH_LIST.filter(x=>x.key===k)[0]; return b?b.label:k; };
+  if(B.missing.length)return empty('Missing index history for '+B.missing.map(k=>'<b>'+esc(labelOf(k))+'</b>').join(' and ')+
+    ': download it from <b>History → Download indices</b>.');
+  const res=portfolioSeries(), pb=portfolioBeta(B.map);
+  if(!res||!pb)return empty('The beta needs at least 12 months in common with '+esc(B.label)+
+    ' (now '+betaPairs(res,B.map).rp.length+').');
+  const pos=positionBetas(B.map), sp=betaSumProduct(pos);
+  const covSp=sp?sp.wCovered*res.coveragePct:0;
+  const diff=sp?sp.sum-pb.beta:0;
+  const spTip='La somma dei beta dei singoli titoli, ciascuno pesato per il suo peso: è la formula '+
+    'MATR.SOMMA.PRODOTTO(Peso;Beta) del foglio di calcolo. Coincide con il Beta quando i titoli hanno gli stessi '+
+    'mesi di storico, altrimenti può scostarsi. I titoli con meno di 12 mesi in comune con il benchmark sono '+
+    'esclusi e i pesi sono ripartiti sugli altri: non sono contati come zero.'+
+    (sp&&Math.abs(diff)>=.005?' Qui si scosta dal Beta di '+nf(diff,2)+(sp.wCovered<.9995?
+      ': non tutti i titoli hanno 12 mesi di storico in comune con il benchmark.':
+      ': i titoli non hanno tutti gli stessi mesi di storico.'):'');
+  const box=qbox;
+  let html='<div class="qgrid">'+
+    box('Beta',nf(pb.beta,2),'sensitivity to the benchmark','',
+      '1,2 = in media ti muovi il 20% più del benchmark; 0,8 = il 20% meno. Calcolato con i pesi attuali sui rendimenti mensili storici.')+
+    box('Σ weight × beta',sp?nf(sp.sum,2):'n/a',
+      sp?'as in your spreadsheet · coverage '+nf(covSp,0)+'%':'no security with 12 months','',spTip)+
+    box('Correlation',pb.corr!=null?nf(pb.corr,2):'n/a','with the benchmark','',
+      '1 = ti muovi esattamente come il benchmark, 0 = nessun legame, −1 = all\'opposto.')+
+  '</div>';
+  /* tabella per titolo: peso = quello usato in Σ peso × beta (sui soli
+     titoli con beta), contributo = peso × beta; senza beta in fondo */
+  const cov=sp?pos.reduce((a,r)=>a+(r.beta!=null?r.value:0),0):0;
+  const withB=pos.filter(r=>r.beta!=null).map(r=>({r:r,w:r.value/cov,c:r.value/cov*r.beta}))
+    .sort((a,b)=>b.c-a.c);
+  const without=pos.filter(r=>r.beta==null).sort((a,b)=>b.value-a.value);
+  const mesi=n=>n+(n===1?' month':' months');
+  const name=r=>{ const t=tkFull(r.pos);
+    return '<td'+(t?' title="'+esc(t)+'"':'')+'>'+esc(tkLabel(r.pos))+'</td>'; };
+  const trs=withB.map(x=>'<tr>'+name(x.r)+'<td class="num">'+nf(x.w*100,1)+'%</td>'+
+      '<td class="num">'+nf(x.r.beta,2)+'</td><td class="num">'+nf(x.c,2)+'</td><td class="num">'+x.r.n+'</td></tr>').join('')+
+    without.map(r=>'<tr>'+name(r)+'<td class="num cellsub">excluded</td>'+
+      '<td class="num">n/a <span class="cellsub">· fewer than 12 months</span></td><td class="num cellsub">—</td>'+
+      '<td class="num">'+r.n+'</td></tr>').join('');
+  html+='<details class="bdet"><summary>Beta by security ('+pos.length+')</summary>'+
+    '<div class="tbl-scroll"><table class="ytbl"><thead><tr><th>Security</th><th>Weight</th><th>Beta</th>'+
+    '<th>Contribution</th><th>Months</th></tr></thead><tbody>'+trs+
+    (sp?'<tr class="btot"><td>Total</td><td class="num">100%</td><td></td><td class="num">'+nf(sp.sum,2)+'</td><td></td></tr>':'')+
+    '</tbody></table></div></details>';
+  html+='<div class="statusline">Computed on '+mesi(pb.n)+' in common with '+esc(B.label)+
+    ' · coverage '+nf(res.coveragePct,0)+'% of capital in securities ('+res.nUsed+'/'+res.nTotal+' positions)'+
+    (res.conti>0?' · deposit accounts excluded':'')+'.</div>';
+  wrap.innerHTML=html;
 }
 
 /* ==========================================================================
@@ -12558,7 +12775,11 @@ function deleteSnap(){
 const BENCH_LIST=[
   {key:'SPY',label:'S&P 500',color:'#6c7cff'},
   {key:'URTH',label:'MSCI World',color:'#e8b13c'},
-  {key:'FEZ',label:'EuroStoxx 50',color:'#4fb0ff'},
+  /* EuroStoxx 50 quotato in euro (iShares Core, Xetra, ad accumulazione: con
+     i dividendi come l'adjclose di URTH). Fino a novembre 2026 era FEZ, lo
+     stesso indice quotato in dollari: mescolava il cambio EUR/USD nel ramo
+     europeo del beta. normalizeState() migra le impostazioni salvate. */
+  {key:'SXRT.DE',label:'EuroStoxx 50',color:'#4fb0ff'},
   {key:'BNDW',label:'Global Bonds',color:'#8b93ad'},
   {key:'GLD',label:'Gold',color:'#a072f0'}
 ];
@@ -12616,15 +12837,15 @@ function benchStats(pts,bd,rfAnnual){
   });
   if(n<12)return out;
   const rfm=Math.pow(1+(rfAnnual||0),1/12)-1, mp=meanArr(rp), mbm=meanArr(rb);
-  let cov=0,vb=0;
-  for(let i=0;i<n;i++){ cov+=(rp[i]-mp)*(rb[i]-mbm); vb+=(rb[i]-mbm)*(rb[i]-mbm); }
-  if(vb>0){
-    out.beta=cov/vb;   /* le due n−1 si semplificano */
+  const bc=betaCalc(rp,rb);
+  if(bc){
+    out.beta=bc.beta;
     out.alphaAnn=((mp-rfm)-out.beta*(mbm-rfm))*12;
   }
   out.te=stdevArr(rp.map((r,i)=>r-rb[i]))*Math.sqrt(12);
   out.ir=out.te>1e-6?out.excessAnn/out.te:null;
-  out.corr=pearson(rp,rb);
+  /* senza beta l'indice è fermo: pearson() darebbe null comunque */
+  out.corr=bc?bc.corr:null;
   return out;
 }
 function renderBenchStats(pts){
@@ -13618,7 +13839,7 @@ function renderPage(k){
   /* card indipendenti: un errore in una non deve lasciare vuote quelle dopo
      (un errore nella mappa di performance bloccava correlazione e distribuzioni) */
   else if(k==='analisi'){ [renderExposure,renderPerfMap,renderCorrelation,renderRiskDist,renderFactorDist,renderEtfList].forEach(cardSafe); }
-  else if(k==='salute'){ renderHealth(); renderQuant(); }
+  else if(k==='salute'){ renderHealth(); renderQuant(); cardSafe(renderBeta); }
   else if(k==='scenari'){ renderScenarios(); }
   else if(k==='rotazione'){ renderRotation(); }
   else if(k==='ribilanciamento'){ renderRebalance(); }
@@ -14143,6 +14364,10 @@ function wire(){
   $('#fRiskFree').addEventListener('input',e=>{
     S.settings.riskFree=num(e.target.value); save(); renderQuant();
   });
+  /* benchmark del beta: solo la card Beta, l'indice dello Storico non cambia */
+  $('#betaPick').addEventListener('change',e=>{
+    S.settings.betaBench=e.target.value; save(); renderBeta();
+  });
   window.addEventListener('hashchange',()=>{ const k=location.hash.slice(1); if(k&&k!==UI.page)go(k); });
   document.addEventListener('error',onLogoError,true);
   document.addEventListener('keydown',e=>{
@@ -14172,6 +14397,7 @@ $('#chipEtf').innerHTML=ic('db',17);
 $('#chipHealth').innerHTML=ic('heart',17);
 $('#chipAlerts').innerHTML=ic('inbox',17);
 $('#chipQuant').innerHTML=ic('trend',17);
+$('#chipBeta').innerHTML=ic('bolt',17);
 $('#chipScen').innerHTML=ic('bolt',17);
 $('#chipRot').innerHTML=ic('rotate',17);
 $('#rotRefresh .ic').innerHTML=ic('refresh',15);
