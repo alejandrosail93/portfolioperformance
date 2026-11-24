@@ -696,6 +696,12 @@ body.privacy .t-big.mask,body.privacy .dp-amt.mask{filter:blur(.32em)}
 .dp-tk .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dp-tk .pc{margin-left:auto;flex:none;font-variant-numeric:tabular-nums}
 .dp-note{font-size:12px;font-weight:600;margin-top:6px}
+/* stato delle borse sotto la variazione: «Milan open · NasdaqGS opens 15:30» */
+/* la misura del testo è quella di .dp-note, che hanno anche loro */
+.dp-panel .dp-sess{margin:0 0 2px;opacity:.85}
+.dp-xs{display:flex;flex-wrap:wrap;gap:2px 10px}
+.dp-xs .xs-it{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.xs-dot{display:inline-block;width:7px;height:7px;border-radius:50%;flex:none;box-shadow:0 0 0 1.5px rgba(255,255,255,.55)}
 /* quadrato stretto (≈1121-1250 px di pagina): con le due note in fondo ("data
    on N of M", "No platform") gli spazi interni scendono, così il caso peggiore
    non arriva sul bordo */
@@ -4183,7 +4189,19 @@ function enrich(){
        entrano solo nel realizzato e nei dividendi incassati */
     realized+=p._realized; dividends+=p._div;
     if(isClosed(p)){ closedRealized+=p._realized; return; }
-    value+=p._value; cost+=p._cost; day+=p._day;
+    value+=p._value; cost+=p._cost;
+  });
+  /* La variazione di oggi conta solo per i titoli la cui ultima seduta è
+     quella di oggi (vedi dayScope): prima dell'apertura di Wall Street il
+     prezzo di Yahoo è ancora la chiusura di ieri, e la sua variazione non è
+     di oggi. Gli altri valgono 0. Si decide dopo il giro, perché la seduta
+     di riferimento dipende da tutte le posizioni attive, e solo dopo si
+     somma day. */
+  const sc=dayScope(activePositions(),Date.now());
+  S.positions.forEach(p=>{
+    p._dayOn=countsToday(p,sc);
+    if(!p._dayOn){ p._day=0; p._dayPct=0; }
+    if(!isClosed(p))day+=p._day;
   });
   S.positions.forEach(p=>{
     p._w=value>0&&!isClosed(p)?p._value/value*100:0;
@@ -4197,7 +4215,7 @@ function enrich(){
   T={value,cost,pnl:value-cost,pnlPct:cost>0?(value-cost)/cost*100:0,
      day,dayPct:(value-day)>0?day/(value-day)*100:0,realized,dividends,n:act.length,
      nClosed:closedPositions().length, closedRealized:closedRealized,
-     best:sorted[0]||null,worst:sorted[sorted.length-1]||null};
+     best:sorted[0]||null,worst:sorted[sorted.length-1]||null, dayScope:sc};
   return T;
 }
 /* La giornata per piattaforma, per il secondo quadrato della Home. Riceve le
@@ -4209,8 +4227,11 @@ function enrich(){
    T.dayPct: day/(value−day), 0 se il denominatore non è positivo, quindi per
    "all" coincide con T.day e T.dayPct. Ha il dato una posizione con
    prevClose maggiore di zero: le altre valgono 0 e sono contate a parte
-   ("data on N of M"). Un conto deposito ha la variazione vera, zero: conta
-   fra quelle col dato ma non concorre a migliore e peggiore. Pura. */
+   ("data on N of M"). Un titolo con prevClose ma senza seduta oggi
+   (p._dayOn falso, vedi countsToday) il dato ce l'ha: vale 0 nella somma e
+   non concorre a migliore e peggiore. Un conto deposito ha la variazione
+   vera, zero: conta fra quelle col dato ma non concorre a migliore e
+   peggiore. Pura. */
 const DAY_PF=['all','Fineco','Directa','Scalable Capital','none'];
 function dayByPlatform(positions){
   const out={};
@@ -4223,13 +4244,151 @@ function dayByPlatform(positions){
       o.day+=num(p._day); o.value+=num(p._value); o.n++;
       if(!has)return;
       o.nData++;
-      if(dep)return;
+      if(dep||p._dayOn===false)return;
       if(!o.best||dp>num(o.best._dayPct))o.best=p;
       if(!o.worst||dp<num(o.worst._dayPct))o.worst=p;
     });
   });
   DAY_PF.forEach(k=>{ const o=out[k]; o.pct=(o.value-o.day)>0?o.day/(o.value-o.day)*100:0; });
   return out;
+}
+/* Seduta di oggi: entra nella variazione di oggi solo un titolo la cui
+   ultima seduta (p.mkt.t, ora dell'ultimo prezzo, vedi yMarket) cade oggi,
+   nella data locale del dispositivo (dayKeyOf, non todayISO, che è in UTC).
+   sessKey: il giorno dell'ultima seduta, null se non si sa. */
+function sessKey(o){
+  const t=o&&o.mkt&&o.mkt.t;
+  return typeof t==='number'&&isFinite(t)?dayKeyOf(t):null;
+}
+/* La seduta di riferimento, dalle posizioni attive di borsa con una
+   chiusura precedente. today: almeno un titolo ha già fatto seduta oggi.
+   last: nessuno, quindi si mostra l'ultima seduta (weekend, festa, mattina
+   presto), la più recente fra quelle note; t è l'ora dell'ultimo prezzo di
+   quella seduta. legacy: nessuna seduta nota (dati di prima di mkt, oppure
+   solo criptovalute) e vale la regola di sempre. Le criptovalute (h24)
+   quotano anche di notte e di sabato: non decidono mai la seduta. Pura. */
+function dayScope(positions,now){
+  const oggi=dayKeyOf(now);
+  let today=false, last=null;
+  (positions||[]).forEach(p=>{
+    if(!p||isDeposit(p)||!(num(p.prevClose)>0)||!p.mkt||p.mkt.h24)return;
+    const k=sessKey(p); if(k==null)return;
+    if(k===oggi)today=true;
+    if(!last||k>last.key||(k===last.key&&p.mkt.t>last.t))last={key:k,t:p.mkt.t};
+  });
+  if(today)return {mode:'today',key:oggi};
+  if(last)return {mode:'last',key:last.key,t:last.t};
+  return {mode:'legacy'};
+}
+/* Se la variazione di p entra in quella di oggi (sc da dayScope). Un conto
+   deposito sì: vale 0 comunque. Senza chiusura precedente no. Senza mkt
+   (quotazione di prima di questa regola) o in modalità legacy sì, come
+   prima. Nell'ultima seduta le criptovalute restano fuori: il loro
+   movimento del sabato non è della seduta di venerdì. Pura. */
+function countsToday(p,sc){
+  if(isDeposit(p))return true;
+  if(!(num(p&&p.prevClose)>0))return false;
+  if(!p.mkt||!sc||sc.mode==='legacy')return true;
+  const k=sessKey(p);
+  if(sc.mode==='today')return k===sc.key;
+  return !p.mkt.h24&&k===sc.key;
+}
+/* La cella Today, la scheda titolo e l'ordinamento mostrano la variazione
+   solo se c'è e se è di oggi; altrimenti il trattino. */
+const dayShown=p=>!!p&&p._dayOn!==false&&num(p.prevClose)>0;
+/* Stato delle borse dei titoli in portafoglio, dalla seduta salvata con la
+   quotazione (mkt) e dall'ora dell'ultimo aggiornamento dei prezzi: senza
+   calendario delle feste e senza richieste in più. Con prezzi di un altro
+   giorno non si può dire nulla: stale. Per borsa (mkt.ex), dai titoli
+   attivi di borsa (non conti, non criptovalute):
+   - ses: almeno un titolo ha già fatto seduta oggi;
+   - con gli orari della seduta di oggi: opens prima dell'apertura; durante,
+     open se c'è seduta, refresh se i prezzi sono di prima dell'apertura,
+     closedToday se dopo un quarto d'ora dall'apertura nessun titolo ha
+     scambiato (Yahoo dà gli orari di oggi anche nei giorni di festa: le
+     quotazioni gratuite arrivano con circa 15 minuti di ritardo, prima di
+     allora notYet); dopo la chiusura closed, refresh o closedToday;
+   - con gli orari di un giorno successivo: closedToday, con la riapertura;
+   - con quelli di un giorno passato e nessuna seduta: closedToday (Yahoo dà
+     la seduta di oggi anche prima dell'apertura e dopo la chiusura: se dà
+     quella di ieri, oggi quella borsa non apre, come di sabato);
+   - senza orari: open se c'è seduta, altrimenti notYet.
+   Un giro di aggiornamento finito con la rete giù aggiorna lo stesso
+   lastUpdate: se nessun titolo di quella borsa ha la quotazione fresca
+   (tutti _stale), da lastUpdate non si conclude nulla e la borsa senza
+   seduta resta refresh invece di closedToday.
+   Gli orari sono quelli del titolo con la quotazione più recente. list è
+   nell'ordine della riga: aperte, poi quelle che aprono più tardi, poi le
+   chiuse. byEx: la stessa voce per nome di borsa. Pura. */
+const XS_LAG=15*60e3;
+const XS_ORDER={open:0,refresh:1,notYet:2,opens:3,closed:4,closedToday:5};
+function exchangeStatus(positions,now,lastUpdate){
+  if(!(num(lastUpdate)>0)||dayKeyOf(lastUpdate)!==dayKeyOf(now))return {stale:true,list:[],byEx:{}};
+  const oggi=dayKeyOf(now), by={};
+  (positions||[]).forEach(p=>{
+    if(!p||isDeposit(p)||isClosed(p)||!p.mkt||p.mkt.h24||sessKey(p)==null)return;
+    const ex=String(p.mkt.ex||'');
+    const g=by[ex]||(by[ex]={ex:ex,ses:false,ref:null,n:0,fresh:false});
+    g.n++;
+    if(!p._stale)g.fresh=true;
+    if(sessKey(p)===oggi)g.ses=true;
+    if(!g.ref||p.mkt.t>g.ref.t)g.ref=p.mkt;
+  });
+  const list=Object.keys(by).map(k=>{
+    const g=by[k], o=g.ref.open, c=g.ref.close, known=o!=null&&c!=null&&c>o;
+    const x={ex:g.ex,ses:g.ses,n:g.n,open:known?o:null,close:known?c:null,st:null,title:''};
+    if(known&&dayKeyOf(o)===oggi){
+      if(now<o)x.st='opens';
+      else if(g.ses)x.st=now<c?'open':'closed';
+      else if(lastUpdate<o||!g.fresh)x.st='refresh';
+      else if(now>=c||lastUpdate>=o+XS_LAG)x.st='closedToday';
+      else x.st='notYet';
+    }else if(known&&dayKeyOf(o)>oggi){
+      x.st='closedToday'; x.title='Reopens '+dayLabel(o)+' '+fmtTime(o);
+    }else if(known&&!g.ses)x.st=g.fresh?'closedToday':'refresh';
+    else x.st=g.ses?'open':'notYet';
+    if(x.st==='refresh')x.title=!g.fresh?'Prices not updated: refresh to see if it opened today'
+      :'Opened at '+fmtTime(o)+': refresh prices to include it';
+    return x;
+  }).sort((a,b)=>XS_ORDER[a.st]-XS_ORDER[b.st]||
+    (a.st==='opens'?a.open-b.open:0)||a.ex.localeCompare(b.ex));
+  const byEx={}; list.forEach(x=>{ byEx[x.ex]=x; });
+  return {stale:false,list:list,byEx:byEx};
+}
+/* Testo e colore di una borsa nella riga del quadrato Oggi. Il nome arriva
+   grezzo da Yahoo: l'escape si fa qui. */
+const XS_DOT={open:'var(--up)',refresh:'var(--warn)'};
+function exchangeLabel(x){
+  const nm=esc(x.ex||'Market');
+  const t={open:nm+' open',refresh:nm+' open · refresh',notYet:nm+' no trades yet today',
+    opens:nm+' opens '+(x.open!=null?fmtTime(x.open):''),closed:nm+' closed',closedToday:nm+' closed today'}[x.st];
+  return '<span class="xs-it"'+(x.title?' title="'+esc(x.title)+'"':'')+'><i class="xs-dot" style="background:'+
+    (XS_DOT[x.st]||'var(--muted)')+'"></i>'+t.replace(' · ',', ')+'</span>';
+}
+function exchangeRow(xs,max){
+  max=max||5;
+  if(!xs||!xs.list.length)return '';
+  const v=xs.list.slice(0,max), rest=xs.list.slice(max);
+  return '<div class="dp-note dp-xs">'+v.map(exchangeLabel).join('')+
+    (rest.length?'<span class="xs-it xs-more" title="'+esc(rest.map(x=>x.ex).join(', '))+'">+'+rest.length+'</span>':'')+'</div>';
+}
+/* Perché la variazione di oggi di un titolo non c'è (p._dayOn falso, con
+   una chiusura precedente): k per raggruppare, txt per la cella. Dallo stato
+   della sua borsa; una criptovaluta fuori dall'ultima seduta è un mercato
+   h24; senza stato (prezzi di un altro giorno) il giorno dell'ultimo
+   scambio. null se la variazione c'è o se manca proprio. */
+function dayOff(p,xs){
+  if(!p||p._dayOn!==false||!(num(p.prevClose)>0))return null;
+  if(p.mkt&&p.mkt.h24)return {k:'h24',txt:'24h market'};
+  const x=xs&&!xs.stale&&p.mkt?xs.byEx[String(p.mkt.ex||'')]:null;
+  if(x){
+    if(x.st==='opens')return {k:'opens',txt:'opens '+fmtTime(x.open)};
+    if(x.st==='closedToday')return {k:'closedToday',txt:'closed today'};
+    if(x.st==='refresh')return {k:'refresh',txt:'refresh prices'};
+    if(x.st==='closed')return {k:'closedToday',txt:'no trades today'};
+    return {k:'notYet',txt:'no trades yet'};
+  }
+  return {k:'old',txt:p.mkt&&p.mkt.t?'last trade '+dayLabel(p.mkt.t):'not today'};
 }
 /* Livello di colore dei quadrati 1 e 2: flat, up1…up3, down1…down3. Piatto
    sotto lo 0,005% in valore assoluto, come la pillola di renderHero(). Le
@@ -4945,6 +5104,8 @@ function renderValueTile(){
 function dayTabs(){
   return [{k:'all',l:'All',s:''}].concat(PLATFORMS.map(p=>({k:p.k,l:p.k.split(' ')[0],s:p.s})));
 }
+/* Lo stato delle borse di adesso, per l'interfaccia (vedi exchangeStatus) */
+const marketsNow=list=>exchangeStatus(list,Date.now(),S.lastUpdate);
 function renderDayTile(){
   const bar=$('#dayTabs'), panel=$('#dayPanel'); if(!bar||!panel)return;
   const tabs=dayTabs();
@@ -4959,7 +5120,12 @@ function renderDayTile(){
     b.setAttribute('aria-selected',on?'true':'false'); b.setAttribute('tabindex',on?'0':'-1');
     if(on)panel.setAttribute('aria-labelledby',b.id);
   });
-  const all=dayByPlatform(activePositions()), o=all[cur];
+  const act=activePositions(), all=dayByPlatform(act), o=all[cur];
+  /* la seduta e le borse della scheda aperta: tutte, o una piattaforma */
+  const mine=cur==='all'?act:act.filter(p=>(normPlatform(p.platform)||'none')===cur);
+  const sc=T.dayScope||{mode:'legacy'}, xs=marketsNow(mine);
+  const borsa=mine.some(p=>!isDeposit(p)&&p.ticker);
+  const stato=xs.stale?(borsa?'<div class="dp-note dp-xs">Refresh prices to see which markets are open today</div>':''):exchangeRow(xs);
   let h, lv='flat';
   if(!o.n){
     h='<div class="dp-empty">'+(cur==='all'?'No positions':'No positions on '+esc(cur))+'</div>';
@@ -4975,11 +5141,16 @@ function renderDayTile(){
     if(o.best&&o.best===o.worst){ if(mosso(o.best))bw.push(tk(num(o.best._dayPct)>0?'Best':'Worst',o.best)); }
     else{ if(mosso(o.best))bw.push(tk('Best',o.best)); if(mosso(o.worst))bw.push(tk('Worst',o.worst)); }
     if(o.nData<o.n)bw.push('<div class="dp-note">data on '+o.nData+' of '+o.n+' positions</div>');
+    /* nell'ultima seduta le criptovalute restano fuori: lo si dice */
+    const h24=sc.mode==='last'?mine.filter(p=>p.mkt&&p.mkt.h24&&p._dayOn===false):[];
+    if(h24.length)bw.push('<div class="dp-note">'+h24.map(p=>esc(tkLabel(p))).join(', ')+
+      ': 24h market, not in this session</div>');
     if(cur==='all'&&Math.abs(all.none.day)>=.5)
       bw.push('<div class="dp-note">No platform <span class="num mask">'+signedEur0(all.none.day)+'</span></div>');
     const amt=Math.round(o.day)===0?'€ 0':signedEur0(o.day);
-    h='<div class="dp-amt num px mask'+fitCls(amt)+'">'+amt+'</div>'+
-      '<div class="dp-pct num px">'+(z?nf(0,2)+'%':pctv(o.pct))+'</div>'+
+    h=(sc.mode==='last'&&sc.t?'<div class="dp-note dp-sess">Last session · '+esc(dayLabel(sc.t))+'</div>':'')+
+      '<div class="dp-amt num px mask'+fitCls(amt)+'">'+amt+'</div>'+
+      '<div class="dp-pct num px">'+(z?nf(0,2)+'%':pctv(o.pct))+'</div>'+stato+
       '<div class="dp-row">'+(cur==='all'?o.n+(o.n===1?' position':' positions'):
         'value <span class="num mask">'+money0(o.value)+'</span> · '+nf(T.value>0?o.value/T.value*100:0,1)+'% of portfolio')+'</div>'+
       (bw.length?'<div class="dp-bw">'+bw.join('')+'</div>':'');
@@ -5097,8 +5268,15 @@ function dailyNote(info){
     else{
       if(info.miss.length)h+='Andamento nella giornata calcolato sul <b>'+nf(info.coveragePct,0)+'%</b> del capitale: '+
         nomi(info.miss)+(info.miss.length===1?' resta fermo':' restano fermi')+' al prezzo noto. ';
-      const uno=info.ferme.length===1;
-      if(info.ferme.length)h+=nomi(info.ferme)+(info.oggi
+      /* fuori dalla variazione di oggi (p._dayOn falso) un titolo che non ha
+         ancora aperto resta fermo e basta; con una quotazione di prima della
+         regola sulla seduta (senza mkt) conta ancora, e la sua variazione è
+         nel primo tratto, come prima */
+      const off=info.oggi?info.ferme.filter(p=>p._dayOn===false):[];
+      const on=info.ferme.filter(p=>off.indexOf(p)<0), uno=on.length===1, u1=off.length===1;
+      if(off.length)h+=nomi(off)+(u1?' non ha':' non hanno')+' ancora aperto oggi: '+
+        (u1?'resta fermo e non entra':'restano fermi e non entrano')+' nella variazione di oggi. ';
+      if(on.length)h+=nomi(on)+(info.oggi
         ?(uno?' non ha':' non hanno')+' ancora aperto oggi: la variazione della seduta precedente è nel primo tratto. '
         :(uno?' ha':' hanno')+' l\'ultima seduta prima di questa: la sua variazione è nel primo tratto. ');
       if(info.fuori.length)h+=nomi(info.fuori)+(info.fuori.length===1?' quota':' quotano')+
@@ -5561,6 +5739,25 @@ function yVolume(m){
   if(m.instrumentType==='CRYPTOCURRENCY')return px>0?v/px:null;
   return v;
 }
+/* Seduta dell'ultima quotazione, dallo stesso meta di yQuote (nessuna
+   richiesta in più): t è l'ora dell'ultimo prezzo, open/close la seduta
+   regolare che Yahoo indica come corrente, ex il nome della borsa. Verificato
+   il 24/11/2026 alle 11:45: prima dell'apertura di New York NVDA ha t di ieri
+   alle 22:00 e open/close di oggi (15:30-22:00); Milano e Xetra hanno t di
+   oggi; Tokyo, già chiusa, t di oggi alle 7:30 e la seduta di oggi. Le
+   criptovalute (h24) quotano sempre, anche di sabato. Tutti i tempi sono in
+   ms; un numero che manca o non è finito diventa null, e senza
+   regularMarketTime non si sa nulla: null. Le stringhe restano grezze (si
+   passano da esc() solo dove si mostrano). */
+function yMarket(m){
+  const ms=v=>typeof v==='number'&&isFinite(v)&&v>0?v*1000:null;
+  const t=ms(m&&m.regularMarketTime);
+  if(t==null)return null;
+  const r=(m.currentTradingPeriod&&m.currentTradingPeriod.regular)||{};
+  const str=v=>typeof v==='string'?v:'';
+  return {t:t, ex:str(m.fullExchangeName)||str(m.exchangeName), open:ms(r.start), close:ms(r.end),
+    h24:m.instrumentType==='CRYPTOCURRENCY'};
+}
 function yQuote(sym,force){
   /* range=1d, non 5d: chartPreviousClose e' la chiusura che precede la prima
      barra del grafico, quindi con 5d era quella di cinque sedute prima e la
@@ -5572,7 +5769,9 @@ function yQuote(sym,force){
      un'altra non valgono, nemmeno come ultimo prezzo noto a rete giu'.
      Il volume del giorno (in numero di titoli, non in euro) arriva nella
      stessa risposta: le voci salvate prima non l'hanno e restano senza fino
-     al prossimo aggiornamento. */
+     al prossimo aggiornamento. Lo stesso vale per la seduta (mkt, vedi
+     yMarket): le voci vecchie restano senza e chi la legge le tratta come
+     sconosciute, cioè come prima. */
   const qs='?interval=1d&range=1d', c=QCACHE[sym]&&QCACHE[sym].qs===qs?QCACHE[sym]:null;
   if(!force&&c&&Date.now()-c.at<NET.ttl)return Promise.resolve(c.q);
   return fetchJSON(yURL('query1',sym,qs),[yURL('query2',sym,qs)]).then(d=>{
@@ -5581,7 +5780,8 @@ function yQuote(sym,force){
     const q={price:m.regularMarketPrice,
       prevClose:m.chartPreviousClose!=null?m.chartPreviousClose:m.previousClose,
       currency:m.currency,
-      vol:yVolume(m)};
+      vol:yVolume(m),
+      mkt:yMarket(m)};
     QCACHE[sym]={q:q,at:Date.now(),qs:qs};
     return q;
   },e=>{
@@ -5731,8 +5931,9 @@ function refreshPrices(silent,onlyPortfolio){
       const o=t.o;
       /* prezzo e chiusura precedente vanno in coppia: una chiusura rimasta da
          un aggiornamento vecchio accanto al prezzo nuovo darebbe la variazione
-         di piu' sedute, meglio nessuna. Lo stesso per il volume del giorno */
-      o.price=r.price; o.prevClose=r.prevClose||null; o.vol=r.vol||null;
+         di piu' sedute, meglio nessuna. Lo stesso per il volume del giorno e
+         per la seduta (mkt), che dice di quale giorno sono prezzo e chiusura */
+      o.price=r.price; o.prevClose=r.prevClose||null; o.vol=r.vol||null; o.mkt=r.mkt||null;
       if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)o.currency=r.currency;
       o._stale=!!r.stale; o._errKind=null; o._lastCheck=Date.now();
     },e=>{
@@ -6928,7 +7129,8 @@ function renderAlloc(){
 /* Due schede sulla stessa barra a due lati: "Totale" usa il G/P dal carico,
    "Oggi" la variazione dalla chiusura di ieri, con la stessa regola della
    colonna Oggi e del KPI: senza prevClose il titolo non ha un dato di oggi
-   e resta fuori, ma viene contato invece di sparire in silenzio. */
+   e resta fuori, ma viene contato invece di sparire in silenzio. Resta fuori
+   anche un titolo che non ha ancora fatto seduta oggi (dayShown). */
 function renderContrib(){
   const day=UI.contribView==='day', k=day?'_day':'_pnl';
   $$('#contribSeg button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-v')===UI.contribView));
@@ -6944,10 +7146,20 @@ function renderContrib(){
      riepilogo e nota sui mancanti parlano solo di quella piattaforma */
   UI.contribPlatform=fillPlatformSelect($('#contribPlatform'),UI.contribPlatform);
   const act=activePositions().filter(p=>matchFilters(p,{platform:UI.contribPlatform}));
-  const arr=act.filter(p=>day?num(p.prevClose)>0:p._cost>0).slice().sort(cs.k==='name'
+  const arr=act.filter(p=>day?dayShown(p):p._cost>0).slice().sort(cs.k==='name'
     ?(a,b)=>nm(a).localeCompare(nm(b),'it',{sensitivity:'base'})*cs.dir
     :(a,b)=>(a[k]-b[k])*cs.dir);
   const host=$('#contrib');
+  /* titoli con la chiusura di ieri ma senza seduta oggi: non sono nella
+     variazione e si dice perché, a parte da quelli senza chiusura */
+  const offs=day?act.map(p=>({p:p,o:dayOff(p,marketsNow(act))})).filter(x=>x.o):[];
+  const offNote=offs.length?'<div class="note miss off">'+offs.length+(offs.length===1?' asset':' assets')+
+    ' not in today\'s change: '+contribOffReason(offs.map(x=>x.o.k))+' ('+
+    offs.slice(0,4).map(x=>esc(tkLabel(x.p))).join(', ')+(offs.length>4?'…':'')+')</div>':'';
+  if(!arr.length&&offNote){
+    host.innerHTML=offNote;
+    $('#contribSub').textContent=''; $('#contribTot').innerHTML=''; return;
+  }
   if(!arr.length){
     host.innerHTML='<div class="note" style="margin:0">'+(UI.contribPlatform&&!act.length
       ?'No assets in the portfolio on this platform.'
@@ -6977,8 +7189,10 @@ function renderContrib(){
   const maxNeg=Math.max.apply(null,[0].concat(arr.map(p=>Math.max(0,-p[k]))));
   const tot=maxPos+maxNeg||1;
   const lw=maxNeg/tot*100, rw=maxPos/tot*100;
-  /* un conto deposito non ha mai la chiusura di ieri: non è un titolo che manca */
-  const miss=day?act.filter(p=>!isDeposit(p)).length-arr.length:0;
+  /* un conto deposito non ha mai la chiusura di ieri: non è un titolo che
+     manca. Un titolo con la chiusura ma senza seduta oggi nemmeno: ha il
+     dato, solo che non è di oggi */
+  const miss=day?act.filter(p=>!isDeposit(p)&&!(num(p.prevClose)>0)).length:0;
   host.innerHTML=arr.map(p=>{
     const v=p[k], up=v>=0, col=up?'var(--up)':'var(--down)';
     const w=up?(maxPos>0?v/maxPos*100:0):(maxNeg>0?-v/maxNeg*100:0);
@@ -6992,8 +7206,16 @@ function renderContrib(){
         (up?'<i style="width:'+w.toFixed(1)+'%;background:'+col+'"></i>':'')+'</span></div></div>';
   }).join('')+
     (miss?'<div class="note miss">'+miss+(miss===1?' asset has no previous close yet: it will appear':' assets have no previous close yet: they will appear')+
-      ' at the next price refresh.</div>':'');
+      ' at the next price refresh.</div>':'')+offNote;
   $$('#contrib .cr').forEach(el=>el.addEventListener('click',()=>openDrawer(el.getAttribute('data-id'))));
+}
+
+/* Il motivo comune dei titoli fuori dalla variazione di oggi (k da dayOff) */
+function contribOffReason(ks){
+  const R={opens:'market not open yet',closedToday:'market closed today',notYet:'no trades yet today',
+    refresh:'refresh prices to include them',h24:'24h market, not in this session',old:'last trade on an earlier day'};
+  const u=ks.filter((k,i)=>ks.indexOf(k)===i);
+  return u.length===1?R[u[0]]:'market not open yet or closed today';
 }
 
 /* ---------- tabella posizioni ---------- */
@@ -7001,13 +7223,19 @@ function renderContrib(){
    mostra. Today mostra la variazione in % e si ordina per quella, non per
    l'importo in euro (_day). null dove la cella ha un trattino o il dato
    manca: carico e prezzo di un conto deposito, Today senza chiusura
-   precedente, Target wt. e To trade vuoti, prezzo non ancora arrivato,
+   precedente o senza seduta oggi, Target wt. e To trade vuoti, prezzo non ancora arrivato,
    rotazione n/d. Il rischio vuoto si vede come 6 e si ordina come 6. rot:
    i punteggi della rotazione, calcolati una volta per ordinamento. */
+/* Il trattino della variazione di oggi, con il motivo sotto quando la
+   chiusura c'è ma la seduta di oggi no */
+function dayDash(p,xs){
+  const o=dayOff(p,xs);
+  return '<span class="cellsub">—</span>'+(o?'<div class="cellsub day-off">'+esc(o.txt)+'</div>':'');
+}
 function sortVal(p,k,rot){
   if(rot)return rot.get(p);
   if((k==='_avg'||k==='price')&&isDeposit(p))return null;
-  if(k==='_day')return p.prevClose?num(p._dayPct):null;
+  if(k==='_day')return dayShown(p)?num(p._dayPct):null;
   if(k==='risk')return riskLevel(p);
   const v=p[k];
   if(v==null||v===''||(typeof v==='number'&&!isFinite(v)))return null;
@@ -7057,6 +7285,8 @@ function renderTable(){
     tb.innerHTML='<tr><td colspan="16" style="text-align:center;color:var(--muted);padding:30px">'+
       'No assets match the filters.</td></tr>';
   }else{
+    /* stato delle borse, per il motivo del trattino nella colonna Today */
+    const xs=marketsNow(activePositions());
     tb.innerHTML=rows.map(p=>{
       const up=p._pnl>=0, w=Math.min(100,Math.abs(p._pnl)/maxAbs*100);
       const rk=Math.max(3,Math.min(9,Math.round(num(p.risk))||6));
@@ -7079,7 +7309,7 @@ function renderTable(){
         '<td class="num px mask '+(up?'up':'down')+'"><b>'+(up?'+':'−')+money(Math.abs(p._pnl))+'</b>'+
           '<div class="minibar"><i style="width:'+w+'%;background:'+(up?'var(--up)':'var(--down)')+'"></i></div></td>'+
         '<td class="num px '+(up?'up':'down')+'">'+pctv(p._pnlPct)+'</td>'+
-        '<td class="num hide-sm px '+(p._day>=0?'up':'down')+'">'+(p.prevClose?pctv(p._dayPct):'<span class="cellsub">—</span>')+'</td>'+
+        '<td class="num hide-sm px '+(p._day>=0?'up':'down')+'">'+(dayShown(p)?pctv(p._dayPct):dayDash(p,xs))+'</td>'+
         '<td class="hide-sm"><span class="riskdot" style="background:'+riskColor(rk)+'">'+rk+'</span></td>'+
         rotCell(p)+
         '<td><span class="badge '+a.c+'" title="'+esc(a.t)+'">'+a.s+'</span></td>'+
@@ -7809,8 +8039,9 @@ function savePos(){
   const px0=num(p.price);
   p.price=num($('#fPrice').value);
   /* un prezzo scritto a mano non viene dalla quotazione: chiusura di ieri e
-     volume restano solo se il prezzo è quello di prima (vedi refreshPrices) */
-  if(!isNew&&p.price!==px0){ p.prevClose=null; p.vol=null; }
+     volume restano solo se il prezzo è quello di prima (vedi refreshPrices),
+     e con loro la seduta */
+  if(!isNew&&p.price!==px0){ p.prevClose=null; p.vol=null; p.mkt=null; }
   /* la data scritta dall'utente vince sempre; per le nuove posizioni, se il
      campo è vuoto, si registra oggi */
   const da=$('#fDateAdded').value;
@@ -7903,7 +8134,7 @@ function refreshOne(p){
   const done=()=>{ refreshingIds.delete(p.id); p._lastCheck=Date.now(); };
   yQuote(p.ticker,true).then(r=>{
     done();
-    p.price=r.price; p.prevClose=r.prevClose||null; p.vol=r.vol||null;   /* in coppia: vedi refreshPrices() */
+    p.price=r.price; p.prevClose=r.prevClose||null; p.vol=r.vol||null; p.mkt=r.mkt||null;   /* in coppia: vedi refreshPrices() */
     if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)p.currency=r.currency;
     p._stale=!!r.stale; p._errKind=null; saveQCache();
     S.lastUpdate=Date.now(); save(); renderAll();
@@ -7985,7 +8216,8 @@ function openDrawer(id){
     ['Current price',nf(num(p.price),2)+' '+esc(cur),0],
     ['Portfolio weight',nf(p._w,1)+'%',0],
     ['Invested capital',money(p._cost),1],
-    ['Today\'s change',p.prevClose?pctv(p._dayPct):'—',0,p._day>=0?'up':'down'],
+    ['Today\'s change',dayShown(p)?pctv(p._dayPct):(()=>{ const o=dayOff(p,marketsNow(activePositions()));
+      return '—'+(o?' <span class="cellsub">'+esc(o.txt)+'</span>':''); })(),0,p._day>=0?'up':'down'],
     d.usesTx?['Realized P&L',(p._realized>=0?'+':'−')+money(Math.abs(p._realized)),1,p._realized>=0?'up':'down']:null,
     d.usesTx?['Dividends received',money(p._div),1]:null,
     ['Dividend yield',p.yield!=null&&p.yield!==''?nf(num(p.yield),2)+'%':'—',0],
@@ -8368,14 +8600,15 @@ function dailyRef(pts,target){
   return ref&&ref.v>0&&isFinite(ref.v)?ref:null;
 }
 /* Variazione di periodo di un titolo, come frazione, o null.
-   1G: dal prezzo di chiusura precedente, gli stessi numeri di p._dayPct.
+   1G: dal prezzo di chiusura precedente, gli stessi numeri di p._dayPct;
+   null (n.d.) per un titolo senza seduta oggi (p._dayOn falso).
    1S e 1M: dalla chiusura di riferimento in DHIST al prezzo ATTUALE, non
    all'ultima barra, che Yahoo lascia spesso vuota sulle sedute recenti. */
 function perfPeriod(p,per,now){
   const price=num(p&&p.price);
   if(!(price>0))return null;
   let base=null;
-  if(per==='1G')base=num(p.prevClose);
+  if(per==='1G'){ if(p._dayOn===false)return null; base=num(p.prevClose); }
   else{
     const h=p.ticker&&DHIST[p.ticker];
     const ref=h?dailyRef(h.pts,perfTarget(per,now==null?Date.now():now)):null;
@@ -10972,7 +11205,7 @@ function saveWatch(){
   const obj=Object.assign({},old||{},watchFromForm(id));
   /* un altro ticker è un altro titolo: la quotazione del vecchio non vale più,
      e senza prezzo quella nuova si chiede qui sotto */
-  if(old&&String(old.ticker||'').trim().toUpperCase()!==obj.ticker){ obj.price=null; obj.prevClose=null; obj.vol=null; }
+  if(old&&String(old.ticker||'').trim().toUpperCase()!==obj.ticker){ obj.price=null; obj.prevClose=null; obj.vol=null; obj.mkt=null; }
   if(old)S.watchlist=S.watchlist.map(x=>x===old?obj:x);
   else S.watchlist.push(obj);
   save(); closeAll(); renderAll();
@@ -10997,7 +11230,7 @@ function watchToPortfolio(){
      finché non arriva la quotazione. */
   const p={id:uid()};
   DESC_FIELDS.forEach(f=>{ p[f.k]=w[f.k]; });
-  Object.assign(p,{qty:w.qty, avg:w.avg, price:w.avg, prevClose:null, dateAdded:todayISO(), tx:[]});
+  Object.assign(p,{qty:w.qty, avg:w.avg, price:w.avg, prevClose:null, mkt:null, dateAdded:todayISO(), tx:[]});
   S.positions.push(p);
   if(id)S.watchlist=S.watchlist.filter(x=>x.id!==id);
   save(); closeAll(); renderAll();
@@ -11007,7 +11240,7 @@ function watchToPortfolio(){
 function refreshWatchOne(w){
   if(!w.ticker)return;
   yQuote(w.ticker,true).then(r=>{
-    w.price=r.price; w.prevClose=r.prevClose||null; w.vol=r.vol||null;   /* in coppia: vedi refreshPrices() */
+    w.price=r.price; w.prevClose=r.prevClose||null; w.vol=r.vol||null; w.mkt=r.mkt||null;   /* in coppia: vedi refreshPrices() */
     if(r.currency&&CURRENCIES.indexOf(r.currency)>-1)w.currency=r.currency;
     save(); if(UI.page==='watchlist')renderWatchlist();
   }).catch(()=>{});
