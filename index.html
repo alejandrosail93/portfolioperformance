@@ -537,6 +537,15 @@ html[data-theme="light"] .seg button.on{background:#fff}
 .card-hd h2{font-size:14.5px;font-weight:700;letter-spacing:-.15px;display:flex;align-items:center;gap:10px}
 .card-hd .sub{font-size:12px;color:var(--muted);font-weight:500}
 .card-hd .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+/* card apribili dello Storico (applyHistFold): l'intestazione è un pulsante,
+   la freccia ruota di 90° da chiusa ad aperta; da chiusa niente bordo sotto */
+.hfold{display:flex;align-items:center;gap:10px;font:inherit;color:var(--ink);background:none;border:0;
+  padding:2px 4px;margin:-2px -4px;border-radius:8px;cursor:pointer;text-align:left}
+.hfold .tg{display:grid;place-items:center;color:var(--muted);transition:transform .18s;margin-right:-4px}
+.hfold:hover .tg,.hfold.open .tg{color:var(--ink)}
+.hfold.open .tg{transform:rotate(90deg)}
+.hfold:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+.hfold-hd.shut{border-bottom-color:transparent}
 .card-bd{padding:20px}
 .chip{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none}
 .chip.a{background:var(--accent-soft);color:var(--accent-ink)}
@@ -1920,6 +1929,8 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
   .qd,.qd-l.on{transition:none}
   /* il dock compare e sparisce subito, senza scorrere */
   .dock-wrap,.dock-hdl svg{transition:none}
+  /* la freccia delle card apribili dello Storico scatta senza girare */
+  .hfold .tg{transition:none}
   body.dock-hidden .dock{transition:none}
 }
 
@@ -2633,18 +2644,33 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
         </div>
 
         <div class="card mt18" id="closedCard" style="display:none">
-          <div class="card-hd"><h2><span class="chip t" id="chipClosed"></span> Closed positions</h2>
+          <div class="card-hd hfold-hd"><h2><button type="button" class="hfold" id="closedToggle"
+              aria-expanded="false" aria-controls="closedPanel"><span class="tg"></span><span class="chip t"
+              id="chipClosed"></span> Closed positions</button></h2>
             <div class="right"><span class="sub" id="closedCount"></span></div></div>
+          <div id="closedPanel" hidden>
+          <div class="filters">
+            <input type="text" class="fs" id="closedSearch" placeholder="Search ticker, name or ISIN…"
+              aria-label="Search closed positions">
+            <span class="fcount" id="closedFltCount"></span>
+            <button class="fclear" id="closedFltClear">Clear filters</button>
+          </div>
           <div id="closedBody"></div>
           <div class="note mt18">Titoli venduti al 100%. Non fanno più parte del portafoglio operativo, ma il loro
             guadagno/perdita realizzato resta nei totali e lo storico dei mesi in cui li possedevi resta intatto.
             Per togliere davvero un titolo dai dati usa <b>Delete</b> nella sua scheda: è irreversibile.</div>
+          </div>
         </div>
 
         <div class="card mt18" id="txAllCard">
-          <div class="card-hd"><h2><span class="chip a" id="chipTxAll"></span> Transaction history</h2>
+          <div class="card-hd hfold-hd"><h2><button type="button" class="hfold" id="txAllToggle"
+              aria-expanded="false" aria-controls="txAllPanel"><span class="tg"></span><span class="chip a"
+              id="chipTxAll"></span> Transaction history</button></h2>
             <div class="right"><span class="sub" id="txAllCount"></span></div></div>
+          <div id="txAllPanel" hidden>
           <div class="filters">
+            <input type="text" class="fs" id="txSearch" placeholder="Search ticker, name or ISIN…"
+              aria-label="Search transactions">
             <select id="txFltPos"></select>
             <select id="txFltType"></select>
             <span class="fcount" id="txFltCount"></span>
@@ -2654,7 +2680,10 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
           <div class="note mt18">Tutte le transazioni registrate, di ogni titolo, dalla più recente. Ci sono anche
             quelle dei titoli venduti al 100% e quelle delle posizioni a quantità zero, che non compaiono più
             nell'elenco del portafoglio. Clicca una riga per aprire la scheda del titolo, o la matita per
-            correggere quella transazione: si apre la scheda della posizione con la riga già in modifica.</div>
+            correggere quella transazione: si apre la scheda della posizione con la riga già in modifica.
+            Clicca un'intestazione per ordinare per quella colonna. Prezzo, commissioni e importo sono nella
+            valuta del titolo: con valute miste l'ordine è sul numero, non sul controvalore.</div>
+          </div>
         </div>
 
         <div class="card mt18">
@@ -3518,6 +3547,7 @@ function blankState(){
     settings:{theme:'dark',textSize:'g',privacy:false,dockHidden:false,riskFree:2,proxy:'',
               rebalanceBands:[10,20,30],capGainTax:26,
               scenBench:'6040',scenSel:'inflEU',scenSens:{},benchKey:'URTH',betaBench:'custom',rules:rulesCfg(),tierPlan:tplanCfg(),
+              histOpen:{closed:false,tx:false},
               sim:simDefaults(),distMode:'count'}
   };
 }
@@ -3540,7 +3570,9 @@ const UI={
   histSrc:'snap', editGoal:null, heatM:null, heatSort:'ret',
   /* scheda aperta nel quadrato "Today by platform" (non salvata) */
   dayPlatform:'all',
-  txFilters:{pos:'',type:''}
+  txFilters:{pos:'',type:'',search:''}, closedSearch:'',
+  /* ordinamento delle card Posizioni chiuse e Storico transazioni (non salvato) */
+  closedSort:{k:'to',dir:-1}, txSort:{k:'date',dir:-1}
 };
 
 function load(){
@@ -12569,15 +12601,26 @@ function openHeatMonth(mIdx){
 /* ---------- posizioni chiuse ---------- */
 function renderClosed(){
   const card=$('#closedCard'), body=$('#closedBody'); if(!card||!body)return;
-  const rows=closedPositions().slice().sort((a,b)=>
-    String(b.closedDate||'').localeCompare(String(a.closedDate||'')));
-  if(!rows.length){ card.style.display='none'; body.innerHTML=''; return; }
+  const sort=UI.closedSort||CLOSED_SORT0, q=UI.closedSearch||'';
+  const all=closedPositions();
+  if(!all.length){ card.style.display='none'; body.innerHTML=''; return; }
   card.style.display='';
-  const tot=rows.reduce((a,p)=>a+num(p._realized),0);
-  $('#closedCount').textContent=rows.length+(rows.length===1?' position · ':' positions · ')+
+  /* il contatore in testata resta sul totale; il filtrato sta nella barra */
+  const tot=all.reduce((a,p)=>a+num(p._realized),0);
+  $('#closedCount').textContent=all.length+(all.length===1?' position · ':' positions · ')+
     (tot>=0?'+':'−')+money0(Math.abs(tot))+' realized';
+  histFieldVal($('#closedSearch'),q);
+  /* prima si filtra, poi si ordina */
+  const rows=sortClosedRows(all.filter(p=>histSearchHit(p,q)),sort);
+  $('#closedFltCount').textContent=rows.length+' of '+all.length;
+  if(!rows.length){
+    body.innerHTML='<div class="empty" style="padding:30px 20px"><div class="sm">'+
+      'No closed positions match the filters.</div></div>';
+    return;
+  }
   body.innerHTML='<div class="tbl-scroll"><table class="snap-tbl"><thead><tr>'+
-    '<th>Asset</th><th>Period</th><th>Invested</th><th>Proceeds</th><th>Realized</th><th></th>'+
+    histTh('Asset','ticker',sort)+histTh('Period','to',sort)+histTh('Invested','bought',sort)+
+    histTh('Proceeds','sold',sort)+histTh('Realized','realized',sort)+'<th></th>'+
     '</tr></thead><tbody>'+
     rows.map(p=>{
       const s=closedSummary(p);
@@ -12609,6 +12652,89 @@ function allTxRows(){
   return rows.sort((a,b)=>String(b.t.date).localeCompare(String(a.t.date))||
     tkLabel(a.p).localeCompare(tkLabel(b.p),'en'));
 }
+/* ---------- ordinamento delle card dello Storico ----------
+   Posizioni chiuse e Storico transazioni si ordinano su ogni colonna con dati.
+   Stato non salvato: UI.closedSort / UI.txSort, di default lo stesso ordine di
+   prima (chiusura e data, dalla più recente). I vuoti ("–", date mancanti)
+   vanno sempre in fondo, in entrambe le direzioni; a pari valore decide uno
+   spareggio fisso, così l'ordine non cambia fra valori uguali. Prezzo,
+   commissioni e importo sono nella valuta del titolo, senza conversione. */
+const CLOSED_SORT0={k:'to',dir:-1}, TX_SORT0={k:'date',dir:-1};
+const HIST_TEXT_KEYS={ticker:1,type:1};
+/* primo clic: testo crescente, numeri e date decrescenti; secondo clic inverte */
+function nextHistSort(cur,k){
+  if(cur&&cur.k===k)return {k:k,dir:-cur.dir};
+  return {k:k,dir:HIST_TEXT_KEYS[k]?1:-1};
+}
+const histEmpty=v=>v==null||v===''||(typeof v==='number'&&!isFinite(v));
+const histTxt=v=>String(v).toLowerCase();
+/* confronto di un valore: i vuoti in fondo qualunque sia dir, poi testo o numero */
+function histCmp(a,b,dir,text){
+  const ea=histEmpty(a), eb=histEmpty(b);
+  if(ea||eb)return ea===eb?0:(ea?1:-1);
+  if(text)return dir*histTxt(a).localeCompare(histTxt(b),'it');
+  return dir*(a<b?-1:a>b?1:0);
+}
+/* righe: posizioni chiuse; spareggio: ticker crescente */
+function sortClosedRows(rows,sort){
+  const st=sort||CLOSED_SORT0, k=st.k, dir=st.dir<0?-1:1;
+  const r=rows.map(p=>({p:p,s:closedSummary(p),l:tkLabel(p)}));
+  const val=x=>k==='ticker'?x.l:(k==='to'?x.s.to:x.s[k]);
+  return r.sort((a,b)=>histCmp(val(a),val(b),dir,k==='ticker')||
+    (k==='to'?histCmp(a.s.from,b.s.from,dir,false):0)||
+    histCmp(a.l,b.l,1,true)).map(x=>x.p);
+}
+/* Quello che una riga dello Storico transazioni mostra, colonna per colonna:
+   renderTxAll() lo disegna, sortTxRows() lo ordina, così l'ordine segue il
+   numero visibile. Dove la cella mostra "–" il valore è vuoto. */
+function txCells(p,t){
+  /* su un conto quantità e prezzo (importo × 1) ripeterebbero l'importo, e
+     fuori dalla colonna mascherata */
+  const hasQty=!isDeposit(p)&&(t.type==='buy'||t.type==='sell');
+  /* il dividendo registrato come importo unico non ha un prezzo unitario */
+  const hasPrice=hasQty||(t.type==='div'&&t.amount==null);
+  const fee=num(t.fee);
+  return {hasQty:hasQty,hasPrice:hasPrice,
+    ticker:tkLabel(p), type:t.type==='split'?splitLabel(t.ratio):txLabel(t,p),
+    date:t.date?String(t.date):null, qty:hasQty?num(t.qty):null,
+    price:hasPrice?num(t.price):null, fee:fee||null,
+    /* uno split non muove denaro: "–" */
+    amount:t.type==='split'?null:txShown(t)};
+}
+/* righe {p,t}; spareggio: data decrescente, poi ticker (l'ordine di allTxRows) */
+function sortTxRows(rows,sort){
+  const st=sort||TX_SORT0, k=st.k, dir=st.dir<0?-1:1;
+  const r=rows.map(x=>({x:x,c:txCells(x.p,x.t)}));
+  return r.sort((a,b)=>histCmp(a.c[k],b.c[k],dir,!!HIST_TEXT_KEYS[k])||
+    histCmp(a.c.date,b.c.date,-1,false)||
+    a.c.ticker.localeCompare(b.c.ticker,'en')).map(y=>y.x);
+}
+/* intestazione ordinabile, come quelle della tabella Posizioni */
+function histTh(label,k,sort,cls,attrs){
+  const on=sort.k===k;
+  return '<th class="sortable'+(on?' act':'')+(cls?' '+cls:'')+'" data-k="'+k+'"'+
+    (on?' aria-sort="'+(sort.dir<0?'descending':'ascending')+'"':'')+(attrs||'')+'>'+label+
+    (on?'<span class="ar">'+(sort.dir<0?'▼':'▲')+'</span>':'')+'</th>';
+}
+/* ---------- ricerca nelle card dello Storico ----------
+   Titolo, nome e ISIN come la ricerca della tabella Posizioni (matchFilters),
+   ma con uno stato suo: UI.closedSearch e UI.txFilters.search, mai
+   UI.filters né #globalSearch. Testo semplice, nessuna espressione regolare.
+   Nello Storico transazioni anche il tipo (anche in italiano, come nel CSV)
+   e la data come è mostrata (gg/mm/aaaa). */
+function histSearchHit(p,q){ return !q||matchFilters(p,{search:q}); }
+function txSearchHit(p,t,q){
+  if(!q||histSearchHit(p,q))return true;
+  const s=String(q).toLowerCase();
+  const words=[t.type==='split'?splitLabel(t.ratio):txLabel(t,p),(TXT[t.type]||{}).l,
+    TX_CSV_LBL[t.type],t.date?fmtDate(t.date):''];
+  return words.some(w=>w&&String(w).toLowerCase().indexOf(s)>-1);
+}
+/* il campo si riempie dallo stato solo se non lo si sta usando: chi scrive
+   non perde il focus né il cursore */
+function histFieldVal(el,v){
+  if(el&&(typeof document==='undefined'||document.activeElement!==el))el.value=v;
+}
 const TX_BADGE={buy:'u',sell:'d',div:'g',fee:'',int:'g',split:'a'};
 function populateTxFilters(all){
   const sp=$('#txFltPos'), st=$('#txFltType'); if(!sp||!st)return;
@@ -12631,7 +12757,11 @@ function renderTxAll(){
   const all=allTxRows();
   populateTxFilters(all);
   const f=UI.txFilters;
-  const rows=all.filter(({p,t})=>(!f.pos||p.id===f.pos)&&(!f.type||t.type===f.type));
+  const sort=UI.txSort||TX_SORT0, q=f.search||'';
+  histFieldVal($('#txSearch'),q);
+  /* prima si filtra (menu e testo in AND), poi si ordina */
+  const rows=sortTxRows(all.filter(({p,t})=>(!f.pos||p.id===f.pos)&&(!f.type||t.type===f.type)&&
+    txSearchHit(p,t,q)),sort);
   const nPos=Object.keys(all.reduce((m,{p})=>{ m[p.id]=1; return m; },{})).length;
   $('#txAllCount').textContent=all.length
     ? all.length+(all.length===1?' transaction · ':' transactions · ')+nPos+(nPos===1?' asset':' assets') : '';
@@ -12653,17 +12783,14 @@ function renderTxAll(){
   const hasFx=({p,t})=>txFx(t,0)>0&&!!p.currency&&p.currency!==BASE;
   const fxCol=rows.some(hasFx);
   body.innerHTML='<div class="tbl-scroll"><table class="snap-tbl"><thead><tr>'+
-    '<th>Asset</th><th>Type</th><th>Date</th><th>Quantity</th><th>Price</th>'+
-    '<th class="hide-sm">Fees</th>'+(fxCol?'<th class="hide-sm" title="€ per 1 unit of the asset currency">FX</th>':'')+'<th>Amount</th>'+
+    histTh('Asset','ticker',sort)+histTh('Type','type',sort)+histTh('Date','date',sort)+
+    histTh('Quantity','qty',sort)+histTh('Price','price',sort)+
+    histTh('Fees','fee',sort,'hide-sm')+(fxCol?'<th class="hide-sm" title="€ per 1 unit of the asset currency">FX</th>':'')+histTh('Amount','amount',sort)+
     '<th aria-label="Edit"></th>'+
     '</tr></thead><tbody>'+
     rows.map(({p,t})=>{
       const k=TXT[t.type]||TXT.buy, amt=txShown(t), cur=p.currency||BASE, fee=num(t.fee);
-      /* su un conto quantità e prezzo (importo × 1) ripeterebbero l'importo, e
-         fuori dalla colonna mascherata */
-      const hasQty=!isDeposit(p)&&(t.type==='buy'||t.type==='sell');
-      /* il dividendo registrato come importo unico non ha un prezzo unitario */
-      const hasPrice=hasQty||(t.type==='div'&&t.amount==null);
+      const c=txCells(p,t), hasQty=c.hasQty, hasPrice=c.hasPrice;
       const dash='<span class="cellsub">–</span>';
       return '<tr class="clk" data-txpos="'+esc(p.id)+'">'+
         '<td><div style="font-weight:650">'+esc(tkLabel(p))+'</div>'+
@@ -12686,6 +12813,32 @@ function renderTxAll(){
   $$('#txAllBody [data-txedit]').forEach(b=>b.addEventListener('click',e=>{
     e.stopPropagation(); openTxEdit(b.getAttribute('data-pos'),b.getAttribute('data-txedit'));
   }));
+}
+
+/* ---------- card apribili dello Storico ----------
+   Posizioni chiuse e Storico transazioni partono chiuse; lo stato sta in
+   S.settings.histOpen e viaggia con save() come il menu laterale. Da chiusa
+   il pannello è `hidden`: filtri, tabella e nota escono anche dal giro del Tab.
+   La visibilità di #closedCard (nessuna chiusa = card nascosta) resta di
+   renderClosed() e vale comunque. */
+const HIST_FOLD=[['closed','#closedToggle','#closedPanel'],['tx','#txAllToggle','#txAllPanel']];
+function applyHistFold(){
+  const st=(S.settings&&S.settings.histOpen)||{};
+  HIST_FOLD.forEach(([k,bt,pn])=>{
+    const b=$(bt), p=$(pn); if(!b||!p)return;
+    const open=!!st[k];
+    p.hidden=!open;
+    b.setAttribute('aria-expanded',open?'true':'false');
+    b.classList.toggle('open',open);
+    if(b.parentNode&&b.parentNode.parentNode&&b.parentNode.parentNode.classList)
+      b.parentNode.parentNode.classList.toggle('shut',!open);
+    const tg=b.querySelector('.tg'); if(tg&&!tg.firstChild)tg.innerHTML=ic('chev',15);
+  });
+}
+function toggleHistFold(k){
+  const cur=Object.assign({closed:false,tx:false},S.settings.histOpen||{});
+  cur[k]=!cur[k]; S.settings.histOpen=cur;
+  save(); applyHistFold();
 }
 
 /* ---------- rendering dello storico ---------- */
@@ -12739,6 +12892,7 @@ function renderHistory(){
   renderHeatmap();
   renderClosed();
   renderTxAll();
+  applyHistFold();
   renderBenchmark();
 }
 function openSnap(dateKey){
@@ -14084,9 +14238,26 @@ function wire(){
     $(sel).addEventListener('change',e=>{ UI.txFilters[f]=e.target.value; renderTxAll(); });
   });
   $('#txFltClear').addEventListener('click',()=>{
-    UI.txFilters={pos:'',type:''}; renderTxAll();
+    UI.txFilters={pos:'',type:'',search:''}; $('#txSearch').value=''; renderTxAll();
+  });
+  /* ricerca: si aggiorna mentre si scrive, il campo non viene ricostruito */
+  $('#txSearch').addEventListener('input',e=>{ UI.txFilters.search=e.target.value; renderTxAll(); });
+  $('#closedSearch').addEventListener('input',e=>{ UI.closedSearch=e.target.value; renderClosed(); });
+  $('#closedFltClear').addEventListener('click',()=>{
+    UI.closedSearch=''; $('#closedSearch').value=''; renderClosed();
+  });
+  /* --- card apribili dello Storico: niente renderAll(), solo il pannello --- */
+  $('#closedToggle').addEventListener('click',()=>toggleHistFold('closed'));
+  $('#txAllToggle').addEventListener('click',()=>toggleHistFold('tx'));
+  /* ordinamento delle due card: le intestazioni si ricostruiscono a ogni
+     render, quindi un solo listener delegato sul contenitore */
+  $('#closedBody').addEventListener('click',e=>{
+    const th=e.target.closest('thead th.sortable[data-k]'); if(!th)return;
+    UI.closedSort=nextHistSort(UI.closedSort||CLOSED_SORT0,th.getAttribute('data-k')); renderClosed();
   });
   $('#txAllBody').addEventListener('click',e=>{
+    const th=e.target.closest('thead th.sortable[data-k]');
+    if(th){ UI.txSort=nextHistSort(UI.txSort||TX_SORT0,th.getAttribute('data-k')); renderTxAll(); return; }
     const tr=e.target.closest('tr[data-txpos]');
     if(tr)openDrawer(tr.getAttribute('data-txpos'));
   });
