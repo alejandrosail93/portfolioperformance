@@ -982,8 +982,8 @@ html[data-theme="terra"] .filters select,html[data-theme="terra"] .filters input
 .flbl{font-size:12px;color:var(--muted);font-weight:600}
 /* etichetta e controllo vanno a capo insieme, mai separati */
 .fgrp{display:inline-flex;align-items:center;gap:8px}
-#contribSort button{padding:5px 11px;font-size:12px}
-#contribSort .ar{margin-left:4px;font-size:10px;color:var(--accent-ink)}
+#contribSort button,#rbcSort button{padding:5px 11px;font-size:12px}
+#contribSort .ar,#rbcSort .ar{margin-left:4px;font-size:10px;color:var(--accent-ink)}
 .fclear{font-size:12px;color:var(--accent-ink);font-weight:650;padding:6px 10px;border-radius:8px}
 .fclear:hover{background:var(--accent-soft)}
 
@@ -1303,21 +1303,29 @@ tbody tr.clk{cursor:pointer}
 /* ==========================================================================
    13d. RIBILANCIAMENTO E WATCHLIST
    ========================================================================== */
-.rb-row{display:grid;grid-template-columns:1.5fr 1fr 96px 1.5fr;gap:14px;align-items:center;
-  padding:15px 0 13px;border-bottom:1px solid var(--line-soft);position:relative}
-.rb-row:last-of-type{border-bottom:0}
+.rb-row{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) 96px 212px;gap:14px;align-items:center;
+  padding:12px 10px;border-radius:11px;position:relative;transition:background .15s}
+/* righe come schede leggere: niente righe divisorie, sfondo al passaggio e
+   da aperte; la colonna dell'azione ha una larghezza fissa, così i badge
+   restano allineati. #rbRows sborda di 10 px: il testo resta in colonna con
+   l'intestazione e il totale */
+#rbRows{display:flex;flex-direction:column;gap:2px;margin:6px -10px 0}
+#rbRows .rb-row:hover,#rbRows .rb-row.open{background:var(--surface-2)}
+#rbRows .rb-row.open .rb-tax,#rbRows .rb-row.open .rb-bar .track{background:var(--surface)}
 .rb-row.hd{padding:0 0 11px;font-size:11px;text-transform:uppercase;letter-spacing:.45px;
-  color:var(--muted);font-weight:650;border-bottom:1px solid var(--line)}
+  color:var(--ink-soft);font-weight:650;border-bottom:1px solid var(--line);border-radius:0}
 .rb-row.hd>div:first-child{padding-left:21px}
 .rb-cat{display:flex;align-items:center;gap:10px;font-weight:650;font-size:13.5px;min-width:0}
 .rb-cat .dot{width:10px;height:10px;border-radius:3px;flex:none}
+/* By asset: il logo del titolo al posto del pallino, non si stringe */
+.rb-cat>:not(.nm){flex:none}
 /* la riga si apre e si chiude: chiusa resta su una riga sola, aperta mostra
    barra, banda e dettaglio fiscale sotto */
 .rb-cat .tg{flex:none;display:grid;place-items:center;color:var(--muted);margin-right:-3px;
   transition:transform .18s,color .15s}
 .rb-row:hover .rb-cat .tg{color:var(--ink-soft)}
 .rb-row.open .rb-cat .tg{transform:rotate(90deg);color:var(--ink-soft)}
-.rb-detail{grid-column:1/-1;display:none}
+.rb-detail{grid-column:1/-1;display:none;padding:4px 0 2px 21px}
 .rb-row.open .rb-detail{display:block}
 .rb-cat .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rb-num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px}
@@ -1328,6 +1336,10 @@ tbody tr.clk{cursor:pointer}
 html[data-theme="light"] .rb-in{background:#fff}
 html[data-theme="terra"] .rb-in{background:var(--surface)}
 .rb-in:focus{border-color:var(--accent)}
+/* campo del target col suffisso % sempre visibile */
+.rb-tg{position:relative}
+.rb-tg::after{content:"%";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.rb-tg .rb-in{padding-right:24px}
 .rb-act{text-align:right}
 .rb-bar{grid-column:1/-1;position:relative;margin-top:-1px}
 .rb-bar .mk{position:absolute;top:-4px;width:2px;height:15px;background:var(--ink);border-radius:2px}
@@ -1342,9 +1354,9 @@ html[data-theme="light"] .badge.o,html[data-theme="terra"] .badge.o{background:r
    e "Critical" sembravano uguali. Lì il quarto livello passa all'ambra di --gold,
    fra il giallo di --warn e l'arancio di --down. */
 html[data-theme="martin"] .badge.o{background:var(--gold-soft);color:var(--gold)}
-/* spia della banda a riga chiusa: vive nel padding della card, non sposta nulla */
+/* spia della banda a riga chiusa: vive nel padding della riga, non sposta nulla */
 .rb-row.lv1::before,.rb-row.lv2::before,.rb-row.lv3::before,.rb-row.tpo::before{content:"";position:absolute;
-  left:-11px;top:11px;bottom:11px;width:3px;border-radius:3px}
+  left:3px;top:11px;bottom:11px;width:3px;border-radius:3px}
 .rb-row.lv1::before{background:var(--warn)}
 .rb-row.lv2::before{background:#f08a3c}
 html[data-theme="martin"] .rb-row.lv2::before{background:var(--gold)}
@@ -1374,17 +1386,39 @@ html[data-theme="martin"] .rb-row.lv2::before{background:var(--gold)}
 .rb-tax .tx-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:9px}
 .rb-tax .tx-miss{color:var(--ink-soft);line-height:1.5}
 .rb-tax .lk{color:var(--accent);font-weight:650;cursor:pointer;text-decoration:underline}
-.rb-tot{display:grid;grid-template-columns:1.5fr 1fr 96px 1.5fr;gap:14px;align-items:center;
+.rb-tot{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) 96px 212px;gap:14px;align-items:center;
   padding:14px 0 0;margin-top:6px;border-top:2px solid var(--line);font-weight:700;font-size:13.5px}
+.rb-tot>div:first-child{padding-left:21px}
+/* il totale dei target come pill: il colore lo dà renderRebalance (verde a
+   100 ± 0,5, rosso altrimenti), lo sfondo ne è una tinta leggera */
+#rbSum{justify-self:end;padding:3px 11px;border-radius:999px;background:color-mix(in srgb,currentColor 14%,transparent)}
 .warnbox{display:none;align-items:center;gap:10px;padding:11px 14px;border-radius:11px;
   background:var(--warn-soft);border:1px solid rgba(232,163,60,.3);color:var(--warn);
   font-size:12.5px;font-weight:600;margin-top:16px}
 .warnbox.on{display:flex}
-.plan{display:flex;flex-direction:column;gap:8px}
-.plan-row{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;
-  background:var(--surface-2);font-size:13px}
-.plan-row .nm{flex:1;min-width:0;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.plan-row .am{font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* grafico d'insieme "Rebalancing at a glance": come "Contribution to P&L",
+   una riga per voce (.cr .rc, misure e avatar da .cr .top) con la barra
+   dell'operazione centrata sullo zero: vendi a sinistra, compra a destra,
+   stessa scala €/pixel. Colonne fisse, così G/L, valore e badge restano
+   allineati fra le righe. Nessuna misura di testo nuova: .ctot, .pc,
+   .rb-num .sub e .rb-un ci sono già (test-formato-web.js conta i px). */
+#rbcSort{flex-wrap:wrap}
+.rbc-tot .p{color:var(--muted)}
+.rbc-tot .rbc-sep{color:var(--muted)}
+.rbc-tot .fcount{align-self:center}
+.rbc{display:flex;flex-direction:column;gap:2px;max-height:460px;overflow-y:auto;padding-right:4px;margin:0 -8px}
+.rbc>.note{margin:0 8px 8px}
+.rc{padding:9px 8px 10px;border-radius:10px;cursor:pointer;transition:background .15s}
+.rc:hover{background:var(--surface-2)}
+.rc:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.rc .rc-top{display:grid;grid-template-columns:minmax(0,1fr) 64px 124px 148px;gap:12px;margin-bottom:0}
+.rc .rc-top .n .dot{width:10px;height:10px;border-radius:3px;flex:none}
+.rc .rc-top .pc{text-align:right}
+.rc .rc-top .pc.na{color:var(--muted);font-weight:500}
+.rc .rc-top .vl{font-weight:650;white-space:nowrap}
+.rc .rc-top .ac{justify-self:end;white-space:nowrap}
+.rc .track{margin-top:7px}
+.rc .rb-un{margin-top:5px}
 
 /* --- scenari (stress test) --- */
 .sc-pick{display:block;position:relative;width:100%;max-width:520px;margin-bottom:16px}
@@ -1661,6 +1695,13 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
 }
 @media(max-width:640px){
   .top3{grid-template-columns:minmax(0,1fr)}
+  /* Ribilanciamento, grafico d'insieme: nome e azione sopra; G/L, valore e
+     peso → target sotto; barra in fondo */
+  .rc .rc-top{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"n n ac" "gl vl vl";row-gap:5px;column-gap:10px}
+  .rc .rc-top .n{grid-area:n}
+  .rc .rc-top .pc{grid-area:gl;text-align:left;margin-left:0}
+  .rc .rc-top .vl{grid-area:vl;display:flex;justify-content:flex-end;align-items:baseline;gap:8px}
+  .rc .rc-top .ac{grid-area:ac}
   .top3>.qd{aspect-ratio:auto;min-height:250px}
   #kpiRow{grid-template-columns:minmax(0,1fr)}
 }
@@ -2387,7 +2428,15 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
         </div>
       </section>
       <section class="page wrap" id="pg-ribilanciamento">
-        <div class="grid g2-wide">
+        <div class="card" id="rbcCard">
+          <div class="card-hd"><h2><span class="chip a" id="chipRbc"></span> Rebalancing at a glance</h2>
+            <div class="right"><span class="seg" id="rbcSort" aria-label="Sort">
+              <button data-k="act" class="on">Action</button><button data-k="gl">Gain/Loss</button><button data-k="val">Value</button><button data-k="drift">Drift</button><button data-k="name">Name</button>
+            </span></div></div>
+          <div class="card-bd"><div class="ctot rbc-tot" id="rbcTot"></div><div class="rbc" id="rbChart"></div></div>
+        </div>
+
+        <div class="grid g2-wide mt18">
           <div class="card">
             <div class="card-hd"><h2><span class="chip t" id="chipRb"></span> Rebalancing plan</h2>
               <div class="right"><button class="btn btn-ghost btn-sm" id="rbToggleAll">Expand all</button>
@@ -2451,12 +2500,6 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="card mt18">
-          <div class="card-hd"><h2><span class="chip a" id="chipRbPlan"></span> Trades to make</h2>
-            <div class="right"><span class="sub" id="rbPlanSub"></span></div></div>
-          <div class="card-bd"><div class="plan" id="rbPlan"></div></div>
         </div>
       </section>
 
@@ -3562,7 +3605,7 @@ const UI={
   txEditId:null,
   expo:{level:'cat',leaf:null},
   perf:{size:'peso',per:'1G'},
-  rbMode:'cat', rbOpen:{}, editWatch:null,
+  rbMode:'cat', rbOpen:{}, rbcSort:{k:'act',dir:-1}, editWatch:null,
   /* pagina Regole: titolo scelto nelle schede, spunte delle caselle manuali
      (solo per questa sessione), quantità e motivo scritti nella scheda Vendita */
   rulesSell:null, rulesTicks:{}, rulesParOpen:null, rulesSellQty:{}, rulesSellWhy:{}, rulesTaxSel:'std',
@@ -10261,9 +10304,11 @@ function tplanSet(t,field,raw){
    posizioni attive nessuna voce. raw: il target arriva come testo. */
 function tplanUnits(){
   const act=activePositions(); if(!act.length)return [];
+  /* ps: le posizioni del gruppo, per il G/L % del grafico d'insieme */
+  const ps=t=>act.filter(p=>normPTier(p.tier)===t);
   return tplanRows(act,T.value,tplanCfg(S.settings)).map(r=>r.noPlan
-    ?{key:'tier:-',label:'Unassigned',sub:'',value:r.value,n:r.n,noPlan:true,get:()=>null,set:()=>{}}
-    :{key:'tier:'+r.tier,label:r.tier,tier:r.tier,sub:'',value:r.value,n:r.n,raw:true,
+    ?{key:'tier:-',label:'Unassigned',sub:'',value:r.value,n:r.n,noPlan:true,ps:ps(''),get:()=>null,set:()=>{}}
+    :{key:'tier:'+r.tier,label:r.tier,tier:r.tier,sub:'',value:r.value,n:r.n,raw:true,ps:ps(r.tier),
       get:()=>tplanCfg(S.settings)[r.tier].target,set:v=>tplanSet(r.tier,'target',v)});
 }
 function rbUnits(){
@@ -10273,14 +10318,16 @@ function rbUnits(){
   if(UI.rbMode==='pos'){
     return activePositions().slice().sort((a,b)=>b._value-a._value).map(p=>({
       key:p.id, label:tkLabel(p), sub:p.name&&p.name!==tkLabel(p)?p.name:'',
-      value:p._value, id:p.id, p:p,
+      value:p._value, id:p.id, p:p, ps:[p],
       get:()=>p.targetWeight==null||p.targetWeight===''?null:num(p.targetWeight),
       set:v=>{ p.targetWeight=v; }
     }));
   }
-  const cats=groupBy('cls','Altro');
+  const cats=groupBy('cls','Altro'), act=activePositions();
+  /* stessa chiave di groupBy: categoria ripulita, "Altro" se manca */
+  const ps=k=>act.filter(x=>(String(x.cls||'').trim()||'Altro')===k);
   return Object.keys(cats).sort((a,b)=>cats[b]-cats[a]).map(k=>({
-    key:k, label:k==='Altro'?'Uncategorized':k, sub:'', value:cats[k],
+    key:k, label:k==='Altro'?'Uncategorized':k, sub:'', value:cats[k], ps:ps(k),
     get:()=>S.targets[k]==null?null:num(S.targets[k]),
     set:v=>{ S.targets[k]=v; }
   }));
@@ -10289,7 +10336,7 @@ function rbUnits(){
    sul peso attuale senza capitale extra, € al target = delta del piano (con
    il capitale da investire): positivo = da aggiungere. "Unassigned" non ha
    target: niente badge, piano né banda, mai un "vendi tutto". */
-function rbTierRow(u,total,newTot,plan){
+function rbTierRow(u,total,newTot){
   const curP=total>0?u.value/total*100:0, open=!!UI.rbOpen[u.key];
   const row=(cls,tip,dot,rest)=>'<div class="rb-row'+cls+(open?' open':'')+'" data-rbrow="'+esc(String(u.key))+'" title="'+esc(tip)+'"'+
       ' aria-expanded="'+(open?'true':'false')+'">'+
@@ -10306,7 +10353,6 @@ function rbTierRow(u,total,newTot,plan){
   }
   const t=u.tier, b=tplanCfg(S.settings)[t], tgt=b.target, st=tplanStatus(curP,b);
   const delta=newTot*tgt/100-u.value, hold=Math.abs(delta)<newTot*.005;
-  if(!hold)plan.push({label:u.label,delta:delta});
   const buy=hold?'<span class="badge">— hold</span>'
     :delta>0?'<span class="badge u">▲ buy <span class="mask">'+money0(delta)+'</span></span>'
             :'<span class="badge d">▼ sell <span class="mask">'+money0(-delta)+'</span></span>';
@@ -10316,7 +10362,7 @@ function rbTierRow(u,total,newTot,plan){
   const inp=(f,v)=>'<label>'+f+' %<input class="rb-in" data-rbband="'+esc(t+':'+f)+'" type="text" inputmode="decimal" value="'+
     fnum(v)+'" aria-label="'+esc(t+' '+f)+' %"></label>';
   return row(st.state==='in'?'':' tpo',lab+' · '+nf(curP,2)+'% · '+bandTxt,PTIER_COLORS[t]||'var(--muted)',
-    '<div><input class="rb-in" data-rb="'+esc(String(u.key))+'" type="text" inputmode="decimal" value="'+fnum(tgt)+'"></div>'+
+    '<div class="rb-tg"><input class="rb-in" data-rb="'+esc(String(u.key))+'" type="text" inputmode="decimal" value="'+fnum(tgt)+'"></div>'+
     '<div class="rb-act"><span class="tp-badges">'+buy+'<span class="badge '+(st.state==='in'?'u':'d')+'">'+lab+'</span></span></div>'+
     '<div class="rb-detail">'+
       '<div class="rb-bar"><div class="track"><i style="width:'+pc(curP).toFixed(1)+'%;background:'+(PTIER_COLORS[t]||'var(--muted)')+'"></i></div>'+
@@ -10348,6 +10394,141 @@ function rbSyncAllBtn(){
     ?'Collapse all':'Expand all';
   b.disabled=!rows.length;
 }
+/* --- Grafico d'insieme "Rebalancing at a glance" ---------------------------
+   Funzioni pure: le righe del grafico con la stessa formula del piano qui
+   sotto (newTot = valore + capitale extra, delta = newTot × target − valore,
+   hold sotto lo 0,5% di newTot), il G/L % di un gruppo, ordinamento e totali.
+   Non scrivono i target: i mancanti li compila renderRebalance() prima. */
+/* G/L di un gruppo: somma dei G/L sulla somma dei carichi, non la media dei
+   G/L %. Senza carico (Cash, conti deposito, gruppo vuoto) pct è null: "—". */
+function rbcGain(ps){
+  let pnl=0, cost=0;
+  (ps||[]).forEach(p=>{ pnl+=num(p._pnl); cost+=num(p._cost); });
+  return {pnl:pnl,cost:cost,pct:cost>0?pnl/cost*100:null};
+}
+/* una riga per voce del piano; "Unassigned" (per tier) senza target né
+   operazione. color: il pallino della voce, lo stesso della riga del piano */
+function rbcRows(units,total,cash){
+  const newTot=total+num(cash);
+  return (units||[]).map((u,i)=>{
+    const curP=total>0?u.value/total*100:0;
+    const r={key:u.key,label:u.label,id:u.id||null,p:u.p||null,tier:u.tier||'',noPlan:!!u.noPlan,n:u.n||0,
+      value:u.value,curP:curP,gl:rbcGain(u.ps),
+      color:u.noPlan?'var(--muted)':u.tier?(PTIER_COLORS[u.tier]||'var(--muted)'):PAL[i%PAL.length]};
+    if(u.noPlan)return Object.assign(r,{tgt:null,delta:0,hold:true,drift:null});
+    const tgt=num(u.get()), delta=newTot*tgt/100-u.value;
+    return Object.assign(r,{tgt:tgt,delta:delta,hold:Math.abs(delta)<newTot*.005,drift:Math.abs(curP-tgt)});
+  });
+}
+/* ordinamento del grafico. Action: ampiezza dell'operazione, gli hold in
+   fondo; Gain/Loss: i "—" in fondo in tutte e due le direzioni; Drift: punti
+   percentuali dal target; Name: alfabetico. "Unassigned" sempre ultima, a
+   parità decide il nome (crescente). Restituisce una copia. */
+const RBC_SORT_KEYS=['act','gl','val','drift','name'];
+function rbcSort(rows,k,dir){
+  const nm=(a,b)=>String(a.label).localeCompare(String(b.label),'it',{sensitivity:'base'})||
+    (String(a.key)<String(b.key)?-1:String(a.key)>String(b.key)?1:0);
+  const val={act:r=>r.hold?null:Math.abs(r.delta),gl:r=>r.gl?r.gl.pct:null,val:r=>r.value,drift:r=>r.drift}[k];
+  return (rows||[]).slice().sort((a,b)=>{
+    if(a.noPlan!==b.noPlan)return a.noPlan?1:-1;
+    if(!val)return nm(a,b)*(dir<0?-1:1);
+    const va=val(a), vb=val(b);
+    if(va==null||vb==null)return va==null&&vb==null?nm(a,b):va==null?1:-1;
+    return (va-vb)*(dir<0?-1:1)||nm(a,b);
+  });
+}
+/* stesso tasto = direzione invertita; un tasto nuovo parte decrescente,
+   Name crescente (come #contribSort) */
+function rbcSortPick(cs,k){
+  return cs&&cs.k===k?{k:k,dir:-cs.dir}:{k:k,dir:k==='name'?1:-1};
+}
+/* totali dell'intestazione: le sole righe con un'operazione; sell positivo */
+function rbcTotals(rows){
+  const t={buy:0,sell:0,nBuy:0,nSell:0,nHold:0};
+  (rows||[]).forEach(r=>{
+    if(r.noPlan)return;
+    if(r.hold){ t.nHold++; return; }
+    if(r.delta>0){ t.buy+=r.delta; t.nBuy++; }else{ t.sell-=r.delta; t.nSell++; }
+  });
+  return t;
+}
+/* Il grafico in cima alla pagina, dalle righe di rbcRows(). Senza righe il
+   messaggio della pagina vuota, senza totali. Importi con mask, percentuali
+   no. In By asset avatar e nome completo nel title; negli altri modi il
+   pallino della voce, lo stesso del piano. */
+function renderRbChart(rows,cash){
+  const host=$('#rbChart'), head=$('#rbcTot'); if(!host)return;
+  const cs=UI.rbcSort||{k:'act',dir:-1};
+  $$('#rbcSort button').forEach(b=>{
+    const on=b.getAttribute('data-k')===cs.k;
+    b.classList.toggle('on',on);
+    b.querySelectorAll('.ar').forEach(e=>e.remove());
+    if(on){ const a=document.createElement('span'); a.className='ar'; a.textContent=cs.dir<0?'▼':'▲'; b.appendChild(a); }
+  });
+  if(!rows||!rows.length){
+    host.innerHTML='<div class="note">Add positions to see the rebalancing plan.</div>';
+    if(head)head.innerHTML='';
+    return;
+  }
+  const pos=UI.rbMode==='pos', t=rbcTotals(rows), list=rbcSort(rows,cs.k,cs.dir);
+  if(head)head.innerHTML='<span class="l">Trades to reach the targets'+
+      (num(cash)>0?' · including <span class="mask">'+money0(num(cash))+'</span> of new capital':'')+'</span>'+
+    '<span class="p">To buy</span><span class="v px mask up">'+money0(t.buy)+'</span>'+
+    '<span class="rbc-sep">·</span>'+
+    '<span class="p">To sell</span><span class="v px mask down">'+money0(t.sell)+'</span>'+
+    '<span class="fcount" id="rbcSub">'+t.nBuy+' to buy · '+t.nSell+' to sell · '+t.nHold+' hold</span>';
+  /* le due metà della barra dimensionate sulla vendita e sull'acquisto più
+     grandi, come in renderContrib: stessa scala €/pixel ai due lati dello zero */
+  const go=list.filter(r=>!r.noPlan&&!r.hold);
+  const maxBuy=Math.max.apply(null,[0].concat(go.map(r=>Math.max(0,r.delta))));
+  const maxSell=Math.max.apply(null,[0].concat(go.map(r=>Math.max(0,-r.delta))));
+  const tot=maxBuy+maxSell||1, lw=maxSell/tot*100, rw=maxBuy/tot*100;
+  host.innerHTML=(go.length?'':'<div class="note">No trades needed: the portfolio is already in line with its targets.</div>')+
+  list.map(r=>{
+    const lead=pos&&r.p?avatarHTML(r.p,{size:20,radius:6,font:9})
+      :'<span class="dot" style="background:'+r.color+'"></span>';
+    const pct=r.gl?r.gl.pct:null;
+    const gl=pct==null?'<span class="pc na" title="No average cost">—</span>'
+      :'<span class="pc px '+(pct>=0?'up':'down')+'">'+pctv(pct,1)+'</span>';
+    const wt=nf(r.curP,1)+'%'+(r.noPlan?'':' → '+nf(r.tgt,1)+'%');
+    const un=r.noPlan?(r.n===1?'1 asset without tier: assign it to include it'
+      :r.n+' assets without tier: assign them to include them'):'';
+    const act=r.noPlan?'<span class="badge">no target</span>'
+      :r.hold?'<span class="badge">— HOLD</span>'
+      :r.delta>0?'<span class="badge u">▲ BUY <span class="mask">'+money0(r.delta)+'</span></span>'
+      :'<span class="badge d">▼ SELL <span class="mask">'+money0(-r.delta)+'</span></span>';
+    let bar='';
+    if(r.noPlan)bar='<div class="rb-un">'+esc(un)+'</div>';
+    else if(!r.hold){
+      const buy=r.delta>0, w=buy?r.delta/maxBuy*100:-r.delta/maxSell*100;
+      const i='<i style="width:'+w.toFixed(1)+'%;background:var(--'+(buy?'up':'down')+')"></i>';
+      bar='<div class="track bi px"><span class="l" style="width:'+lw.toFixed(2)+'%">'+(buy?'':i)+'</span>'+
+        '<span class="r" style="width:'+rw.toFixed(2)+'%">'+(buy?i:'')+'</span></div>';
+    }
+    const tip=r.noPlan?un:pos&&r.p?tkFull(r.p):'';
+    return '<div class="cr rc'+(r.noPlan?' np':r.hold?' hold':r.delta>0?' buy':' sell')+'" data-k="'+esc(String(r.key))+'"'+
+        (pos&&r.id?' data-id="'+esc(String(r.id))+'"':'')+' role="button" tabindex="0"'+(tip?' title="'+esc(tip)+'"':'')+'>'+
+      '<div class="top rc-top"><span class="n">'+lead+'<span class="nt">'+esc(r.label)+'</span></span>'+gl+
+        '<div class="rb-num vl"><span class="mask">'+money0(r.value)+'</span><div class="sub">'+wt+'</div></div>'+
+        '<span class="ac">'+act+'</span></div>'+bar+
+    '</div>';
+  }).join('');
+}
+/* tocco su una riga del grafico: By asset apre la scheda del titolo; By
+   category e By tier aprono quella riga nel piano qui sotto e la portano in
+   vista (senza animazione con "Riduci movimento") */
+function rbcOpen(k){
+  k=String(k);
+  if(UI.rbMode==='pos'){
+    const u=rbUnits().filter(x=>String(x.key)===k)[0];
+    if(u&&u.id)openDrawer(u.id);
+    return;
+  }
+  UI.rbOpen[k]=true;
+  renderRebalance();
+  const r=$$('#rbRows .rb-row').filter(x=>x.getAttribute('data-rbrow')===k)[0];
+  if(r&&r.scrollIntoView)r.scrollIntoView({block:'nearest',behavior:reducedMotion()?'auto':'smooth'});
+}
 function renderRebalance(){
   const rows=$('#rbRows'); if(!rows)return;
   rbModeUI();
@@ -10366,8 +10547,7 @@ function renderRebalance(){
     rows.innerHTML='<div class="empty" style="padding:24px"><div class="sm">Add positions to create a rebalancing plan.</div></div>';
     $('#rbSum').textContent='0%'; $('#rbWarn').classList.remove('on');
     ['rbCur','rbNew','rbTot'].forEach(id=>{ $('#'+id).textContent=money0(0); });
-    $('#rbPlan').innerHTML='<div class="empty" style="padding:20px"><div class="sm">No trades to make.</div></div>';
-    $('#rbPlanSub').textContent='';
+    renderRbChart([],0);
     rbSyncAllBtn();
     return;
   }
@@ -10380,16 +10560,16 @@ function renderRebalance(){
     if(u.get()==null)u.set(Math.round(u.value/total*1000)/10);
     sum+=num(u.get());
   });
-  const plan=[];
+  /* il grafico in alto dopo i target compilati: al primo render li vede già */
+  renderRbChart(rbcRows(units,total,cash),cash);
   rows.innerHTML=units.map((u,i)=>{
-    if(tier)return rbTierRow(u,total,newTot,plan);
+    if(tier)return rbTierRow(u,total,newTot);
     const curP=total>0?u.value/total*100:0;
     const tgt=num(u.get()), tgtV=newTot*tgt/100, delta=tgtV-u.value;
     const hold=Math.abs(delta)<newTot*.005;
     const badge=hold?'<span class="badge">— hold</span>'
-      :delta>0?'<span class="badge u">▲ buy '+money0(delta)+'</span>'
-              :'<span class="badge d">▼ sell '+money0(-delta)+'</span>';
-    if(!hold)plan.push({label:u.label,delta:delta,id:u.id});
+      :delta>0?'<span class="badge u">▲ buy <span class="mask">'+money0(delta)+'</span></span>'
+              :'<span class="badge d">▼ sell <span class="mask">'+money0(-delta)+'</span></span>';
     const maxP=Math.max(curP,tgt,1);
     /* banda di scostamento: sistema aggiuntivo, non sostituisce il badge
        compra/vendi qui accanto né le azioni della pagina Posizioni */
@@ -10416,10 +10596,11 @@ function renderRebalance(){
         '" data-rbrow="'+esc(String(u.key))+'" title="'+esc(tip)+'"'+
         ' aria-expanded="'+(UI.rbOpen[u.key]?'true':'false')+'">'+
       '<div class="rb-cat"><span class="tg">'+ic('chev',14)+'</span>'+
-        '<span class="dot" style="background:'+PAL[i%PAL.length]+'"></span>'+
+        (UI.rbMode==='pos'&&u.p?avatarHTML(u.p,{size:24,radius:7,font:10})
+          :'<span class="dot" style="background:'+PAL[i%PAL.length]+'"></span>')+
         '<span class="nm">'+esc(u.label)+'</span></div>'+
       '<div class="rb-num mask">'+money0(u.value)+'<div class="sub">'+nf(curP,1)+'%</div></div>'+
-      '<div><input class="rb-in" data-rb="'+esc(String(u.key))+'" type="text" inputmode="decimal" value="'+fnum(tgt)+'"></div>'+
+      '<div class="rb-tg"><input class="rb-in" data-rb="'+esc(String(u.key))+'" type="text" inputmode="decimal" value="'+fnum(tgt)+'"></div>'+
       '<div class="rb-act">'+badge+'</div>'+
       '<div class="rb-detail">'+
         '<div class="rb-bar"><div class="track"><i style="width:'+Math.min(100,curP/maxP*100).toFixed(1)+'%;'+
@@ -10435,19 +10616,6 @@ function renderRebalance(){
   $('#rbCur').textContent=money0(total);
   $('#rbNew').textContent=money0(cash);
   $('#rbTot').textContent=money0(newTot);
-
-  /* piano operativo in chiaro */
-  plan.sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
-  const buys=plan.filter(p=>p.delta>0), sells=plan.filter(p=>p.delta<0);
-  $('#rbPlanSub').textContent=plan.length?
-    (buys.length+' to buy · '+sells.length+' to trim'):'all in line with targets';
-  $('#rbPlan').innerHTML=plan.length?plan.map(p=>
-    '<div class="plan-row"'+(p.id?' data-id="'+p.id+'" style="cursor:pointer"':'')+'>'+
-    '<span class="badge '+(p.delta>0?'u':'d')+'">'+(p.delta>0?'BUY':'SELL')+'</span>'+
-    '<span class="nm">'+esc(p.label)+'</span>'+
-    '<span class="am mask '+(p.delta>0?'up':'down')+'">'+money0(Math.abs(p.delta))+'</span></div>').join('')
-    :'<div class="empty" style="padding:20px"><div class="sm">No trades needed: the portfolio is already in line with its targets.</div></div>';
-  $$('#rbPlan [data-id]').forEach(el=>el.addEventListener('click',()=>openDrawer(el.getAttribute('data-id'))));
 
   /* la riga si apre al clic, ma non quando si scrive nel target o si usa
      qualcosa dentro il dettaglio già aperto */
@@ -14366,6 +14534,18 @@ function wire(){
     UI.rbMode=b.getAttribute('data-m'); renderRebalance();
   }));
   $('#rbCash').addEventListener('input',renderRebalance);
+  /* grafico d'insieme: ordinamento come #contribSort, tocco o Invio su una riga */
+  $$('#rbcSort button').forEach(b=>b.addEventListener('click',()=>{
+    UI.rbcSort=rbcSortPick(UI.rbcSort,b.getAttribute('data-k')); renderRebalance();
+  }));
+  $('#rbChart').addEventListener('click',e=>{
+    const r=e.target.closest('.rc[data-k]'); if(r)rbcOpen(r.getAttribute('data-k'));
+  });
+  $('#rbChart').addEventListener('keydown',e=>{
+    if(e.key!=='Enter'&&e.key!==' ')return;
+    const r=e.target.closest('.rc[data-k]'); if(!r||r!==e.target)return;
+    e.preventDefault(); rbcOpen(r.getAttribute('data-k'));
+  });
   $('#rbToggleAll').addEventListener('click',()=>{
     const u=rbUnits(), tutte=u.length&&u.every(x=>UI.rbOpen[x.key]);
     u.forEach(x=>{ UI.rbOpen[x.key]=!tutte; });
@@ -14575,8 +14755,8 @@ $('#rotRefresh .ic').innerHTML=ic('refresh',15);
 $('#scChv').innerHTML=ic('chev',16);
 $('#chipScenA').innerHTML=ic('settings',17);
 $('#chipRb').innerHTML=ic('balance',17);
+$('#chipRbc').innerHTML=ic('target',17);
 $('#chipRbP').innerHTML=ic('settings',17);
-$('#chipRbPlan').innerHTML=ic('inbox',17);
 $('#chipRlPar').innerHTML=ic('settings',17);
 $('#chipRlPre').innerHTML=ic('check',17);
 $('#chipRlSell').innerHTML=ic('balance',17);
