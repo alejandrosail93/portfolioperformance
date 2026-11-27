@@ -1400,11 +1400,12 @@ html[data-theme="martin"] .rb-row.lv2::before{background:var(--gold)}
    una riga per titolo (.cr .rc, misure e avatar da .cr .top) con la barra
    dell'operazione centrata sullo zero: vendi a sinistra, compra a destra,
    stessa scala €/pixel. Colonne fisse, così G/L, valore e badge restano
-   allineati fra le righe. Due colonne: a sinistra l'elenco (2/3), a destra
-   un pannello fermo che fa da legenda e comandi (Type, Sort, totali), con
+   allineati fra le righe; le due barre stanno una accanto all'altra, quella
+   dell'operazione i 2/3 e quella del G/L 1/3 (da 56 px fissi sotto 640 px).
+   Due colonne: a sinistra l'elenco, a destra un pannello stretto (210 px) fermo che fa da legenda e comandi (Type, Sort, totali), con
    le voci in stile .leg. Nessuna misura di testo nuova: .leg, .sec-t, .ctot,
    .pc e .rb-num .sub ci sono già (test-formato-web.js conta i px). */
-.rbc-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:20px;align-items:start}
+.rbc-grid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:20px;align-items:start}
 .rbc-side{display:flex;flex-direction:column;gap:18px;padding-left:18px;border-left:1px solid var(--line-soft)}
 .rbc-side .sec-t{margin:0 0 6px;padding-left:9px}
 .rbc-list{display:flex;flex-direction:column;gap:1px}
@@ -1423,7 +1424,7 @@ html[data-theme="martin"] .rb-row.lv2::before{background:var(--gold)}
 .rc{padding:7px 8px 8px;border-radius:10px;cursor:pointer;transition:background .15s}
 .rc:hover{background:var(--surface-2)}
 .rc:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-.rc .rc-top{display:grid;grid-template-columns:minmax(0,1fr) 64px 124px 148px;grid-template-rows:auto auto;gap:0 12px;align-items:center;margin-bottom:0}
+.rc .rc-top{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) 124px 148px;grid-template-rows:auto auto;gap:0 12px;align-items:center;margin-bottom:0}
 /* le due barre stanno sulla stessa riga: sotto il nome la barra dell'operazione,
    sotto la percentuale la mini-barra del G/L. Valore e azione occupano le due
    righe. Senza barra, il nome (o il "—" del G/L) si centra sulle due righe. */
@@ -1431,7 +1432,7 @@ html[data-theme="martin"] .rb-row.lv2::before{background:var(--gold)}
 .rc .rc-top .rc-tb{grid-column:1;grid-row:2;margin-top:5px;align-self:center}
 .rc .rc-top .rc-gl{display:contents}
 .rc .rc-top .rc-gl .pc{grid-column:2;grid-row:1;justify-self:end}
-.rc .rc-top .rc-gl .rc-glb{grid-column:2;grid-row:2;justify-self:end;margin-top:5px;align-self:center}
+.rc .rc-top .rc-gl .rc-glb{grid-column:2;grid-row:2;justify-self:stretch;width:auto;margin-top:5px;align-self:center}
 .rc .rc-top .rc-gl .pc.na{grid-row:1/3}
 .rc.nt .rc-top .n,.rc.hold .rc-top .n{grid-row:1/3}
 .rc .rc-top .vl{grid-column:3;grid-row:1/3}
@@ -1745,7 +1746,7 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   .rc .rc-top .n{grid-area:n}
   .rc .rc-top .rc-tb{grid-area:tb;margin-top:0}
   .rc .rc-top .rc-gl{display:flex;grid-area:gl;flex-direction:row;align-items:center;gap:8px}
-  .rc .rc-top .rc-gl .rc-glb{margin-top:0}
+  .rc .rc-top .rc-gl .rc-glb{margin-top:0;width:56px}
   .rc .rc-top .pc{text-align:left;margin-left:0}
   .rc .rc-top .vl{grid-area:vl;display:flex;justify-content:flex-end;align-items:baseline;gap:8px}
   .rc .rc-top .ac{grid-area:ac}
