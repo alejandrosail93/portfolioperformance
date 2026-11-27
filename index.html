@@ -1423,13 +1423,23 @@ html[data-theme="martin"] .rb-row.lv2::before{background:var(--gold)}
 .rc{padding:7px 8px 8px;border-radius:10px;cursor:pointer;transition:background .15s}
 .rc:hover{background:var(--surface-2)}
 .rc:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-.rc .rc-top{display:grid;grid-template-columns:minmax(0,1fr) 64px 124px 148px;gap:12px;margin-bottom:0}
-.rc .rc-top .rc-gl{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.rc .rc-top{display:grid;grid-template-columns:minmax(0,1fr) 64px 124px 148px;grid-template-rows:auto auto;gap:0 12px;align-items:center;margin-bottom:0}
+/* le due barre stanno sulla stessa riga: sotto il nome la barra dell'operazione,
+   sotto la percentuale la mini-barra del G/L. Valore e azione occupano le due
+   righe. Senza barra, il nome (o il "—" del G/L) si centra sulle due righe. */
+.rc .rc-top .n{grid-column:1;grid-row:1}
+.rc .rc-top .rc-tb{grid-column:1;grid-row:2;margin-top:5px;align-self:center}
+.rc .rc-top .rc-gl{display:contents}
+.rc .rc-top .rc-gl .pc{grid-column:2;grid-row:1;justify-self:end}
+.rc .rc-top .rc-gl .rc-glb{grid-column:2;grid-row:2;justify-self:end;margin-top:5px;align-self:center}
+.rc .rc-top .rc-gl .pc.na{grid-row:1/3}
+.rc.nt .rc-top .n,.rc.hold .rc-top .n{grid-row:1/3}
+.rc .rc-top .vl{grid-column:3;grid-row:1/3}
+.rc .rc-top .ac{grid-column:4;grid-row:1/3}
 .rc .rc-top .pc{text-align:right}
 .rc .rc-top .pc.na{color:var(--muted);font-weight:500}
 .rc .rc-top .vl{font-weight:650;white-space:nowrap}
 .rc .rc-top .ac{justify-self:end;white-space:nowrap;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
-.rc .track{margin-top:6px}
 /* mini-barra del G/L: 56 px, alta come .track, centrata sullo zero; scala
    fissa ±50% (rbcGlBar). Al passaggio la riga è --surface-2: le tracce
    passano a --surface per restare visibili */
@@ -1730,9 +1740,12 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   .top3{grid-template-columns:minmax(0,1fr)}
   /* Ribilanciamento, grafico d'insieme: nome e azione sopra; G/L, valore e
      peso → target sotto; barra in fondo */
-  .rc .rc-top{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"n n ac" "gl vl vl";row-gap:5px;column-gap:10px}
+  .rc .rc-top{grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:none;grid-template-areas:"n n ac" "gl vl vl" "tb tb tb";gap:5px 10px}
+  .rc.nt .rc-top,.rc.hold .rc-top{grid-template-areas:"n n ac" "gl vl vl"}
   .rc .rc-top .n{grid-area:n}
-  .rc .rc-top .rc-gl{grid-area:gl;flex-direction:row;align-items:center;gap:8px}
+  .rc .rc-top .rc-tb{grid-area:tb;margin-top:0}
+  .rc .rc-top .rc-gl{display:flex;grid-area:gl;flex-direction:row;align-items:center;gap:8px}
+  .rc .rc-top .rc-gl .rc-glb{margin-top:0}
   .rc .rc-top .pc{text-align:left;margin-left:0}
   .rc .rc-top .vl{grid-area:vl;display:flex;justify-content:flex-end;align-items:baseline;gap:8px}
   .rc .rc-top .ac{grid-area:ac}
@@ -10609,15 +10622,15 @@ function renderRbChart(total,cash){
     if(!r.noTarget&&!r.hold){
       const buy=r.delta>0, w=buy?r.delta/maxBuy*100:-r.delta/maxSell*100;
       const i='<i style="width:'+w.toFixed(1)+'%;background:var(--'+(buy?'up':'down')+')"></i>';
-      bar='<div class="track bi px"><span class="l" style="width:'+lw.toFixed(2)+'%">'+(buy?'':i)+'</span>'+
+      bar='<div class="track bi px rc-tb"><span class="l" style="width:'+lw.toFixed(2)+'%">'+(buy?'':i)+'</span>'+
         '<span class="r" style="width:'+rw.toFixed(2)+'%">'+(buy?i:'')+'</span></div>';
     }
     const tip=tkFull(r.p);
     return '<div class="cr rc'+(r.noTarget?' nt':r.hold?' hold':r.delta>0?' buy':' sell')+'" data-id="'+esc(String(r.id))+'"'+
         ' role="button" tabindex="0"'+(tip?' title="'+esc(tip)+'"':'')+'>'+
-      '<div class="top rc-top"><span class="n">'+avatarHTML(r.p,{size:20,radius:6,font:9})+'<span class="nt">'+esc(r.label)+'</span></span>'+gl+
+      '<div class="top rc-top"><span class="n">'+avatarHTML(r.p,{size:20,radius:6,font:9})+'<span class="nt">'+esc(r.label)+'</span></span>'+bar+gl+
         '<div class="rb-num vl"><span class="mask">'+money0(r.value)+'</span><div class="sub">'+wt+'</div></div>'+
-        '<span class="ac">'+ac+chips+'</span></div>'+bar+
+        '<span class="ac">'+ac+chips+'</span></div>'+
     '</div>';
   }).join('');
 }
