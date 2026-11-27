@@ -982,7 +982,7 @@ html[data-theme="terra"] .filters select,html[data-theme="terra"] .filters input
 .flbl{font-size:12px;color:var(--muted);font-weight:600}
 /* etichetta e controllo vanno a capo insieme, mai separati */
 .fgrp{display:inline-flex;align-items:center;gap:8px}
-#contribSort button,#rbcSort button,#rbcType button{padding:5px 11px;font-size:12px}
+#contribSort button{padding:5px 11px;font-size:12px}
 #contribSort .ar,#rbcSort .ar{margin-left:4px;font-size:10px;color:var(--accent-ink)}
 .fclear{font-size:12px;color:var(--accent-ink);font-weight:650;padding:6px 10px;border-radius:8px}
 .fclear:hover{background:var(--accent-soft)}
@@ -1400,17 +1400,27 @@ html[data-theme="martin"] .rb-row.lv2::before{background:var(--gold)}
    una riga per titolo (.cr .rc, misure e avatar da .cr .top) con la barra
    dell'operazione centrata sullo zero: vendi a sinistra, compra a destra,
    stessa scala €/pixel. Colonne fisse, così G/L, valore e badge restano
-   allineati fra le righe. Nessuna misura di testo nuova: .ctot, .pc,
-   .rb-num .sub e .rb-un ci sono già (test-formato-web.js conta i px). */
-#rbcSort,#rbcType{flex-wrap:wrap}
-#rbcType .n{color:var(--muted);margin-left:3px}
-#rbcType button:disabled{opacity:.45;cursor:default}
-.rbc-tot .p{color:var(--muted)}
-.rbc-tot .rbc-sep{color:var(--muted)}
-.rbc-tot .fcount{align-self:center}
+   allineati fra le righe. Due colonne: a sinistra l'elenco (2/3), a destra
+   un pannello fermo che fa da legenda e comandi (Type, Sort, totali), con
+   le voci in stile .leg. Nessuna misura di testo nuova: .leg, .sec-t, .ctot,
+   .pc e .rb-num .sub ci sono già (test-formato-web.js conta i px). */
+.rbc-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:20px;align-items:start}
+.rbc-side{display:flex;flex-direction:column;gap:18px;padding-left:18px;border-left:1px solid var(--line-soft)}
+.rbc-side .sec-t{margin:0 0 6px;padding-left:9px}
+.rbc-list{display:flex;flex-direction:column;gap:1px}
+.rbc-list .leg{width:100%;text-align:left;color:var(--muted)}
+.rbc-list .leg.on{background:var(--surface-2);color:var(--ink);font-weight:650}
+.rbc-list .leg:disabled{opacity:.45;cursor:default}
+.rbc-list .leg:disabled:hover{background:none}
+.rbc-list .leg .am{min-width:0}
+.rbc-list .leg:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.rbc-side .ctot{display:block;padding:0;margin:0;border:0}
+.rbc-side .ctot .p{color:var(--muted)}
+.rbc-tv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:2px 9px}
+.rbc-side .ctot .fcount,.rbc-side .ctot .l{display:block;padding:6px 9px 0}
 .rbc{display:flex;flex-direction:column;gap:2px;max-height:460px;overflow-y:auto;padding-right:4px;margin:0 -8px}
 .rbc>.note{margin:0 8px 8px}
-.rc{padding:9px 8px 10px;border-radius:10px;cursor:pointer;transition:background .15s}
+.rc{padding:7px 8px 8px;border-radius:10px;cursor:pointer;transition:background .15s}
 .rc:hover{background:var(--surface-2)}
 .rc:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .rc .rc-top{display:grid;grid-template-columns:minmax(0,1fr) 64px 124px 148px;gap:12px;margin-bottom:0}
@@ -1418,7 +1428,7 @@ html[data-theme="martin"] .rb-row.lv2::before{background:var(--gold)}
 .rc .rc-top .pc.na{color:var(--muted);font-weight:500}
 .rc .rc-top .vl{font-weight:650;white-space:nowrap}
 .rc .rc-top .ac{justify-self:end;white-space:nowrap}
-.rc .track{margin-top:7px}
+.rc .track{margin-top:6px}
 
 /* --- scenari (stress test) --- */
 .sc-pick{display:block;position:relative;width:100%;max-width:520px;margin-bottom:16px}
@@ -1686,6 +1696,14 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
   .castle-frame{zoom:calc(1 / var(--ui,1));height:calc(100vh - 191px * var(--ui,1));height:calc(100dvh - 191px * var(--ui,1))}
 }
 @media(max-width:1120px){
+  /* Ribilanciamento, grafico d'insieme: le due colonne si impilano col
+     pannello sopra; i totali in cima, Type e Sort affiancati sotto */
+  .rbc-grid{grid-template-columns:minmax(0,1fr);gap:14px}
+  .rbc-side{order:-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"tr tr" "ty so";
+    gap:14px 18px;padding:0 0 14px;border-left:0;border-bottom:1px solid var(--line-soft)}
+  .rbc-side>:nth-child(1){grid-area:ty}
+  .rbc-side>:nth-child(2){grid-area:so}
+  .rbc-side>:nth-child(3){grid-area:tr}
   .g2-wide,.g2-dash{grid-template-columns:1fr}
   .kpis{grid-template-columns:repeat(2,1fr)}
   /* valore e giornata affiancati, il grafico sotto a tutta larghezza */
@@ -2429,19 +2447,22 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
       </section>
       <section class="page wrap" id="pg-ribilanciamento">
         <div class="card" id="rbcCard">
-          <div class="card-hd"><h2><span class="chip a" id="chipRbc"></span> Rebalancing at a glance</h2>
-            <div class="right"><span class="sub hide-sm">one row per asset · click for details</span></div></div>
-          <div class="filters">
-            <span class="fgrp"><span class="flbl">Type</span>
-              <span class="seg" id="rbcType" aria-label="Asset type">
-                <button data-t="all" class="on">All</button><button data-t="Stocks">Stocks</button><button data-t="ETF">ETF</button><button data-t="Crypto">Crypto</button><button data-t="Other">Other</button>
-              </span></span>
-            <span class="fgrp"><span class="flbl">Sort</span>
-              <span class="seg" id="rbcSort" aria-label="Sort">
-                <button data-k="act" class="on">Action</button><button data-k="gl">Gain/Loss</button><button data-k="val">Value</button><button data-k="drift">Drift</button><button data-k="name">Name</button>
-              </span></span>
+          <div class="card-hd"><h2><span class="chip a" id="chipRbc"></span> Rebalancing at a glance</h2></div>
+          <div class="card-bd rbc-grid">
+            <div class="rbc" id="rbChart"></div>
+            <div class="rbc-side">
+              <div class="rbc-blk"><div class="sec-t">Type</div>
+                <div class="rbc-list" id="rbcType" role="group" aria-label="Asset type">
+                  <button type="button" class="leg on" data-t="all" aria-pressed="true"><span class="nm">All</span><span class="am"></span></button><button type="button" class="leg" data-t="Stocks" aria-pressed="false"><span class="nm">Stocks</span><span class="am"></span></button><button type="button" class="leg" data-t="ETF" aria-pressed="false"><span class="nm">ETF</span><span class="am"></span></button><button type="button" class="leg" data-t="Crypto" aria-pressed="false"><span class="nm">Crypto</span><span class="am"></span></button><button type="button" class="leg" data-t="Other" aria-pressed="false"><span class="nm">Other</span><span class="am"></span></button>
+                </div></div>
+              <div class="rbc-blk"><div class="sec-t">Sort</div>
+                <div class="rbc-list" id="rbcSort" role="group" aria-label="Sort">
+                  <button type="button" class="leg on" data-k="act" aria-pressed="true"><span class="nm">Action</span></button><button type="button" class="leg" data-k="gl" aria-pressed="false"><span class="nm">Gain/Loss</span></button><button type="button" class="leg" data-k="val" aria-pressed="false"><span class="nm">Value</span></button><button type="button" class="leg" data-k="drift" aria-pressed="false"><span class="nm">Drift</span></button><button type="button" class="leg" data-k="name" aria-pressed="false"><span class="nm">Name</span></button>
+                </div></div>
+              <div class="rbc-blk" id="rbcTrades"><div class="sec-t">Trades to reach the targets</div>
+                <div class="ctot rbc-tot" id="rbcTot"></div></div>
+            </div>
           </div>
-          <div class="card-bd"><div class="ctot rbc-tot" id="rbcTot"></div><div class="rbc" id="rbChart"></div></div>
         </div>
 
         <div class="grid g2-wide mt18">
@@ -10470,39 +10491,42 @@ function rbcCounts(rows){
 function renderRbChart(total,cash){
   const host=$('#rbChart'), head=$('#rbcTot'); if(!host)return;
   const cs=UI.rbcSort||{k:'act',dir:-1}, ty=UI.rbcType||'all';
+  /* il pannello di destra: i pulsanti restano gli stessi (cambiano classe,
+     aria-pressed, freccia e conteggio), così chi li usa da tastiera non perde
+     il fuoco a ogni render */
   $$('#rbcSort button').forEach(b=>{
     const on=b.getAttribute('data-k')===cs.k;
     b.classList.toggle('on',on);
+    b.setAttribute('aria-pressed',on?'true':'false');
     b.querySelectorAll('.ar').forEach(e=>e.remove());
     if(on){ const a=document.createElement('span'); a.className='ar'; a.textContent=cs.dir<0?'▼':'▲'; b.appendChild(a); }
   });
   const act=total>0?activePositions():[];
   const all=rbcRows(act,total,cash), cnt=rbcCounts(all);
   $$('#rbcType button').forEach(b=>{
-    const t=b.getAttribute('data-t'), n=cnt[t]||0;
-    b.classList.toggle('on',t===ty);
+    const t=b.getAttribute('data-t'), n=cnt[t]||0, on=t===ty, am=b.querySelector('.am');
+    b.classList.toggle('on',on);
+    b.setAttribute('aria-pressed',on?'true':'false');
     b.disabled=!n;
-    b.innerHTML=esc(t==='all'?'All':t)+' <span class="n">'+n+'</span>';
+    if(am)am.textContent=n;
   });
-  if(!all.length){
-    host.innerHTML='<div class="note">Add positions to see the rebalancing plan.</div>';
+  const trades=$('#rbcTrades');
+  const empty=msg=>{
+    host.innerHTML='<div class="note">'+msg+'</div>';
     if(head)head.innerHTML='';
-    return;
-  }
+    if(trades)trades.classList.add('rb-off');
+  };
+  if(!all.length)return empty('Add positions to see the rebalancing plan.');
   const shown=all.filter(r=>ty==='all'||r.type===ty);
-  if(!shown.length){
-    host.innerHTML='<div class="note">No assets of this type.</div>';
-    if(head)head.innerHTML='';
-    return;
-  }
+  if(!shown.length)return empty('No assets of this type.');
+  if(trades)trades.classList.remove('rb-off');
   const t=rbcTotals(shown), list=rbcSort(shown,cs.k,cs.dir);
-  if(head)head.innerHTML='<span class="l">Trades to reach the targets'+
-      (num(cash)>0?' · including <span class="mask">'+money0(num(cash))+'</span> of new capital':'')+'</span>'+
-    '<span class="p">To buy</span><span class="v px mask up">'+money0(t.buy)+'</span>'+
-    '<span class="rbc-sep">·</span>'+
-    '<span class="p">To sell</span><span class="v px mask down">'+money0(t.sell)+'</span>'+
+  if(head)head.innerHTML=
+    '<div class="rbc-tv"><span class="p">To buy</span><span class="v px mask up">'+money0(t.buy)+'</span></div>'+
+    '<div class="rbc-tv"><span class="p">To sell</span><span class="v px mask down">'+money0(t.sell)+'</span></div>'+
     '<span class="fcount" id="rbcSub">'+t.nBuy+' to buy · '+t.nSell+' to sell · '+t.nHold+' hold'+
-      (t.nNoTarget?' · '+t.nNoTarget+' no target':'')+'</span>';
+      (t.nNoTarget?' · '+t.nNoTarget+' no target':'')+'</span>'+
+    (num(cash)>0?'<span class="l">Including <span class="mask">'+money0(num(cash))+'</span> of new capital</span>':'');
   /* le due metà della barra dimensionate sulla vendita e sull'acquisto più
      grandi fra le righe mostrate, come in renderContrib: stessa scala
      €/pixel ai due lati dello zero */
