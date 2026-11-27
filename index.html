@@ -1424,11 +1424,26 @@ html[data-theme="martin"] .rb-row.lv2::before{background:var(--gold)}
 .rc:hover{background:var(--surface-2)}
 .rc:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .rc .rc-top{display:grid;grid-template-columns:minmax(0,1fr) 64px 124px 148px;gap:12px;margin-bottom:0}
+.rc .rc-top .rc-gl{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .rc .rc-top .pc{text-align:right}
 .rc .rc-top .pc.na{color:var(--muted);font-weight:500}
 .rc .rc-top .vl{font-weight:650;white-space:nowrap}
-.rc .rc-top .ac{justify-self:end;white-space:nowrap}
+.rc .rc-top .ac{justify-self:end;white-space:nowrap;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .rc .track{margin-top:6px}
+/* mini-barra del G/L: 56 px, alta come .track, centrata sullo zero; scala
+   fissa ±50% (rbcGlBar). Al passaggio la riga è --surface-2: le tracce
+   passano a --surface per restare visibili */
+.rc-glb{display:flex;width:56px;height:7px;border-radius:6px;background:var(--surface-2)}
+.rc-glb>span{display:flex;width:50%;min-width:0}
+.rc-glb>span.l{justify-content:flex-end;border-right:1px solid var(--line)}
+.rc-glb i{display:block;height:100%;border-radius:6px}
+.rc:hover .track,.rc:hover .rc-glb{background:var(--surface)}
+/* chip di priorità: High come i badge d'accento, Medium --surface-2 con
+   --ink, Low solo testo --muted; mai verde/rosso, che restano all'azione */
+.rc-ch{display:flex;gap:4px;justify-content:flex-end}
+.rc-p.hi{background:var(--accent-soft);color:var(--accent-ink)}
+.rc-p.md{background:var(--surface-2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line-soft)}
+.rc-p.lo{background:none;color:var(--muted);padding-left:0;padding-right:0}
 
 /* --- scenari (stress test) --- */
 .sc-pick{display:block;position:relative;width:100%;max-width:520px;margin-bottom:16px}
@@ -1717,7 +1732,8 @@ html[data-theme="terra"] .maptbl select{background:var(--surface)}
      peso → target sotto; barra in fondo */
   .rc .rc-top{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"n n ac" "gl vl vl";row-gap:5px;column-gap:10px}
   .rc .rc-top .n{grid-area:n}
-  .rc .rc-top .pc{grid-area:gl;text-align:left;margin-left:0}
+  .rc .rc-top .rc-gl{grid-area:gl;flex-direction:row;align-items:center;gap:8px}
+  .rc .rc-top .pc{text-align:left;margin-left:0}
   .rc .rc-top .vl{grid-area:vl;display:flex;justify-content:flex-end;align-items:baseline;gap:8px}
   .rc .rc-top .ac{grid-area:ac}
   .top3>.qd{aspect-ratio:auto;min-height:250px}
@@ -2457,7 +2473,7 @@ html[data-theme="glass-light"] .rb-row.lv2::before{background:color-mix(in srgb,
                 </div></div>
               <div class="rbc-blk"><div class="sec-t">Sort</div>
                 <div class="rbc-list" id="rbcSort" role="group" aria-label="Sort">
-                  <button type="button" class="leg on" data-k="act" aria-pressed="true"><span class="nm">Action</span></button><button type="button" class="leg" data-k="gl" aria-pressed="false"><span class="nm">Gain/Loss</span></button><button type="button" class="leg" data-k="val" aria-pressed="false"><span class="nm">Value</span></button><button type="button" class="leg" data-k="drift" aria-pressed="false"><span class="nm">Drift</span></button><button type="button" class="leg" data-k="name" aria-pressed="false"><span class="nm">Name</span></button>
+                  <button type="button" class="leg on" data-k="prio" aria-pressed="true"><span class="nm">Priority</span></button><button type="button" class="leg" data-k="act" aria-pressed="false"><span class="nm">Action</span></button><button type="button" class="leg" data-k="gl" aria-pressed="false"><span class="nm">Gain/Loss</span></button><button type="button" class="leg" data-k="val" aria-pressed="false"><span class="nm">Value</span></button><button type="button" class="leg" data-k="drift" aria-pressed="false"><span class="nm">Drift</span></button><button type="button" class="leg" data-k="name" aria-pressed="false"><span class="nm">Name</span></button>
                 </div></div>
               <div class="rbc-blk" id="rbcTrades"><div class="sec-t">Trades to reach the targets</div>
                 <div class="ctot rbc-tot" id="rbcTot"></div></div>
@@ -3634,7 +3650,7 @@ const UI={
   txEditId:null,
   expo:{level:'cat',leaf:null},
   perf:{size:'peso',per:'1G'},
-  rbMode:'cat', rbOpen:{}, rbcSort:{k:'act',dir:-1}, rbcType:'all', editWatch:null,
+  rbMode:'cat', rbOpen:{}, rbcSort:{k:'prio',dir:-1}, rbcType:'all', editWatch:null,
   /* pagina Regole: titolo scelto nelle schede, spunte delle caselle manuali
      (solo per questa sessione), quantità e motivo scritti nella scheda Vendita */
   rulesSell:null, rulesTicks:{}, rulesParOpen:null, rulesSellQty:{}, rulesSellWhy:{}, rulesTaxSel:'std',
@@ -10441,13 +10457,43 @@ function rbcRows(positions,total,cash){
     const noTarget=raw==null||!/\d/.test(String(raw));
     const r={id:p.id,p:p,label:tkLabel(p),type:rbcType(p),value:value,curP:curP,noTarget:noTarget,
       gl:num(p._cost)>0?num(p._pnlPct):null};
-    if(noTarget)return Object.assign(r,{tgt:null,delta:0,hold:true,drift:null});
+    if(noTarget)return Object.assign(r,{tgt:null,delta:0,hold:true,drift:null,prio:null,review:false});
     const tgt=num(raw), delta=newTot*tgt/100-value;
-    return Object.assign(r,{tgt:tgt,delta:delta,hold:Math.abs(delta)<newTot*.005,drift:Math.abs(curP-tgt)});
+    Object.assign(r,{tgt:tgt,delta:delta,hold:Math.abs(delta)<newTot*.005,drift:Math.abs(curP-tgt)});
+    const pr=rbcPrio(r,newTot);
+    return Object.assign(r,{prio:pr,review:!!(pr&&pr.review)});
   });
 }
-/* ordinamento. Action: ampiezza dell'operazione, poi gli hold, poi i "no
-   target"; Gain/Loss: i "—" in fondo in tutte e due le direzioni; Drift:
+/* Punteggio di priorità (0–100) delle righe buy/sell: un aiuto per ordinare,
+   non un ordine né la pagina Regole. Tre parti:
+   - distanza dal target: dist × rel, con rel = |delta| / valore al target
+     (al massimo 1; target 0 e vendita: 1);
+   - solo per gli acquisti, la perdita dal carico in punti, fino a lossCap
+     (un utile non dà nulla; il G/L non entra mai nella vendita: «è salito
+     troppo» non è un motivo, e vendere in utile realizza una plusvalenza);
+   - il peso dell'operazione: sizeMul × punti di newTot, fino a size.
+   Con G/L ≤ reviewAt la riga va rivista prima (chip Review) e il punteggio
+   non supera reviewMax: mai High. Etichette: ≥ high High, ≥ med Medium. */
+const RBC_PRIO={dist:50, loss:30, size:20, sizeMul:10, lossCap:30, reviewAt:-30, reviewMax:64, high:65, med:35};
+function rbcPrio(row,newTot){
+  if(!row||row.noTarget||row.hold||!(newTot>0))return null;
+  const K=RBC_PRIO, d=Math.abs(row.delta), tgtV=newTot*num(row.tgt)/100, buy=row.delta>0;
+  const rel=tgtV>0?Math.min(1,d/tgtV):1, mat=d/newTot*100, gl=row.gl;
+  const parts={dist:K.dist*rel, loss:buy&&gl!=null&&gl<0?Math.min(K.lossCap,-gl):0, size:Math.min(K.size,K.sizeMul*mat)};
+  const review=gl!=null&&gl<=K.reviewAt;
+  let score=Math.round(parts.dist+parts.loss+parts.size);
+  if(review)score=Math.min(K.reviewMax,score);
+  return {score:score, level:score>=K.high?'High':score>=K.med?'Medium':'Low', review:review, parts:parts};
+}
+/* mini-barra del G/L: scala fissa ±50% (oltre, piena), così un +300% non
+   appiattisce le altre righe; null dove il G/L è "—" */
+function rbcGlBar(gl){
+  if(gl==null||!isFinite(gl))return null;
+  return {side:gl>=0?'up':'down', pct:Math.min(Math.abs(gl),50)/50*100};
+}
+/* ordinamento. Priority: punteggio, a parità |delta|, poi gli hold, poi i
+   "no target" (le due prime chiavi seguono la direzione); Action: ampiezza
+   dell'operazione, poi gli hold, poi i "no target"; Gain/Loss: i "—" in fondo in tutte e due le direzioni; Drift:
    punti dal target, i "no target" in fondo; Value; Name alfabetico. A parità
    decide il nome (crescente). Restituisce una copia. */
 function rbcSort(rows,k,dir){
@@ -10455,12 +10501,13 @@ function rbcSort(rows,k,dir){
   const nm=(a,b)=>String(a.label).localeCompare(String(b.label),'it',{sensitivity:'base'})||
     (String(a.id)<String(b.id)?-1:String(a.id)>String(b.id)?1:0);
   /* gruppi che stanno in fondo qualunque sia la direzione */
-  const rank={act:r=>r.noTarget?2:r.hold?1:0, gl:r=>r.gl==null?1:0, drift:r=>r.noTarget?1:0}[k]||(()=>0);
-  const val={act:r=>Math.abs(r.delta),gl:r=>r.gl,val:r=>r.value,drift:r=>r.drift}[k];
+  const rank={prio:r=>r.noTarget?2:r.prio?0:1, act:r=>r.noTarget?2:r.hold?1:0, gl:r=>r.gl==null?1:0, drift:r=>r.noTarget?1:0}[k]||(()=>0);
+  const val={prio:r=>r.prio.score,act:r=>Math.abs(r.delta),gl:r=>r.gl,val:r=>r.value,drift:r=>r.drift}[k];
+  const tie=k==='prio'?(a,b)=>(Math.abs(a.delta)-Math.abs(b.delta))*d:()=>0;
   return (rows||[]).slice().sort((a,b)=>{
     const ra=rank(a), rb=rank(b); if(ra!==rb)return ra-rb;
     if(!val||ra>0)return k==='name'?nm(a,b)*d:nm(a,b);
-    return (val(a)-val(b))*d||nm(a,b);
+    return (val(a)-val(b))*d||tie(a,b)||nm(a,b);
   });
 }
 /* stesso tasto = direzione invertita; un tasto nuovo parte decrescente,
@@ -10490,7 +10537,7 @@ function rbcCounts(rows){
    resta calcolato sul portafoglio intero. Importi con mask, percentuali no. */
 function renderRbChart(total,cash){
   const host=$('#rbChart'), head=$('#rbcTot'); if(!host)return;
-  const cs=UI.rbcSort||{k:'act',dir:-1}, ty=UI.rbcType||'all';
+  const cs=UI.rbcSort||{k:'prio',dir:-1}, ty=UI.rbcType||'all';
   /* il pannello di destra: i pulsanti restano gli stessi (cambiano classe,
      aria-pressed, freccia e conteggio), così chi li usa da tastiera non perde
      il fuoco a ogni render */
@@ -10538,13 +10585,26 @@ function renderRbChart(total,cash){
     ?'<div class="note">Set a target weight on each asset (or open By asset once) to see the trades.</div>'
     :!go.length?'<div class="note">No trades needed: the portfolio is already in line with its targets.</div>':'';
   host.innerHTML=note+list.map(r=>{
-    const gl=r.gl==null?'<span class="pc na" title="No average cost">—</span>'
-      :'<span class="pc px '+(r.gl>=0?'up':'down')+'">'+pctv(r.gl,1)+'</span>';
+    /* G/L con la mini-barra sotto, sulla scala fissa ±50% di rbcGlBar */
+    const gb=rbcGlBar(r.gl), gi=gb?'<i style="width:'+gb.pct.toFixed(1)+'%;background:var(--'+gb.side+')"></i>':'';
+    const gl='<span class="rc-gl">'+(r.gl==null?'<span class="pc na" title="No average cost">—</span>'
+      :'<span class="pc px '+(r.gl>=0?'up':'down')+'">'+pctv(r.gl,1)+'</span>'+
+       '<span class="rc-glb px"><span class="l">'+(gb.side==='down'?gi:'')+'</span><span class="r">'+(gb.side==='up'?gi:'')+'</span></span>')+'</span>';
     const wt=nf(r.curP,1)+'%'+(r.noTarget?'':' → '+nf(r.tgt,1)+'%');
     const ac=r.noTarget?'<span class="badge">no target</span>'
       :r.hold?'<span class="badge">— HOLD</span>'
       :r.delta>0?'<span class="badge u">▲ BUY <span class="mask">'+money0(r.delta)+'</span></span>'
       :'<span class="badge d">▼ SELL <span class="mask">'+money0(-r.delta)+'</span></span>';
+    /* sotto l'azione, il chip di priorità (etichetta e punteggio, la
+       scomposizione nel title) e, con G/L ≤ −30%, il chip Review */
+    let chips='';
+    if(r.prio){
+      const pp=r.prio.parts, cl={High:'hi',Medium:'md',Low:'lo'}[r.prio.level];
+      const tip=(r.delta>0?'distance ':'excess ')+Math.round(pp.dist)+(r.delta>0?' + loss '+Math.round(pp.loss):'')+' + size '+Math.round(pp.size)+
+        (!r.review?'':Math.round(pp.dist+pp.loss+pp.size)>RBC_PRIO.reviewMax?' (capped at '+RBC_PRIO.reviewMax+': review first)':' (review first)');
+      chips='<span class="rc-ch"><span class="badge sm rc-p '+cl+'" title="'+tip+'">'+r.prio.level+' '+r.prio.score+'</span>'+
+        (r.review?'<span class="badge sm w" title="Down 30% or more from cost: review the thesis first">Review</span>':'')+'</span>';
+    }
     let bar='';
     if(!r.noTarget&&!r.hold){
       const buy=r.delta>0, w=buy?r.delta/maxBuy*100:-r.delta/maxSell*100;
@@ -10557,7 +10617,7 @@ function renderRbChart(total,cash){
         ' role="button" tabindex="0"'+(tip?' title="'+esc(tip)+'"':'')+'>'+
       '<div class="top rc-top"><span class="n">'+avatarHTML(r.p,{size:20,radius:6,font:9})+'<span class="nt">'+esc(r.label)+'</span></span>'+gl+
         '<div class="rb-num vl"><span class="mask">'+money0(r.value)+'</span><div class="sub">'+wt+'</div></div>'+
-        '<span class="ac">'+ac+'</span></div>'+bar+
+        '<span class="ac">'+ac+chips+'</span></div>'+bar+
     '</div>';
   }).join('');
 }
